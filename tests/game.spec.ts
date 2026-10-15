@@ -65,3 +65,31 @@ test('rejects invalid photos and explains storage failures without crashing', as
   await expect(page.getByRole('alert')).toContainText('저장하지 못했어요')
   await expect(page.locator('.room-friend')).toHaveCount(4)
 })
+test('registers two different parts of the same wide photo without losing its edges', async ({ page }) => {
+  const source = await page.evaluate(() => {
+    const canvas = document.createElement('canvas'); canvas.width = 400; canvas.height = 120
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#ff2222'; ctx.fillRect(0, 0, 200, 120)
+    ctx.fillStyle = '#2222ff'; ctx.fillRect(200, 0, 200, 120)
+    return canvas.toDataURL('image/png').split(',')[1]
+  })
+  const file = { name: 'two-friends.png', mimeType: 'image/png', buffer: Buffer.from(source, 'base64') }
+  await page.locator('input[type=file]').setInputFiles(file)
+  await page.getByLabel('좌우 위치').fill('100')
+  await page.getByRole('button', { name: '이 모습으로 등록하기' }).click()
+  await page.locator('.friend-card').nth(1).getByRole('button', { name: /내 사진으로 등록/ }).click()
+  await page.locator('input[type=file]').setInputFiles(file)
+  await page.getByLabel('좌우 위치').fill('-100')
+  await page.getByRole('button', { name: '이 모습으로 등록하기' }).click()
+  const colors = await page.evaluate(async () => {
+    const saved = JSON.parse(localStorage.getItem('pocket-friends-v1')!)
+    return Promise.all(saved.friends.slice(0, 2).map(async (f: {photo: string}) => {
+      const img = new Image(); img.src = f.photo; await img.decode()
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256
+      const ctx = canvas.getContext('2d')!; ctx.drawImage(img, 0, 0)
+      return Array.from(ctx.getImageData(128, 128, 1, 1).data)
+    }))
+  })
+  expect(colors[0][0]).toBeGreaterThan(200); expect(colors[0][2]).toBeLessThan(80)
+  expect(colors[1][2]).toBeGreaterThan(200); expect(colors[1][0]).toBeLessThan(80)
+})

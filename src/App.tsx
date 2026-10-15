@@ -34,7 +34,8 @@ function mood(f: Friend) {
   if (f.stats.happiness < 30) return '관심이 필요해요'
   return '기분이 좋아요'
 }
-type Crop = { src: string; target: string; zoom: number; x: number; y: number }
+type Crop = { src: string; target: string; ratio: number; zoom: number; x: number; y: number }
+const cropBounds = (crop: Crop, zoom = crop.zoom) => ({ x: Math.floor((Math.max(1, crop.ratio) * zoom - 1) * 50), y: Math.floor((Math.max(1, 1 / crop.ratio) * zoom - 1) * 50) })
 function App() {
   const [initial] = useState(load)
   const model = useRef(initial.data)
@@ -118,11 +119,12 @@ function App() {
     const url = URL.createObjectURL(file)
     try {
       const img = new Image(); img.src = url; await img.decode()
-      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 512
+      const canvas = document.createElement('canvas')
+      const resize = Math.min(1, 1200 / Math.max(img.naturalWidth, img.naturalHeight))
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * resize)); canvas.height = Math.max(1, Math.round(img.naturalHeight * resize))
       const ctx = canvas.getContext('2d')!
-      const size = Math.min(img.naturalWidth, img.naturalHeight)
-      ctx.drawImage(img, (img.naturalWidth - size) / 2, (img.naturalHeight - size) / 2, size, size, 0, 0, 512, 512)
-      setCrop({ src: canvas.toDataURL('image/webp', .9), target: uploadTarget.current, zoom: 1, x: 0, y: 0 })
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      setCrop({ src: canvas.toDataURL('image/webp', .9), target: uploadTarget.current, ratio: canvas.width / canvas.height, zoom: 1, x: 0, y: 0 })
     } catch { notify('사진을 열 수 없어요. 다른 사진으로 다시 시도해 주세요.') }
     finally { URL.revokeObjectURL(url); setImageBusy(false) }
   }
@@ -133,8 +135,8 @@ function App() {
       const img = new Image(); img.src = crop.src; await img.decode()
       const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256
       const context = canvas.getContext('2d')!
-      const size = 256 * crop.zoom
-      context.drawImage(img, (256 - size) / 2 + crop.x / 100 * 256, (256 - size) / 2 + crop.y / 100 * 256, size, size)
+      const width = 256 * Math.max(1, crop.ratio) * crop.zoom, height = 256 * Math.max(1, 1 / crop.ratio) * crop.zoom
+      context.drawImage(img, (256 - width) / 2 + crop.x / 100 * 256, (256 - height) / 2 + crop.y / 100 * 256, width, height)
       const target = friends.find(f => f.id === crop.target)!
       target.photo = canvas.toDataURL('image/webp', .85)
       remember(`${target.name}에게 새로운 모습을 선물했어요`)
@@ -194,7 +196,7 @@ function PhotoDialog({ crop, setCrop, busy, save }: { crop: Crop; setCrop: (valu
     dialog.current?.focus()
     return () => previous?.focus()
   }, [])
-  const maxOffset = (crop.zoom - 1) * 50
+  const bounds = cropBounds(crop)
   return <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget && !busy) setCrop(null) }}><div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="photo-title" className="photo-modal" onKeyDown={e => {
     if (e.key === 'Escape' && !busy) setCrop(null)
     if (e.key === 'Tab') {
@@ -204,6 +206,6 @@ function PhotoDialog({ crop, setCrop, busy, save }: { crop: Crop; setCrop: (valu
       if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { e.preventDefault(); last.focus() }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
     }
-  }}><div className="modal-title"><span><Camera size={18} /><h2 id="photo-title">우리 친구의 새로운 모습</h2></span><button className="icon-button" aria-label="사진 편집 닫기" disabled={busy} onClick={() => setCrop(null)}><X size={20} /></button></div><p>한 장에 한 친구가 담긴 사진을 골라 주세요.<br />가운데 부분을 사용해요. 확대하고 위치를 맞춰 보세요.</p><div className="crop-preview"><img src={crop.src} alt="등록할 캐릭터 미리보기" style={{ transform: `translate(${crop.x}%, ${crop.y}%) scale(${crop.zoom})` }} /></div><label className="crop-control">확대<input type="range" min="1" max="2.5" step="0.05" value={crop.zoom} onChange={e => { const zoom = Number(e.target.value), bound = (zoom - 1) * 50; setCrop({ ...crop, zoom, x: Math.max(-bound, Math.min(bound, crop.x)), y: Math.max(-bound, Math.min(bound, crop.y)) }) }} /></label><label className="crop-control">좌우 위치<input type="range" min={-maxOffset || -1} max={maxOffset || 1} disabled={!maxOffset} step="1" value={crop.x} onChange={e => setCrop({ ...crop, x: Number(e.target.value) })} /></label><label className="crop-control">상하 위치<input type="range" min={-maxOffset || -1} max={maxOffset || 1} disabled={!maxOffset} step="1" value={crop.y} onChange={e => setCrop({ ...crop, y: Number(e.target.value) })} /></label><p className="photo-privacy">사진은 이 브라우저에만 보관돼요 · 자동 배경 제거는 지원하지 않아요</p><button className="primary-button" disabled={busy} onClick={save}>{busy ? '등록하는 중…' : '이 모습으로 등록하기'}<Check size={17} /></button></div></div>
+  }}><div className="modal-title"><span><Camera size={18} /><h2 id="photo-title">우리 친구의 새로운 모습</h2></span><button className="icon-button" aria-label="사진 편집 닫기" disabled={busy} onClick={() => setCrop(null)}><X size={20} /></button></div><p>사진에서 원하는 친구가 보이도록 맞춰 주세요.<br />같은 사진으로 모모와 비비를 각각 등록할 수도 있어요.</p><div className="crop-preview"><img src={crop.src} alt="등록할 캐릭터 미리보기" style={{ width: `${Math.max(1, crop.ratio) * 100}%`, height: `${Math.max(1, 1 / crop.ratio) * 100}%`, left: `${50 + crop.x}%`, top: `${50 + crop.y}%`, transform: `translate(-50%, -50%) scale(${crop.zoom})` }} /></div><label className="crop-control">확대<input type="range" min="1" max="4" step="0.05" value={crop.zoom} onChange={e => { const zoom = Number(e.target.value), bound = cropBounds(crop, zoom); setCrop({ ...crop, zoom, x: Math.max(-bound.x, Math.min(bound.x, crop.x)), y: Math.max(-bound.y, Math.min(bound.y, crop.y)) }) }} /></label><label className="crop-control">좌우 위치<input type="range" min={-bounds.x || -1} max={bounds.x || 1} disabled={!bounds.x} step="1" value={crop.x} onChange={e => setCrop({ ...crop, x: Number(e.target.value) })} /></label><label className="crop-control">상하 위치<input type="range" min={-bounds.y || -1} max={bounds.y || 1} disabled={!bounds.y} step="1" value={crop.y} onChange={e => setCrop({ ...crop, y: Number(e.target.value) })} /></label><p className="photo-privacy">사진은 이 브라우저에만 보관돼요 · 자동 배경 제거는 지원하지 않아요</p><button className="primary-button" disabled={busy} onClick={save}>{busy ? '등록하는 중…' : '이 모습으로 등록하기'}<Check size={17} /></button></div></div>
 }
 export default App
