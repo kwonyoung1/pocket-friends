@@ -61,6 +61,8 @@ test('expedition keeps others active, blocks care, returns once after wall time 
   await page.getByRole('button', { name: '탐험 보내기', exact: true }).click()
   const started = await snapshot(page), job = started.world.jobs[0]
   expect(started.world.coins).toBe(300)
+  // The departure result already includes any random event bonus; return must pay it exactly once.
+  const expectedCoins = started.world.coins + job.result.coins
   await expect(page.getByRole('button', { name: '이미 탐험 중이에요' })).toHaveCount(4)
   await close(page)
   await expect(page.getByTestId('room-momo')).toHaveCount(0)
@@ -72,11 +74,41 @@ test('expedition keeps others active, blocks care, returns once after wall time 
   if (await page.getByRole('button', { name: '소중히 간직할게 ♡' }).count()) await page.getByRole('button', { name: '소중히 간직할게 ♡' }).click()
   await expect(page.getByTestId('room-momo')).toBeVisible()
   const returned = await snapshot(page)
-  expect(returned.world.coins).toBe(420); expect(returned.friends[0].growth.explorations).toBe(1)
+  expect(returned.world.coins).toBe(expectedCoins); expect(returned.friends[0].growth.explorations).toBe(1)
   expect(returned.world.jobs[0].result).toEqual(job.result)
   await page.reload(); await page.clock.runFor(1200)
-  expect((await snapshot(page)).world.coins).toBe(420)
+  expect((await snapshot(page)).world.coins).toBe(expectedCoins)
 })
+for (const { roll, eventId, reward } of [
+  { roll: .05, eventId: 'coins', reward: 170 },
+  { roll: .01, eventId: 'treasure', reward: 270 },
+]) {
+  test(`expedition ${eventId} bonus survives reload and is paid exactly once`, async ({ page }) => {
+    const s = fixture()
+    startExpedition(s, 'momo', 'forest', epoch, () => roll)
+    const job = world(s).jobs[0]
+    expect(job.result.eventId).toBe(eventId)
+    expect(job.result.coins).toBe(reward)
+    await seed(page, s)
+    // Reload while away: the pre-rolled result must survive, without paying early.
+    await page.reload(); await page.clock.runFor(1200)
+    const away = await snapshot(page)
+    expect(away.world.coins).toBe(300)
+    expect(away.world.jobs[0].result).toEqual(job.result)
+    await page.clock.fastForward(job.endsAt - (epoch + 1000) + 3000)
+    await page.clock.runFor(1200)
+    const returned = await snapshot(page)
+    expect(returned.world.coins).toBe(300 + reward)
+    expect(returned.world.jobs[0].claimedAt).toBeDefined()
+    expect(returned.friends[0].growth.explorations).toBe(1)
+    await page.reload(); await page.clock.runFor(1200)
+    const restored = await snapshot(page)
+    expect(restored.world.coins).toBe(300 + reward)
+    expect(restored.world.jobs[0].result).toEqual(job.result)
+    expect(restored.world.jobs[0].claimedAt).toBe(returned.world.jobs[0].claimedAt)
+    expect(restored.friends[0].growth.explorations).toBe(1)
+  })
+}
 test('offline legendary reward is durable, gold notice can be dismissed, and collection retains the date', async ({ page }) => {
   const s = fixture(); startExpedition(s, 'momo', 'forest', epoch - 3600000, () => .999)
   await seed(page, s); await page.clock.runFor(100)
