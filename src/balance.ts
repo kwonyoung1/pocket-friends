@@ -17,5 +17,5 @@ export const interactionBalance = {
     coco: { normal: .64, photo: .5 },
     dudu: { normal: .64, photo: .5 },
   } as Record<string, { normal: number; photo: number }>,
-  headCutoff: { cat: .64, bunny: .64, bear: .64, fox: .64, dog: .64, photo: .5 },
+  headCutoff: { cat: .64, bunny: .64, bear: .64, fox: .64, dog: .64, boy: .55, girl: .55, photo: .5 },
 } as const

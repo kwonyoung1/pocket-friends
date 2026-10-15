@@ -138,7 +138,7 @@ test('two native touch holds remain independent while cloud commands are seriali
   await expect(page.locator('.room-friend[data-phase=bonding]')).toHaveCount(2, { timeout: 8000 })
   await expect.poll(() => backend.row().data!.friends.slice(0, 2).map(f => f.stats.affection)).toEqual([23, 23])
   await session.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] })
-  await expect(page.locator('.room-friend[data-phase=idle]')).toHaveCount(4)
+  await expect(page.locator('.room-friend[data-phase=idle]')).toHaveCount(6)
   await session.detach()
 })
 
@@ -148,7 +148,7 @@ test('two devices share new names, adoptees and furniture without modifying the 
  await enter(page,backend.secret);await page.getByRole('button',{name:'이 기기 데이터를 기준으로 가져오기'}).click();await page.getByRole('button',{name:'확인하고 공유 월드 만들기'}).click();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
  const phone=await browser.newContext({viewport:{width:390,height:700},isMobile:true,hasTouch:true});await backend.attach(phone);const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
  await page.getByRole('button',{name:'생활·입양',exact:true}).click();await page.getByLabel('새 이름').fill('우리 친구');await page.getByRole('button',{name:'이름 저장'}).click();await expect.poll(()=>backend.row().data!.friends[0].name).toBe('우리 친구')
- await page.getByRole('button',{name:'입양',exact:true}).click();await page.getByRole('button',{name:'새 식구 맞이 · 10,000코인'}).first().click();await expect.poll(()=>backend.row().data!.friends.length).toBe(5);await page.getByRole('button',{name:'생활 메뉴 닫기'}).click()
+ await page.getByRole('button',{name:'입양',exact:true}).click();await page.getByRole('button',{name:'새 식구 맞이 · 10,000코인'}).first().click();await expect.poll(()=>backend.row().data!.friends.length).toBe(7);await page.getByRole('button',{name:'생활 메뉴 닫기'}).click()
  await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await expect(second.getByTestId('room-lulu')).toBeVisible();await expect(second.getByRole('button',{name:'우리 친구 상태 확인'})).toBeVisible();await expect(second.getByRole('button',{name:'보유 코인 10000'})).toBeVisible()
  const lulu=page.getByTestId('room-lulu');await lulu.scrollIntoViewIfNeeded();const box=await lulu.locator('.friend-figure').boundingBox()
  await page.mouse.move(box!.x+box!.width/2,box!.y+box!.height/2);await page.mouse.down();await page.mouse.move(box!.x+box!.width/2+35,box!.y+box!.height/2+15,{steps:4});await page.mouse.up()
@@ -161,4 +161,18 @@ test('two devices share new names, adoptees and furniture without modifying the 
  await page.getByRole('button',{name:'새로 동기화',exact:true}).click();await expect(page.getByRole('button',{name:'작은 화분 이동 또는 회수'})).toBeVisible()
  expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw);expect(backend.row().data!.world!.inventory.plant).toBe(0)
  await page.reload();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await expect(page.getByTestId('room-lulu')).toBeVisible();await phone.close()
+})
+
+test('free human gifts appear on both devices once and keep their names, individual affection and shared pictures',async({page,backend,browser})=>{
+ await fresh(page,backend.secret)
+ for(const kind of ['boy','girl'])await expect(page.getByTestId(`room-special-${kind}`).locator('.human-art')).toBeVisible()
+ await expect.poll(()=>backend.row().data!.friends.length).toBe(6);expect(backend.row().data!.world!.coins).toBe(300)
+ const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone);const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
+ for(const kind of ['boy','girl']){const first=page.getByTestId(`room-special-${kind}`).locator('img'),other=second.getByTestId(`room-special-${kind}`).locator('img');await expect(other).toBeVisible();expect(await other.getAttribute('src')).toBe(await first.getAttribute('src'))}
+ await page.getByRole('button',{name:'여자아이 상태 확인'}).click();await page.getByRole('button',{name:'생활·입양',exact:true}).click();await page.getByLabel('새 이름').fill('우리 소녀');await page.getByRole('button',{name:'이름 저장'}).click();await expect.poll(()=>backend.row().data!.friends.find(f=>f.id==='special-girl')!.name).toBe('우리 소녀');await page.getByRole('button',{name:'생활 메뉴 닫기'}).click()
+ await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await expect(second.getByRole('button',{name:'우리 소녀 상태 확인'})).toBeVisible()
+ await second.getByTestId('room-special-boy').tap();await expect.poll(()=>backend.row().data!.friends.find(f=>f.id==='special-boy')!.stats.affection).toBe(21)
+ expect(backend.row().data!.friends.find(f=>f.id==='special-girl')!.stats.affection).toBe(20);expect(backend.row().data!.world!.coins).toBe(300)
+ await second.reload();await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await expect(second.getByTestId('room-special-girl').locator('.human-art')).toBeVisible()
+ expect(backend.row().data!.friends.filter(f=>f.id==='special-boy')).toHaveLength(1);expect(backend.row().data!.friends.filter(f=>f.id==='special-girl')).toHaveLength(1);await phone.close()
 })

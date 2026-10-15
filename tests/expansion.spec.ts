@@ -111,10 +111,10 @@ test('four adoptees join the original family, can be touched independently and p
       .getByRole('button', { name: '새 식구 맞이 · 10,000코인', exact: true })
       .first()
       .click()
-  expect((await data(page)).friends).toHaveLength(8)
+  expect((await data(page)).friends).toHaveLength(10)
   expect((await data(page)).world.coins).toBe(0)
   await closeLife(page)
-  await expect(page.locator('.room-friend')).toHaveCount(8)
+  await expect(page.locator('.room-friend')).toHaveCount(10)
   for (const id of ['lulu', 'toto', 'byeol', 'mungchi']) {
     const actor = page.getByTestId(`room-${id}`)
     await actor.scrollIntoViewIfNeeded()
@@ -132,7 +132,7 @@ test('four adoptees join the original family, can be touched independently and p
     await page.clock.runFor(1800)
   }
   await page.reload()
-  await expect(page.locator('.room-friend')).toHaveCount(8)
+  await expect(page.locator('.room-friend')).toHaveCount(10)
   expect(
     (await data(page)).friends.slice(0, 4).map((f: { id: string }) => f.id),
   ).toEqual(['momo', 'bibi', 'coco', 'dudu'])

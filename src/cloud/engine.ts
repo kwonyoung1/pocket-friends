@@ -1,3 +1,5 @@
+import { specialIds } from '../humans/config.ts'
+import { grantSpecialFriends } from '../humans/model.ts'
 import {
   busyLife,
   lifeCommand,
@@ -28,7 +30,7 @@ const friendIds = [
   'bibi',
   'coco',
   'dudu',
-  ...adoptionCatalog.map((d) => d.id),
+  ...adoptionCatalog.map((d) => d.id), ...specialIds,
 ]
 const string = (value: unknown, max = 100): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= max
@@ -69,6 +71,7 @@ export function validateCommand(value: unknown): GameCommand {
       break
     case 'seen-discoveries':
       break
+    case 'claim-special-friends':
     case 'refresh':
     case 'attendance':
     case 'dismiss-notice':
@@ -166,6 +169,7 @@ export function applyCommand(
   if ('friendId' in c && !f) throw Error('아직 함께 살지 않는 친구예요.')
   let message = returns.join(' · ') || '클라우드와 동기화했어요.'
   switch (c.type) {
+    case 'claim-special-friends': message=grantSpecialFriends(save,now)?'남자아이와 여자아이가 새 가족이 되었어요! 특별 친구는 무료예요.':'특별 친구들과 함께하고 있어요.';break
     case 'bath':
     case 'medicine':
     case 'rename':

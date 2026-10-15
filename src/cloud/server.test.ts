@@ -31,7 +31,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 2 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 3 }),
     }),
   )
 }
@@ -504,3 +504,22 @@ describe.sequential(
     })
   },
 )
+
+describe.sequential('special human gifts are atomic and do not replace an existing world',()=>{
+ it('two devices claim both gifts once without spending coins or changing existing progression',async()=>{
+  await reset();await login(pc);await login(mobile)
+  const old=freshWorld(now);old.world!.coins=9876;old.friends[0].photo='data:image/png;base64,AAAA'
+  await command(pc,{type:'initialize',source:'local',data:old})
+  const op=crypto.randomUUID();await Promise.all([command(pc,{type:'claim-special-friends'},op),command(mobile,{type:'claim-special-friends'})]);await command(pc,{type:'claim-special-friends'},op)
+  const row=await repo.load();expect(row.data!.friends).toHaveLength(6);expect(row.data!.world!.coins).toBe(9876);expect(row.data!.friends[0].photo).toBe(old.friends[0].photo)
+  expect(row.data!.friends.filter(f=>f.id==='special-boy')).toHaveLength(1);expect(row.data!.friends.filter(f=>f.id==='special-girl')).toHaveLength(1)
+  await command(pc,{type:'rename',friendId:'special-boy',name:'우리 소년'});await command(mobile,{type:'expedition',friendId:'special-girl',id:'forest'})
+  const updated=await repo.load();expect(updated.data!.friends.find(f=>f.id==='special-boy')!.name).toBe('우리 소년');expect(updated.data!.friends.find(f=>f.id==='special-girl')!.growth!.awayJobId).toBeTruthy()
+  expect((await importWorld(updated.data,now)).friends).toHaveLength(6)
+ })
+ it('rejects previous-version writers after the gift without removing the special friends',async()=>{
+  await reset();await login(pc);await command(pc,{type:'initialize',source:'fresh'});await command(pc,{type:'claim-special-friends'})
+  const request=new Request('https://project.supabase.co/functions/v1/game',{method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${pc}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:2,command:{type:'refresh'}})})
+  expect((await handler(request)).status).toBe(409);expect((await repo.load()).data!.friends).toHaveLength(6)
+ })
+})

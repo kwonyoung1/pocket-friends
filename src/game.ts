@@ -1,3 +1,5 @@
+import { specialIds, humanLine } from './humans/config.ts'
+import { makeSpecialFriend } from './humans/model.ts'
 import { busyLife, sleeping, settleLife, makeAdoptee } from './expansion/model.ts'
 import type { Life } from './expansion/model.ts'
 import type { Obstacle } from './navigation.ts'
@@ -12,7 +14,7 @@ import type { Interaction } from './interaction.ts'
 import { interactionBalance } from './balance.ts'
 export { obstacles, walkable, findRoute } from './navigation.ts'
 
-export type Kind = 'cat' | 'bunny' | 'bear' | 'fox' | 'dog'
+export type Kind = 'cat' | 'bunny' | 'bear' | 'fox' | 'dog' | 'boy' | 'girl'
 export type Stats = { hunger: number; happiness: number; energy: number; hygiene: number; affection: number }
 export type Point = { x: number; y: number }
 export type Friend = {
@@ -61,13 +63,13 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
       g.specialAfter = now + between(25000, 50000) * (1 - g.traits.active / 300)
       if (now >= f.bubbleUntil && Math.random() < .1 + g.traits[dominant(f)] / 160) {
         g.specialUntil = now + 2000
-        speak(f, personalityPhrases[dominant(f)][0], now, 1)
+        speak(f, humanLine(f.kind,'daily',f.bubble)??personalityPhrases[dominant(f)][0], now, 1)
         f.restingUntil = Math.max(f.restingUntil, now + 1600)
       }
     }
     if (now >= f.nextSpeech) {
       const pool = f.growth && Math.random() < .35 ? personalityPhrases[dominant(f)] : phrases
-      speak(f, f.life?.coldAt ? '에취… 훌쩍! 따뜻하게 쉬어야겠어~' : f.stats.hunger < 30 ? '배에서 꼬르륵… 간식 먹고 싶어~' : pool[Math.floor(Math.random() * pool.length)], now, f.stats.hunger < 30 || f.life?.coldAt ? 3 : 1)
+      speak(f, f.life?.coldAt ? '에취… 훌쩍! 따뜻하게 쉬어야겠어~' : f.stats.hunger < 30 ? humanLine(f.kind,'hungry',f.bubble)??'배에서 꼬르륵… 간식 먹고 싶어~' : humanLine(f.kind,'daily',f.bubble)??pool[Math.floor(Math.random() * pool.length)], now, f.stats.hunger < 30 || f.life?.coldAt ? 3 : 1)
       f.nextSpeech = now + between(20000, 50000)
     }
     f.moving = false
@@ -83,8 +85,9 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
     }
     const peer = f.meeting ? friends.find(p => p.id === f.meeting) : undefined
     if (peer && !peer.growth?.awayJobId && !busyLife(peer,now) && !controlled(peer) && distance(f, peer) < 95 && now >= peer.socialAfter && !(f.bubbleUntil > now && (f.bubblePriority ?? 0) > 2) && !(peer.bubbleUntil > now && (peer.bubblePriority ?? 0) > 2)) {
-      speak(f, `${peer.name}야, 안녕! 같이 놀자 ♡`, now, 2)
-      speak(peer, `${f.name}야~ 만나서 반가워!`, now, 2)
+      const greeting=humanLine(f.kind,'social',f.bubble),reply=humanLine(peer.kind,'social',peer.bubble)
+      speak(f, greeting?`${peer.name}, ${greeting}`:`${peer.name}야, 안녕! 같이 놀자 ♡`, now, 2)
+      speak(peer, reply?`${f.name}, ${reply}`:`${f.name}야~ 만나서 반가워!`, now, 2)
       for (const p of [f, peer]) {
         if (!visualOnly) { p.stats.happiness = clamp(p.stats.happiness + 4); p.stats.affection = clamp(p.stats.affection + (p.growth && dominant(p) === 'affectionate' ? 1 + growthBalance.bonuses.affectionateSocial : 1)) }
         p.restingUntil = now + 7000; p.socialAfter = now + 30000; p.route = []; p.meeting = undefined; p.moving = false
@@ -107,7 +110,7 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
 }
 export function care(f: Friend, action: Care, now = Date.now()): string | null {
   if (f.growth?.awayJobId || f.life?.bath) return null
-  if (sleeping(f,now)) { say(f,'으응… 조금 더 잘래… 💤',now); return '새근새근 잠들어 있어요.' }
+  if (sleeping(f,now)) { say(f,humanLine(f.kind,'sleep',f.bubble)??'으응… 조금 더 잘래… 💤',now); return '새근새근 잠들어 있어요.' }
   if (action === 'feed') return '먹이는 인벤토리에서 골라 주세요.'
   if (action === 'wash') return '목욕은 생활 메뉴에서 시작해 주세요.'
   if (!f.interaction?.gesture) advanceInteraction(f, now, 0)
@@ -123,10 +126,10 @@ export function parseSave(raw: string, now = Date.now()): Save {
   const data: unknown = JSON.parse(raw)
   if (!data || typeof data !== 'object' || !('version' in data) || ![1, 2].includes(Number(data.version))) throw Error('지원하지 않는 저장 형식')
   const saved = data as Save
-  if (!Number.isFinite(saved.savedAt) || !Array.isArray(saved.friends) || saved.friends.length < 4 || saved.friends.length > 8) throw Error('손상된 저장 데이터')
+  if (!Number.isFinite(saved.savedAt) || !Array.isArray(saved.friends) || saved.friends.length < 4 || saved.friends.length > 10) throw Error('손상된 저장 데이터')
   const base = createFriends(now)
   if(new Set(saved.friends.map(f=>f.id)).size!==saved.friends.length)throw Error('중복된 친구 데이터')
-  for(const old of saved.friends.filter(f=>!base.some(b=>b.id===f.id))){if(!adoptionCatalog.some(d=>d.id===old.id))throw Error('알 수 없는 친구');base.push(makeAdoptee(old.id,now))}
+  for(const old of saved.friends.filter(f=>!base.some(b=>b.id===f.id))){if(specialIds.includes(old.id))base.push(makeSpecialFriend(old.id,now));else{if(!adoptionCatalog.some(d=>d.id===old.id))throw Error('알 수 없는 친구');base.push(makeAdoptee(old.id,now))}}
   for (const f of base) {
     const old = saved.friends.find(v => v && v.id === f.id)
     if (!old?.stats || !Object.keys(f.stats).every(k => typeof old.stats[k as keyof Stats] === 'number' && Number.isFinite(old.stats[k as keyof Stats]))) throw Error('손상된 상태 데이터')

@@ -1,3 +1,5 @@
+import { specialIds } from './humans/config'
+import { grantSpecialFriends } from './humans/model'
 import { itemById } from './progression/config'
 import { LifePanel, RoomExtras, DiscoveryNotice } from './expansion/UI'
 import type { Draft } from './expansion/UI'
@@ -50,6 +52,7 @@ type Crop = { src: string; target: string; ratio: number; zoom: number; x: numbe
 const cropBounds = (crop: Crop, zoom = crop.zoom) => ({ x: Math.floor((Math.max(1, crop.ratio) * zoom - 1) * 50), y: Math.floor((Math.max(1, 1 / crop.ratio) * zoom - 1) * 50) })
 function App({ cloud }: { cloud?: CloudGame }) {
   const [initial] = useState(() => cloud?.row.data ? { data: structuredClone(cloud.row.data), warning: '' } : load())
+  const claimedSpecial=useRef(false)
   const cloudRef = useRef(cloud); cloudRef.current = cloud
   const model = useRef(initial.data)
   const serverPositions=useRef(new Map<string,{x:number;y:number}>())
@@ -83,6 +86,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
       if (local || indexed) setSavedAt(model.current.savedAt)
     })
   }, [])
+  useEffect(()=>{if(claimedSpecial.current)return;claimedSpecial.current=true;if(cloudRef.current){if(!specialIds.every(id=>model.current.friends.some(f=>f.id===id)))void cloudRef.current.send({type:'claim-special-friends'})}else{grantSpecialFriends(model.current);persist();render(v=>v+1)}},[persist])
   const remember = useCallback((text: string) => {
     const entry: Memory = { id: crypto.randomUUID(), text, at: Date.now() }
     model.current.memories = [entry, ...model.current.memories].slice(0, 20)
@@ -225,6 +229,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
     setRestoring(true)
     try {
       await beforeRestore(rawBackup() ?? JSON.stringify(model.current))
+      grantSpecialFriends(restore)
       model.current = restore
       completeExpeditions(model.current)
       setRestore(null); setMenu(null); persist(); render(v => v + 1); notify('기존 게임을 백업하고 추억을 복원했어요!')
@@ -260,7 +265,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
       </div>
       {world(model.current).jobs.some(j => j.claimedAt === undefined) && <div className="away-strip">{world(model.current).jobs.filter(j => j.claimedAt === undefined).map(j => <button key={j.id} onClick={() => { setSelected(j.friendId); setMenu('explore') }}>🧭 {friends.find(f => f.id === j.friendId)?.name}의 탐험 · {remaining(j.endsAt)} <ChevronRight size={13} /></button>)}</div>}
       <section className="friends-section"><div className="section-heading"><div><h2>우리 집 친구들 <span>{String(friends.length).padStart(2,'0')}</span></h2><p>서로 다른 성격, 함께 자라는 작은 가족</p></div><span><Leaf size={15} /> 천천히, 함께 자라요</span></div>
-        <div className="friend-cards">{friends.map((f, index) => <article key={f.id} className={`friend-card ${selected === f.id ? 'active' : ''}`}><button className="friend-card-select" aria-label={`${f.name} 상태 확인`} aria-pressed={selected === f.id} onClick={() => {setSelected(f.id);setCareOpen(true)}}><span className="card-avatar" style={{ background: `${f.color}30` }}><Character friend={f} mini /></span><span className="card-info"><strong>{f.name}<span>Lv.{growth(f).level}</span></strong><small>{f.growth?.awayJobId ? '🧭 탐험 중' : f.moving ? '사뿐사뿐 산책 중' : Date.now() < f.restingUntil ? '잠깐 쉬어 가는 중' : '오늘도 평화로운 하루'}</small></span>{selected === f.id ? <span className="card-selected"><Check size={13} /></span> : <ChevronRight size={16} className="card-arrow" />}</button>{index < 2 ? <button className="upload-button" onClick={() => beginUpload(f.id)} disabled={imageBusy}><Camera size={13} />{f.photo ? '사진 바꾸기' : '내 사진으로 등록'}<ArrowUpRight size={12} /></button> : <div className="default-label"><Sparkles size={12} /> 처음부터 함께한 소중한 친구</div>}</article>)}</div>
+        <div className="friend-cards">{friends.map((f, index) => <article key={f.id} className={`friend-card ${selected === f.id ? 'active' : ''}`}><button className="friend-card-select" aria-label={`${f.name} 상태 확인`} aria-pressed={selected === f.id} onClick={() => {setSelected(f.id);setCareOpen(true)}}><span className="card-avatar" style={{ background: `${f.color}30` }}><Character friend={f} mini /></span><span className="card-info"><strong>{f.name}<span>Lv.{growth(f).level}</span></strong><small>{f.growth?.awayJobId ? '🧭 탐험 중' : f.moving ? '사뿐사뿐 산책 중' : Date.now() < f.restingUntil ? '잠깐 쉬어 가는 중' : '오늘도 평화로운 하루'}</small></span>{selected === f.id ? <span className="card-selected"><Check size={13} /></span> : <ChevronRight size={16} className="card-arrow" />}</button>{index < 2 ? <button className="upload-button" onClick={() => beginUpload(f.id)} disabled={imageBusy}><Camera size={13} />{f.photo ? '사진 바꾸기' : '내 사진으로 등록'}<ArrowUpRight size={12} /></button> : <div className="default-label"><Sparkles size={12} /> 소중한 우리 집 가족</div>}</article>)}</div>
       </section>
       <div className="bottom-grid"><section className="memories"><div className="section-heading"><h2><Heart size={16} /> 오늘의 작은 추억</h2><span>우리만의 이야기</span></div>{model.current.memories.length ? <ul>{model.current.memories.slice(0, 4).map(m => <li key={m.id}><span className="memory-dot" /><span>{m.text}</span><time>{time(m.at)}</time></li>)}</ul> : <div className="empty-memory"><span>♡</span><p>아직은 조용한 우리 집.<br />친구에게 첫 번째 다정함을 건네 볼까요?</p></div>}</section><section className="photo-tip"><div className="tip-icon"><ImagePlus size={26} strokeWidth={1.4} /></div><div><span className="eyebrow">MAKE IT YOURS</span><h3>익숙한 얼굴이라면, 더 특별하니까.</h3><p>모모와 비비를 좋아하는 사진으로 바꿔 보세요.<br />{cloud ? '사진은 인증된 기기들과 클라우드로 공유돼요.' : '사진은 기기에만 저장되고 외부로 전송되지 않아요.'}</p><button onClick={() => beginUpload(selected === 'bibi' ? 'bibi' : 'momo')}>나만의 친구 만들기 <ArrowUpRight size={14} /></button></div></section></div>
       <footer className="footer"><span><PawPrint size={14} /> 작은 순간들이 모여, 우리만의 이야기.</span><button onClick={exportSave}><ArrowDownToLine size={14} /> 추억 보관</button><button disabled={!!cloud} onClick={() => restoreRef.current?.click()}>추억 불러오기</button><span className="footer-version">POCKET FRIENDS · CHAPTER 02</span></footer>

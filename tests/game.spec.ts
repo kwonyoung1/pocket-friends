@@ -15,7 +15,7 @@ test('four friends walk across the room, talk, respond to care and persist after
   page.on('pageerror', e => errors.push(e.message))
   await expect(page.getByRole('heading', { name: '오늘도 함께라서, 포근한 하루.' })).toBeVisible()
   const actors = page.locator('.room-friend')
-  await expect(actors).toHaveCount(4)
+  await expect(actors).toHaveCount(6)
   await expectFriendsToWalk(page, ['momo', 'bibi', 'coco', 'dudu'])
   await page.getByRole('button', { name: '코코 상태 확인' }).click()
   await expect(page.getByRole('complementary', { name: '코코 돌보기' })).toBeVisible()
@@ -68,7 +68,7 @@ test('rejects invalid photos and explains storage failures without crashing', as
   await page.getByRole('button',{name:'모모 상태 확인'}).click()
   await page.getByRole('complementary').getByRole('button', { name: /쓰다듬기/ }).click()
   await expect(page.getByRole('alert')).toContainText('저장하지 못했어요')
-  await expect(page.locator('.room-friend')).toHaveCount(4)
+  await expect(page.locator('.room-friend')).toHaveCount(6)
 })
 test('registers two different parts of the same wide photo without losing its edges', async ({ page }) => {
   const source = await page.evaluate(() => {

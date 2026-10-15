@@ -2,7 +2,7 @@ import type { LifeCommand } from '../expansion/model.ts'
 import type { Save } from '../game.ts'
 export type GameCommand =
   | LifeCommand
-  | { type: 'refresh' | 'attendance' | 'dismiss-notice' }
+  | { type: 'claim-special-friends' | 'refresh' | 'attendance' | 'dismiss-notice' }
   | { type: 'buy' | 'sell' | 'achievement'; id: string }
   | { type: 'use' | 'mission' | 'expedition'; id: string; friendId: string }
   | { type: 'care'; friendId: string; action: 'feed' | 'wash' | 'rest' | 'pet' }

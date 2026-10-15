@@ -184,6 +184,6 @@ test('native touch taps and drags stay separate and multiple friends can be held
   await expect(page.getByTestId('room-momo')).toHaveAttribute('data-phase', 'bonding')
   await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
   await page.clock.runFor(1700)
-  await expect(page.locator('.room-friend[data-phase=idle]')).toHaveCount(4)
+  await expect(page.locator('.room-friend[data-phase=idle]')).toHaveCount(6)
   await session.detach()
 })

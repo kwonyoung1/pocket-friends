@@ -1,3 +1,4 @@
+import { humanLine } from '../humans/config.ts'
 import { rollTripExtras } from '../expansion/rolls.ts'
 import { busyLife, expansion, life, lifeCommand } from '../expansion/model.ts'
 import type { Expansion } from '../expansion/model.ts'
@@ -13,7 +14,7 @@ export type Growth = {
 }
 export type Expedition = { id: string; friendId: string; regionId: string; startedAt: number; endsAt: number; energyCost: number; result: { coins: number; xp: number; items: string[]; cold?: boolean; hamster?: boolean; eventId?: string }; claimedAt?: number }
 export type World = {
-  expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
+  specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
   jobs: Expedition[]; book: Record<string, { firstAt: number; lastAt: number; count: number }>; legendaries: { id: string; itemId: string; friendId: string; at: number }[]
   notices: { id: string; itemId: string; friendId: string; at: number }[]; day: string; attendanceDays: string[]; claimedMissions: string[]; achievements: string[]
   buyAfter: number; useAfter: number; decorationSlots: Record<string, string>
@@ -155,7 +156,7 @@ export function startExpedition(save: Save, friendId: string, regionId: string, 
   job.result.coins+=extras.bonusCoins
   w.jobs = [...w.jobs.filter(j => j.claimedAt === undefined).concat(w.jobs.filter(j => j.claimedAt !== undefined).slice(-39)), job]
   g.awayJobId = job.id; f.stats.energy -= terms.energy; f.route = []; f.meeting = undefined; f.moving = false
-  f.bubble = '다녀올게~! 오늘은 어떤 보물을 찾을까?'; f.bubbleUntil = now + 1800; f.bubblePriority = 4
+  f.bubble = humanLine(f.kind,'explore',f.bubble)??'다녀올게~! 오늘은 어떤 보물을 찾을까?'; f.bubbleUntil = now + 1800; f.bubblePriority = 4
   evolve(f, 'adventurous', now)
   return `${f.name}, ${r.name} 탐험 출발! 다녀올게~!`
 }
@@ -168,7 +169,7 @@ export function completeExpeditions(save: Save, now = Date.now()): string[] {
     job.claimedAt = now; const g = actionDay(f, now); delete g.awayJobId
     transact(w, job.result.coins, `${f.name} 탐험 귀환`, now); addXp(f, job.result.xp, now)
     g.explorations++; g.actions.explore++; evolve(f, 'curious', now)
-    announce(f, '나 돌아왔어! 재미있는 걸 발견했어!')
+    announce(f, humanLine(f.kind,'return',f.bubble)??'나 돌아왔어! 재미있는 걸 발견했어!')
     job.result.items.forEach(id => acquire(w, id, now, f))
     if(job.result.cold){life(f,now).coldAt=now;announce(f,'에취! 감기에 걸린 것 같아… 약이 필요해.')}
     if(job.result.hamster){expansion(save).hamsters.push({id:crypto.randomUUID(),foundAt:job.endsAt,regionId:job.regionId,deployed:false,x:530,y:390});announce(f,'작은 햄스터를 만났어! 인벤토리를 봐 줘!')}

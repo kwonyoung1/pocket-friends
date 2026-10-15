@@ -1,3 +1,4 @@
+import { humanLine } from './humans/config.ts'
 import { busyLife } from './expansion/model.ts'
 import { rewardAction } from './progression/model.ts'
 import type { Friend, Point } from './game.ts'
@@ -25,8 +26,10 @@ export const reactionLinesByAffinity: Record<Affinity, string[]> = {
   friendly: ['고마워~!', '나 쓰다듬는 거 좋아해!', '오늘도 같이 놀자~', ...normalLines],
   close: ['계속 이렇게 있어줘~', '너랑 있으면 너무 좋아!', '나한테는 네가 최고야~', '우리 정말 친해진 것 같아!'],
 }
-const voices = { cat: '냐아, ', bunny: '헤헤, ', bear: '으음~ ', dog: '멍~! ', fox: '헤헷! ' }
+const voices = { boy:'',girl:'', cat: '냐아, ', bunny: '헤헤, ', bear: '으음~ ', dog: '멍~! ', fox: '헤헷! ' }
 export function reactionLine(f: Friend, special: boolean) {
+  const human=humanLine(f.kind,special?'special':'pet',f.lastPetLine)
+  if(human){f.lastPetLine=human;return human}
   const pool = special ? specialLines : reactionLinesByAffinity[affinity(f)]
   const suffix = special ? { shy: ' 조금 쑥스럽지만… ♡', friendly: '', close: ' 내 단짝은 역시 너야 ♡' }[affinity(f)] : ''
   const options = [...new Set(pool)].map(line => voices[f.kind] + line + suffix).filter(line => line !== f.lastPetLine)
@@ -55,7 +58,7 @@ export function grantPetReward(f: Friend, special: boolean, now: number) {
   return true
 }
 export function normalPet(f: Friend, now: number, zone: Zone = 'body') {
-  if(busyLife(f,now)){speak(f,'으응… 포근해… 💤',now,4);return null}
+  if(busyLife(f,now)){speak(f,humanLine(f.kind,'sleep',f.bubble)??'으응… 포근해… 💤',now,4);return null}
   if (f.growth?.awayJobId || f.interaction?.gesture) return null
   stop(f)
   f.interaction = interaction('delighted', now, zone)
@@ -65,7 +68,7 @@ export function normalPet(f: Friend, now: number, zone: Zone = 'body') {
   return { text, rewarded: grantPetReward(f, false, now) }
 }
 export function beginGesture(f: Friend, pointerId: number, client: Point, zone: Zone, now: number, pointerType: string) {
-  if(busyLife(f,now)){speak(f,'잠깐만~ 쉬고 있어… 💤',now,4);return false}
+  if(busyLife(f,now)){speak(f,humanLine(f.kind,'sleep',f.bubble)??'잠깐만~ 쉬고 있어… 💤',now,4);return false}
   if (f.growth?.awayJobId || f.interaction?.gesture) return false
   stop(f)
   f.interaction = interaction('pressing', now, zone)
