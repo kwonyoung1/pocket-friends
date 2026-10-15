@@ -3,6 +3,10 @@
 네 친구가 각자의 속도로 걷고, 만나고, 자라는 따뜻한 2D 웹게임입니다.
 React 19 + TypeScript + Vite로 만든 1단계 버전이며 별도 서버·API 키·로그인이 필요하지 않습니다.
 
+![포켓프렌즈 PC 게임 화면](docs/screenshots/desktop.png)
+
+[모바일 화면 보기](docs/screenshots/mobile.png)
+
 ## 바로 실행하기
 
 Node.js 24와 npm을 사용합니다. 터미널에서 저장소 폴더를 열고 실행하세요.
@@ -53,7 +57,7 @@ CI에서는 `npx playwright install --with-deps chromium`으로 브라우저와 
 1. GitHub에서 **kwonyoung1/pocket-friends** 저장소를 엽니다.
 2. 위쪽 **Settings** → 왼쪽 **Pages**를 누릅니다.
 3. **Build and deployment** 아래 **Source**를 **GitHub Actions**로 선택합니다. 별도 API 키는 필요하지 않습니다.
-4. 게임 코드가 PR에 있으면 **Pull requests** → 해당 PR → 초안이면 **Ready for review** → **Merge pull request** → **Confirm merge**로 `main`에 반영합니다. PR 병합은 사이트 배포를 시작합니다.
+4. 게임 코드를 `main`에 반영합니다. PR이 아직 없으면 **Pull requests** → **New pull request** → base **main**, compare **feat/pocket-friends-stage-one** → **Create pull request**를 누르세요. 만든 PR에서 초안이면 **Ready for review** → **Merge pull request** → **Confirm merge**를 누릅니다. PR 병합은 사이트 배포를 시작합니다.
 5. 위쪽 **Actions** → **Test and deploy Pocket Friends**를 누르면 빌드·테스트·배포 진행 상태가 보입니다. 이미 main에 반영되어 있으면 **Run workflow** → Branch **main** → **Run workflow**로 수동 실행할 수도 있습니다.
 6. 모든 단계가 초록색이면 **Settings** → **Pages** → **Visit site**를 누르세요.
 
