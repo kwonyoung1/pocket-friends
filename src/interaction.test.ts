@@ -156,7 +156,7 @@ describe('reaction context and priorities', () => {
     advanceInteraction(f, now + 4000, .1)
     expect(speak(f, '배고파', now + 11000, 3)).toBe(true)
     expect(speak(f, '자동 대사', now + 11001, 1)).toBe(false)
-    expect(speak(f, '안녕', now + 18000, 2)).toBe(true)
+    expect(speak(f, '안녕', now + 18000, 2)).toBe(false)
     expect(speak(f, '자동 대사', now + 18001, 1)).toBe(false)
     expect(speak(f, '플레이어', now + 18002, 4)).toBe(true)
   })

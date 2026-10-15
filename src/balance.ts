@@ -5,7 +5,7 @@ export const interactionBalance = {
   resumeMs: 1500,
   tapEffectMs: 1600,
   landingMs: 450,
-  rewardCooldownMs: 10000,
+  rewardCooldownMs: 6 * 60 * 60 * 1000,
   dragThreshold: { mouse: 8, touch: 12, pen: 10 },
   followSpeed: 24,
   normal: { happiness: 2, affection: 1 },

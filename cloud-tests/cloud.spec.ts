@@ -88,6 +88,32 @@ test('reload recovers an unacknowledged purchase through the gate without spendi
   await expect(page.getByRole('button', { name: '보유 코인 285' })).toBeVisible()
   expect(backend.row().data!.world!.inventory.snack).toBe(1)
 })
+test('two devices share six-hour pet limits and changing the device clock cannot reset them', async ({ page, backend, browser }) => {
+  await fresh(page, backend.secret)
+  await page.getByRole('button',{name:'모모 상태 확인'}).click()
+  await expect(page.getByTestId('pet-reward-status')).toHaveText('쓰다듬기 보상 가능!')
+  await page.getByRole('complementary').getByRole('button', {name:/쓰다듬기/}).click()
+  await expect.poll(()=>backend.row().data!.friends[0].stats.affection).toBe(21)
+  await expect(page.getByTestId('pet-reward-status')).toContainText('6시간 0분')
+  const stamp = backend.row().data!.friends[0].lastPetRewardAt
+  const phone = await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true})
+  await backend.attach(phone)
+  try {
+    const second=await phone.newPage(); await enter(second,backend.secret)
+    await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
+    await second.getByRole('button',{name:'모모 상태 확인'}).click()
+    await expect(second.getByTestId('pet-reward-status')).toContainText('6시간 0분')
+    await second.evaluate(()=>{const original=Date.now;Date.now=()=>original()+86400000})
+    await second.getByRole('complementary').getByRole('button',{name:/쓰다듬기/}).click()
+    await expect(second.locator('.cloud-status')).not.toContainText('처리 중')
+    expect(backend.row().data!.friends[0].stats.affection).toBe(21)
+    expect(backend.row().data!.friends[0].growth!.xp).toBe(1)
+    expect(backend.row().data!.friends[0].lastPetRewardAt).toBe(stamp)
+    await second.reload();await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
+    await second.getByRole('button',{name:'모모 상태 확인'}).click()
+    await expect(second.getByTestId('pet-reward-status')).toContainText('6시간 0분')
+  } finally { await phone.close() }
+})
 test('short tap, special hold and dragging keep server rewards separate from local animation', async ({ page, backend }) => {
   await fresh(page, backend.secret)
   const actor = page.getByTestId('room-momo')

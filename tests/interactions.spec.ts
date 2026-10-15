@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import type { Page, Locator } from '@playwright/test'
 import { walkable } from '../src/navigation'
 import { createFriends } from '../src/game'
+import { expectFriendsToWalk } from './movement'
 const epoch = new Date('2026-10-15T03:00:00Z')
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: epoch })
@@ -64,8 +65,9 @@ test('a held pet progresses at .8 and 2 seconds, closes eyes, emits hearts and p
   await expect(actor).toHaveAttribute('data-phase', 'settling')
   await page.clock.runFor(1700)
   await expect(actor).toHaveAttribute('data-phase', 'idle')
-  await page.clock.runFor(800)
-  expect(await actor.getAttribute('data-moving') === 'true' || await actor.getAttribute('data-x') !== '330.0' || await actor.getAttribute('data-y') !== '350.0').toBe(true)
+  // Choosing the current tile can legitimately start a short rest after release.
+  // Verify actual travel over the normal idle/walk cycle rather than one frame's flag.
+  await expectFriendsToWalk(page, ['momo'])
 })
 test('drag from a pending long pet cancels pet rewards, avoids furniture and persists a valid drop', async ({ page }) => {
   const actor = page.getByTestId('room-momo')

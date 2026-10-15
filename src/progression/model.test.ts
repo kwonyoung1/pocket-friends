@@ -37,10 +37,10 @@ describe('growth, personality and v1 migration', () => {
     expect(growth(f).xp).toBe(3); expect(missionProgress(s, 'feed', now)).toBe(1)
     normalPet(f, now + 3000); expect(growth(f).xp).toBe(4)
     normalPet(f, now + 5000); expect(growth(f).xp).toBe(4)
-    grantPetReward(f, true, now + 14000); expect(growth(f).xp).toBe(7)
+    grantPetReward(f, true, now + 3000 + 6 * 3600000); expect(growth(f).xp).toBe(7)
     expect(missionProgress(s, 'pet', now)).toBe(2)
-    const restored = parseSave(JSON.stringify(s), now + 15000)
-    expect(grantPetReward(restored.friends[0], true, now + 15000)).toBe(false)
+    const restored = parseSave(JSON.stringify(s), now + 3001 + 6 * 3600000)
+    expect(grantPetReward(restored.friends[0], true, now + 6 * 3600000 + 4000)).toBe(false)
   })
   it('traits grow slowly, stay bounded and give explicit personality bonuses', () => {
     const s = game(), f = s.friends[0], g = growth(f)
@@ -185,7 +185,7 @@ it('personality changes approach probabilities, ambient dialogue and special-act
     expect(outgoing.friends[0].meeting).toBeTruthy(); expect(quiet.friends[0].meeting).toBeUndefined()
     const chat = game(); chat.friends[0].nextSpeech = now; random.mockReturnValue(.1)
     tick(chat.friends, now + 100, .1, () => {})
-    expect(chat.friends[0].bubble).toContain('가구')
+    expect(chat.friends[0].bubble).toBe('')
     const active = game(); growth(active.friends[0]).traits.active = 100
     growth(active.friends[0]).specialAfter = now
     tick(active.friends, now + 100, .1, () => {})

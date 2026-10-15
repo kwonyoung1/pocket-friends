@@ -31,7 +31,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 3 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 4 }),
     }),
   )
 }
@@ -309,6 +309,31 @@ describe.sequential(
   },
 )
 describe('migration and client visual isolation', () => {
+  it('server time and atomic commits enforce six-hour pet rewards across two devices and stale clients', async () => {
+    await reset(); await login(pc); await login(mobile)
+    const old = freshWorld(now); old.friends[0].stats.happiness = 40
+    await command(pc, {type:'initialize',source:'local',data:old})
+    const results=await Promise.all([command(pc,{type:'care',friendId:'momo',action:'pet'}),command(mobile,{type:'care',friendId:'momo',action:'pet'})])
+    expect(results.every(r=>r.response.status===200)).toBe(true)
+    let f=(await repo.load()).data!.friends[0]
+    expect(f.stats.affection).toBe(21); expect(f.stats.happiness).toBe(42); expect(f.growth!.xp).toBe(1)
+    expect(f.lastPetRewardAt).toBe(now); expect(f.petRewardAfter).toBe(now+6*3600000)
+    const fakeTime=await call(mobile,{action:'command',operation:crypto.randomUUID(),command:{type:'care',friendId:'momo',action:'pet',now:now+86400000}})
+    expect((await fakeTime.json()).serverTime).toBe(now)
+    expect((await repo.load()).data!.friends[0].stats.affection).toBe(21)
+    at=now+6*3600000-1
+    await command(mobile,{type:'care',friendId:'momo',action:'pet'})
+    expect((await repo.load()).data!.friends[0].stats.affection).toBe(21)
+    at++
+    await command(mobile,{type:'care',friendId:'momo',action:'pet'})
+    f=(await repo.load()).data!.friends[0]; expect(f.stats.affection).toBe(22)
+    expect(f.growth!.xp).toBe(2); expect(f.lastPetRewardAt).toBe(at)
+    const stale = new Request('https://project.supabase.co/functions/v1/game', {method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${pc}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:3,command:{type:'care',friendId:'momo',action:'pet'}})})
+    expect((await handler(stale)).status).toBe(409)
+    await db.exec(`update game_members set expires_at=now()-interval '1 second'`)
+    expect((await call(pc,{action:'status'})).status).toBe(403)
+    expect((await command(pc,{type:'care',friendId:'momo',action:'pet'})).response.status).toBe(403)
+  })
   it('preserves v1 originals without awarding additional coins and rejects malformed imports', () => {
     const old = freshWorld(now)
     const raw = JSON.stringify(old)

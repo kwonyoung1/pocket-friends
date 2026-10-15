@@ -5,7 +5,8 @@ import { LifePanel, RoomExtras, DiscoveryNotice } from './expansion/UI'
 import type { Draft } from './expansion/UI'
 import { settleLife, attachNavigation, furnitureDestination } from './expansion/model'
 import type { CloudGame } from './cloud/protocol'
-import { normalPet } from './interaction'
+import { careNeeds, needLabels, isSpecialCharacter } from './careNeeds'
+import { normalPet, petRewardLabel } from './interaction'
 import { initialSnapshot, saveSnapshot, storageWarning, beforeRestore, rawBackup } from './storage'
 import { completeExpeditions, growth, world } from './progression/model'
 import { GameMenu, GrowthBar, LegendaryNotice, menus, remaining } from './progression/Menu'
@@ -102,7 +103,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
     for (const old of model.current.friends) {
       const server = snapshot.friends.find(f => f.id === old.id)
       if (!server) continue
-      const pose = { x: old.x, y: old.y, route: old.route, facing: old.facing, interaction: old.interaction, remoteHoldId: old.remoteHoldId, bubble: old.bubble, bubbleUntil: old.bubbleUntil, bubblePriority: old.bubblePriority, nextSpeech: old.nextSpeech, restingUntil: old.restingUntil }
+      const pose = { x: old.x, y: old.y, route: old.route, facing: old.facing, interaction: old.interaction, remoteHoldId: old.remoteHoldId, bubble: old.bubble, bubbleUntil: old.bubbleUntil, bubblePriority: old.bubblePriority, nextSpeech: old.nextSpeech, socialUntil: old.socialUntil, restingUntil: old.restingUntil }
       if (server.growth) server.growth.events = server.growth.events.filter(text => { const key = `${old.id}:${text}`; if (seenEvents.current.has(key)) return false; seenEvents.current.add(key); return true })
       const previous=serverPositions.current.get(server.id),moved=previous&&(previous.x!==server.x||previous.y!==server.y)
       Object.assign(old, server, pose, moved&&!old.interaction?.gesture?{x:server.x,y:server.y,route:[]}: {}, { remoteAuthoritative: true })
@@ -256,11 +257,14 @@ function App({ cloud }: { cloud?: CloudGame }) {
         </section>
         <aside className={`care-panel ${careOpen?'':'mobile-collapsed'}`} aria-label={`${friend.name} 돌보기`}><button className="mobile-care-summary" onClick={()=>setCareOpen(v=>!v)}>{friend.name} 상태·돌보기 {careOpen?'접기 ▴':'펼치기 ▾'}</button><div className="panel-heading"><span>MY LITTLE FRIEND</span><span className="small-heart"><Heart size={15} /></span></div>
           <div className="selected-profile"><div className="profile-portrait" style={{ background: `${friend.color}35` }}><Character friend={friend} mini /><span className="profile-sparkle">✧</span></div><div><div className="profile-title"><h2>{friend.name}</h2><span>Lv.{growth(friend).level}</span></div><p>{friend.description}</p><span className="mood"><span />{mood(friend)}</span></div></div>
+          {isSpecialCharacter(friend) && <span className="special-badge">✦ 특별 친구</span>}
+          <p className="pet-reward-status" data-testid="pet-reward-status">{petRewardLabel(friend, cloud ? cloud.now() : Date.now())}</p>
+          <p className="care-needs" data-testid="care-needs">{careNeeds(friend).map(n => needLabels[n]).join(' · ') || '지금은 편안하게 지내고 있어요'}</p>
           <GrowthBar friend={friend} />
           {growth(friend).awayJobId && <div className="away-notice">🧭 탐험 중 · 귀환하면 다시 돌볼 수 있어요.</div>}
           <div className="affection"><div><Heart size={14} /><span>우리의 친밀도</span><strong>{Math.round(friend.stats.affection)}<small> / 100</small></strong></div><div className="affection-track"><span style={{ width: `${friend.stats.affection}%` }} /></div><p>{friend.stats.affection < 40 ? '조금씩 서로를 알아가는 중이에요' : friend.stats.affection < 75 ? '당신의 손길이 익숙해졌어요 ♡' : '누구보다 소중한 단짝이 되었어요 ♡'}</p></div>
           <div className="stats">{statInfo.map(({ key, name, color, icon: Icon }) => <div className="stat" key={key}><div><span><Icon size={14} />{name}</span><strong>{Math.round(friend.stats[key])}<small> / 100</small></strong></div><div className="stat-track" role="progressbar" aria-label={name} aria-valuenow={Math.round(friend.stats[key])} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${clamp(friend.stats[key])}%`, background: color }} /></div></div>)}</div>
-          <div className="care-title">다정한 마음을 전해요 <Heart size={12} /></div><div className="care-actions">{careInfo.map(({ action, label, hint, icon: Icon }) => <button key={action} disabled={!!growth(friend).awayJobId || !!cloud?.busy} onClick={() => doCare(action)} className={`care-button ${action}`}><Icon size={21} strokeWidth={1.6} /><strong>{label}</strong><small>{hint}</small></button>)}</div><p className="care-note">교감 보상은 친구마다 {interactionBalance.rewardCooldownMs / 1000}초에 한 번 · {interactionBalance.bondMs / 1000}초 꾹 누르면 특별 교감</p>
+          <div className="care-title">다정한 마음을 전해요 <Heart size={12} /></div><div className="care-actions">{careInfo.map(({ action, label, hint, icon: Icon }) => <button key={action} disabled={!!growth(friend).awayJobId || !!cloud?.busy} onClick={() => doCare(action)} className={`care-button ${action}`}><Icon size={21} strokeWidth={1.6} /><strong>{label}</strong><small>{hint}</small></button>)}</div><p className="care-note">교감 보상은 친구마다 6시간에 한 번 · {interactionBalance.bondMs / 1000}초 꾹 누르면 특별 교감</p>
         </aside>
       </div>
       {world(model.current).jobs.some(j => j.claimedAt === undefined) && <div className="away-strip">{world(model.current).jobs.filter(j => j.claimedAt === undefined).map(j => <button key={j.id} onClick={() => { setSelected(j.friendId); setMenu('explore') }}>🧭 {friends.find(f => f.id === j.friendId)?.name}의 탐험 · {remaining(j.endsAt)} <ChevronRight size={13} /></button>)}</div>}

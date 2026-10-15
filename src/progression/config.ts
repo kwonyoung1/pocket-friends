@@ -1,10 +1,11 @@
+import { interactionBalance } from '../balance.ts'
 import { collectionItems } from '../expansion/config.ts'
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary'
 export type Trait = 'active' | 'calm' | 'curious' | 'adventurous' | 'affectionate'
 export const growthBalance = {
   maxLevel: 50, xpBase: 20, xpPerLevel: 10, startCoins: 300,
   xp: { feed: 3, play: 5, pet: 1, special: 3 },
-  cooldown: { feed: 10000, play: 30000, pet: 10000, special: 10000 },
+  cooldown: { feed: 10000, play: 30000, pet: interactionBalance.rewardCooldownMs, special: interactionBalance.rewardCooldownMs },
   traitStep: .25, traitCooldownMs: 60000,
   bonuses: { adventurousXp: .1, curiousExtra: .08, activeTime: .05, calmEnergy: .2, affectionateSocial: 1 },
   dailyResetHourKst: 0, attendanceCoins: 30, purchaseCooldownMs: 800, itemUseCooldownMs: 1500,

@@ -182,6 +182,8 @@ it('the two human friends exchange their own short conversation when they meet',
   })
   tick([boy, girl], noon, 0.1, () => {})
   expect(boy.bubble).toContain(girl.name)
+  expect(girl.bubble).toBe('')
+  tick([boy, girl], noon + 6600, 0.1, () => {})
   expect(girl.bubble).toContain(boy.name)
   expect(boy.bubblePriority).toBe(2)
   expect(girl.bubblePriority).toBe(2)

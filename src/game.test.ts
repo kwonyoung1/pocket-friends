@@ -53,15 +53,15 @@ describe('room navigation and autonomous behaviour', () => {
     for (let i = 101; i <= 160; i++) tick([f], start + i * 100, .1, () => {})
     expect(Math.hypot(f.x - 330, f.y - 350)).toBeGreaterThan(10)
   })
-  it('speaks Korean automatically and schedules the next line 20–50 seconds later', () => {
+  it('keeps ordinary friends silent while scheduling their autonomous movement', () => {
     seeded()
     const friends = createFriends(start)
     friends.forEach(f => expect(f.nextSpeech - start).toBeGreaterThanOrEqual(20000))
     const now = start + 50000
     tick(friends, now, .1, () => {})
     friends.forEach(f => {
-      expect(f.bubble).toMatch(/[가-힣]/)
-      expect(f.bubbleUntil).toBe(now + 6500)
+      expect(f.bubble).toBe('')
+      expect(f.bubbleUntil).toBe(0)
       expect(f.nextSpeech - now).toBeGreaterThanOrEqual(20000)
       expect(f.nextSpeech - now).toBeLessThanOrEqual(50000)
     })

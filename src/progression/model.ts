@@ -14,7 +14,7 @@ export type Growth = {
 }
 export type Expedition = { id: string; friendId: string; regionId: string; startedAt: number; endsAt: number; energyCost: number; result: { coins: number; xp: number; items: string[]; cold?: boolean; hamster?: boolean; eventId?: string }; claimedAt?: number }
 export type World = {
-  specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
+  careRulesVersion?: 1; specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
   jobs: Expedition[]; book: Record<string, { firstAt: number; lastAt: number; count: number }>; legendaries: { id: string; itemId: string; friendId: string; at: number }[]
   notices: { id: string; itemId: string; friendId: string; at: number }[]; day: string; attendanceDays: string[]; claimedMissions: string[]; achievements: string[]
   buyAfter: number; useAfter: number; decorationSlots: Record<string, string>
@@ -107,7 +107,7 @@ export function useItem(save: Save, itemId: string, friendId: string, now = Date
   rewardAction(f, item.category === 'food' ? 'feed' : 'play', now)
   const favorite=item.category==='food'&&foodLikes[f.id]===itemId
   if(favorite) f.stats.happiness=Math.min(100,f.stats.happiness+5)
-  announce(f, favorite?'내가 제일 좋아하는 음식이야! 냠냠~ ♡':item.category === 'food' ? '맛있겠다~! 고마워! 잘 먹을게!' : '같이 노니까 정말 신나! 한 번 더~!')
+  announce(f, favorite?'내가 제일 좋아하는 음식이야! 냠냠~ ♡':item.category === 'food' ? '잘 먹었어! 고마워~' : '같이 노니까 정말 신나! 한 번 더~!')
   if(item.category==='food')f.eatingUntil=now+2000
   f.furnitureUntil=now+2000;f.furnitureActivity=item.category==='food'?'냠냠 먹는 중':'신나는 놀이'
   return `${f.name}와 ${item.name}을 ${item.category === 'food' ? '먹었어요' : '가지고 놀았어요'}!`

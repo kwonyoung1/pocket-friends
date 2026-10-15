@@ -1,3 +1,4 @@
+import { careAlertMs, careNeeds, careSpeed, isSpecialCharacter, needLine, specialAmbient } from './careNeeds.ts'
 import { specialIds, humanLine } from './humans/config.ts'
 import { makeSpecialFriend } from './humans/model.ts'
 import { busyLife, sleeping, settleLife, makeAdoptee } from './expansion/model.ts'
@@ -21,6 +22,7 @@ export type Friend = {
   eatingUntil?: number; recoveryUntil?: number; life?: Life; navObstacles?: Obstacle[]; furnitureUntil?: number; furnitureActivity?: string; remoteAuthoritative?: boolean; remoteHoldId?: string;
   growth?: Growth; id: string; name: string; kind: Kind; color: string; description: string; photo?: string; stats: Stats
   x: number; y: number; facing: number; route: Point[]; restingUntil: number; nextSpeech: number
+  careNotice?: {text: string; until: number; need?: import('./careNeeds.ts').Need}; lastPetRewardAt?: number; careAlertAfter?: Partial<Record<import('./careNeeds.ts').Need, number>>; lastCareLine?: string; socialUntil?: number; pendingGreeting?: { text: string; at: number };
   interaction?: Interaction; petRewardAfter?: number; lastPetLine?: string; bubblePriority?: number;
   bubble: string; bubbleUntil: number; meeting?: string; socialAfter: number; careAfter: number; moving: boolean
 }
@@ -47,7 +49,7 @@ export function createFriends(now = Date.now()): Friend[] {
 export function say(f: Friend, text: string, now: number) { return speak(f, text, now, 4) }
 export function decay(stats: Stats, milliseconds: number): Stats {
   const minutes = Math.max(0, Math.min(milliseconds, 8 * 3600000)) / 60000
-  return { hunger: clamp(stats.hunger - minutes * .45), happiness: clamp(stats.happiness - minutes * .22), energy: clamp(stats.energy - minutes * .16), hygiene: clamp(stats.hygiene - minutes * .3), affection: stats.affection }
+  return { hunger: clamp(stats.hunger - minutes * .45), happiness: clamp(stats.happiness - minutes * (.22 + (stats.hunger <= 10 ? .12 : 0) + (stats.hygiene <= 10 ? .08 : 0))), energy: clamp(stats.energy - minutes * .16), hygiene: clamp(stats.hygiene - minutes * .3), affection: stats.affection }
 }
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 export function tick(friends: Friend[], now: number, dt: number, onMeeting: (text: string) => void, onBond: (friend: Friend) => void = () => {}, visualOnly = false) {
@@ -58,19 +60,27 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
     f.moving = false
     if (controlled(f)) continue
     const g = f.growth
-    if (g?.events.length && (!(f.bubbleUntil > now) || (f.bubblePriority ?? 0) < 3.5)) speak(f, g.events.shift()!, now, 3.5)
-    if (g && now >= g.specialAfter) {
-      g.specialAfter = now + between(25000, 50000) * (1 - g.traits.active / 300)
-      if (now >= f.bubbleUntil && Math.random() < .1 + g.traits[dominant(f)] / 160) {
-        g.specialUntil = now + 2000
-        speak(f, humanLine(f.kind,'daily',f.bubble)??personalityPhrases[dominant(f)][0], now, 1)
-        f.restingUntil = Math.max(f.restingUntil, now + 1600)
+    const freeSpeech = () => !friends.some(p => p !== f && p.bubbleUntil > now)
+    const need = careNeeds(f)[0]
+    if (f.bubblePriority === 3 && !need) f.bubbleUntil = 0
+    if (visualOnly && f.careNotice && (!f.careNotice.need || careNeeds(f).includes(f.careNotice.need)) && f.careNotice.until > now && freeSpeech()) speak(f, f.careNotice.text, now, 3, Math.max(0, f.careNotice.until - now))
+    if (!visualOnly && need && now >= (f.careAlertAfter?.[need] ?? 0) && freeSpeech()) {
+      const text = needLine(f, need)!
+      if (speak(f, text, now, 3)) {
+        f.careAlertAfter ??= {}; f.careAlertAfter[need] = now + careAlertMs; f.lastCareLine = text
       }
     }
+    if (g?.events.length && (!(f.bubbleUntil > now) || (f.bubblePriority ?? 0) < 2.5) && freeSpeech()) speak(f, g.events.shift()!, now, 2.5)
+    if (g && now >= g.specialAfter) {
+      g.specialAfter = now + between(25000, 50000) * (1 - g.traits.active / 300)
+      if (Math.random() < .1 + g.traits[dominant(f)] / 160) { g.specialUntil = now + 2000; f.restingUntil = Math.max(f.restingUntil, now + 1600) }
+    }
+    if (f.pendingGreeting && now >= f.pendingGreeting.at && freeSpeech() && speak(f, f.pendingGreeting.text, now, 2)) delete f.pendingGreeting
     if (now >= f.nextSpeech) {
-      const pool = f.growth && Math.random() < .35 ? personalityPhrases[dominant(f)] : phrases
-      speak(f, f.life?.coldAt ? '에취… 훌쩍! 따뜻하게 쉬어야겠어~' : f.stats.hunger < 30 ? humanLine(f.kind,'hungry',f.bubble)??'배에서 꼬르륵… 간식 먹고 싶어~' : humanLine(f.kind,'daily',f.bubble)??pool[Math.floor(Math.random() * pool.length)], now, f.stats.hunger < 30 || f.life?.coldAt ? 3 : 1)
-      f.nextSpeech = now + between(20000, 50000)
+      if (isSpecialCharacter(f) && freeSpeech()) {
+        speak(f, specialAmbient(f, now, friends), now, 1)
+        f.nextSpeech = now + between(20000, 50000)
+      } else f.nextSpeech = now + (isSpecialCharacter(f) ? 2000 : between(20000, 50000))
     }
     f.moving = false
     if (now < f.restingUntil) continue
@@ -86,21 +96,22 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
     const peer = f.meeting ? friends.find(p => p.id === f.meeting) : undefined
     if (peer && !peer.growth?.awayJobId && !busyLife(peer,now) && !controlled(peer) && distance(f, peer) < 95 && now >= peer.socialAfter && !(f.bubbleUntil > now && (f.bubblePriority ?? 0) > 2) && !(peer.bubbleUntil > now && (peer.bubblePriority ?? 0) > 2)) {
       const greeting=humanLine(f.kind,'social',f.bubble),reply=humanLine(peer.kind,'social',peer.bubble)
-      speak(f, greeting?`${peer.name}, ${greeting}`:`${peer.name}야, 안녕! 같이 놀자 ♡`, now, 2)
-      speak(peer, reply?`${f.name}, ${reply}`:`${f.name}야~ 만나서 반가워!`, now, 2)
+      if (isSpecialCharacter(f) && freeSpeech()) speak(f, greeting?`${peer.name}, ${greeting}`:`${peer.name}야, 안녕! 같이 놀자 ♡`, now, 2)
+      if (isSpecialCharacter(peer) && !isSpecialCharacter(f) && freeSpeech()) speak(peer, reply?`${f.name}, ${reply}`:`${f.name}야~ 만나서 반가워!`, now, 2)
+      if (isSpecialCharacter(f) && isSpecialCharacter(peer)) peer.pendingGreeting = { text: `${f.name}, ${reply}`, at: now + 6500 }
       for (const p of [f, peer]) {
         if (!visualOnly) { p.stats.happiness = clamp(p.stats.happiness + 4); p.stats.affection = clamp(p.stats.affection + (p.growth && dominant(p) === 'affectionate' ? 1 + growthBalance.bonuses.affectionateSocial : 1)) }
-        p.restingUntil = now + 7000; p.socialAfter = now + 30000; p.route = []; p.meeting = undefined; p.moving = false
+        p.socialUntil = now + 7000; p.restingUntil = now + 7000; p.socialAfter = now + 30000; p.route = []; p.meeting = undefined; p.moving = false
       }
       onMeeting(`${f.name}와 ${peer.name}, 반갑게 인사했어요`)
       continue
     }
     const target = f.route[0]
-    if (!target) { f.restingUntil = now + between(2000, 6000) * (f.growth ? 1 + (growth(f).traits.calm - growth(f).traits.active) / 100 : 1); continue }
-    const d = distance(f, target), step = (f.kind === 'bear' ? 29 : f.kind === 'fox' ? 42 : 35) * dt * (f.life?.coldAt ? .6 : 1)
+    if (!target) { f.restingUntil = now + between(2000, 6000) * (f.stats.energy <= 10 ? 2 : 1) * (f.growth ? 1 + (growth(f).traits.calm - growth(f).traits.active) / 100 : 1); continue }
+    const d = distance(f, target), step = (f.kind === 'bear' ? 29 : f.kind === 'fox' ? 42 : 35) * dt * careSpeed(f) * (f.life?.coldAt ? .6 : 1)
     if (d <= step) {
       f.x = target.x; f.y = target.y; f.route.shift()
-      if (!f.route.length) { f.restingUntil = now + between(2000, 6000) * (f.growth ? 1 + (growth(f).traits.calm - growth(f).traits.active) / 100 : 1); f.meeting = undefined }
+      if (!f.route.length) { f.restingUntil = now + between(2000, 6000) * (f.stats.energy <= 10 ? 2 : 1) * (f.growth ? 1 + (growth(f).traits.calm - growth(f).traits.active) / 100 : 1); f.meeting = undefined }
     } else {
       const dx = target.x - f.x
       if (Math.abs(dx) > .1) f.facing = dx > 0 ? 1 : -1
@@ -117,7 +128,7 @@ export function care(f: Friend, action: Care, now = Date.now()): string | null {
   if (action === 'pet') return normalPet(f, now)?.text ?? null
   if (now < f.careAfter || controlled(f)) return null
   f.careAfter = now + 1500
-  const lines: Record<Care, string> = { feed: '냠냠! 정말 맛있어~ 고마워 ♡', pet: '헤헤, 손길이 따뜻해~ ♡', wash: '보송보송! 기분까지 상쾌해~', rest: '잠깐 쉬었다가 다시 놀자~ 💤' }
+  const lines: Record<Care, string> = { feed: '냠냠! 정말 맛있어~ 고마워 ♡', pet: '헤헤, 손길이 따뜻해~ ♡', wash: '보송보송! 기분까지 상쾌해~', rest: '푹 쉬었어! 다시 힘이 난다~' }
   if (action === 'rest') { f.stats.energy = clamp(f.stats.energy + 20); f.restingUntil = now + 12000; f.route = []; f.moving = false }
   say(f, lines[action], now)
   return lines[action]
@@ -135,8 +146,13 @@ export function parseSave(raw: string, now = Date.now()): Save {
     if (!old?.stats || !Object.keys(f.stats).every(k => typeof old.stats[k as keyof Stats] === 'number' && Number.isFinite(old.stats[k as keyof Stats]))) throw Error('손상된 상태 데이터')
     if (typeof old.name === 'string' && old.name.trim()) f.name = old.name.slice(0, 30)
     if (old.facing === -1) f.facing = -1
+    if (Number.isFinite(old.careAfter)) f.careAfter = old.careAfter
     if (Number.isFinite(old.nextSpeech)) f.nextSpeech = old.nextSpeech
     if (Number.isFinite(old.petRewardAfter)) f.petRewardAfter = Math.min(now + interactionBalance.rewardCooldownMs, Math.max(0, old.petRewardAfter!))
+    if (Number.isFinite(old.lastPetRewardAt) && old.lastPetRewardAt! >= 0) f.lastPetRewardAt = old.lastPetRewardAt
+    if (old.careAlertAfter && typeof old.careAlertAfter === 'object') { f.careAlertAfter = {}; for (const k of ['hunger', 'hygiene', 'energy', 'cold'] as const) if (Number.isFinite(old.careAlertAfter[k])) f.careAlertAfter[k] = old.careAlertAfter[k] }
+    if (old.careNotice && typeof old.careNotice.text === 'string' && Number.isFinite(old.careNotice.until)) f.careNotice = {text: old.careNotice.text.slice(0, 200), until: old.careNotice.until, ...(['hunger','hygiene','energy','cold'].includes(old.careNotice.need ?? '') ? {need: old.careNotice.need} : {})}
+    if (typeof old.lastCareLine === 'string') f.lastCareLine = old.lastCareLine.slice(0, 200)
     if (typeof old.lastPetLine === 'string') f.lastPetLine = old.lastPetLine.slice(0, 200)
     f.stats = decay(Object.fromEntries(Object.entries(old.stats).filter(([k]) => k in f.stats).map(([k, v]) => [k, clamp(v)])) as Stats, now - saved.savedAt)
     if (typeof old.photo === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(old.photo) && old.photo.length < 400000 && ['momo', 'bibi'].includes(f.id)) f.photo = old.photo
@@ -147,5 +163,3 @@ export function parseSave(raw: string, now = Date.now()): Save {
   settleLife(result,now)
   return result
 }
-
-const personalityPhrases = { active: ['통통! 오늘도 신나게 움직여 볼까?', '같이 공놀이 하자~!'], calm: ['여기서 잠깐 쉬면 참 좋겠다~', '천천히 가도 괜찮아~'], curious: ['저 가구 뒤에는 뭐가 있을까?', '오늘도 새로운 걸 발견하고 싶어!'], adventurous: ['다음에는 어디로 모험을 떠나 볼까?', '보물을 찾아 떠나고 싶어~!'], affectionate: ['친구야~ 같이 놀자 ♡', '너랑 있으면 매일 행복해!'] }
