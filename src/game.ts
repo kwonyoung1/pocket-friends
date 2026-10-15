@@ -1,9 +1,16 @@
+import { cells, findRoute, walkable } from './navigation'
+import { advanceInteraction, controlled, normalPet, speak } from './interaction'
+import type { Interaction } from './interaction'
+import { interactionBalance } from './balance'
+export { obstacles, walkable, findRoute } from './navigation'
+
 export type Kind = 'cat' | 'bunny' | 'bear' | 'fox'
 export type Stats = { hunger: number; happiness: number; energy: number; hygiene: number; affection: number }
 export type Point = { x: number; y: number }
 export type Friend = {
   id: string; name: string; kind: Kind; color: string; description: string; photo?: string; stats: Stats
   x: number; y: number; facing: number; route: Point[]; restingUntil: number; nextSpeech: number
+  interaction?: Interaction; petRewardAfter?: number; lastPetLine?: string; bubblePriority?: number;
   bubble: string; bubbleUntil: number; meeting?: string; socialAfter: number; careAfter: number; moving: boolean
 }
 export type Care = 'feed' | 'pet' | 'wash' | 'rest'
@@ -26,69 +33,37 @@ export function createFriends(now = Date.now()): Friend[] {
     bubble: '', bubbleUntil: 0, socialAfter: now + 12000, careAfter: 0, moving: false,
   }))
 }
-// Coordinates mark feet in the 1000 × 640 room. Furniture includes a walking clearance.
-export const obstacles = [
-  { x: 55, y: 180, w: 250, h: 135 },
-  { x: 790, y: 150, w: 175, h: 135 },
-  { x: 665, y: 420, w: 135, h: 95 },
-  { x: 25, y: 430, w: 105, h: 100 },
-]
-export function walkable(p: Point): boolean {
-  return p.x >= 50 && p.x <= 950 && p.y >= 230 && p.y <= 570 && !obstacles.some(o => p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h)
-}
-const cells: Point[] = []
-for (let row = 0; row < 9; row++) for (let col = 0; col < 23; col++) {
-  const p = { x: 50 + col * 40, y: 230 + row * 40 }
-  if (walkable(p)) cells.push(p)
-}
-const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
-function nearest(p: Point) { return cells.reduce((best, c) => distance(c, p) < distance(best, p) ? c : best, cells[0]) }
-export function findRoute(from: Point, to: Point): Point[] {
-  const start = nearest(from), end = nearest(to)
-  const key = (p: Point) => `${p.x},${p.y}`
-  const queue = [start], parents = new Map<string, Point | null>([[key(start), null]])
-  for (let i = 0; i < queue.length; i++) {
-    const current = queue[i]
-    if (key(current) === key(end)) break
-    // Four directions prevent diagonal clipping through furniture corners.
-    for (const [dx, dy] of [[40, 0], [-40, 0], [0, 40], [0, -40]]) {
-      const p = { x: current.x + dx, y: current.y + dy }
-      if (p.x > 930 || p.y > 550 || !walkable(p) || parents.has(key(p))) continue
-      parents.set(key(p), current); queue.push(p)
-    }
-  }
-  if (!parents.has(key(end))) return []
-  const route: Point[] = []
-  let cursor: Point | null = end
-  while (cursor) { route.unshift(cursor); cursor = parents.get(key(cursor)) ?? null }
-  return route
-}
-export function say(f: Friend, text: string, now: number) { f.bubble = text; f.bubbleUntil = now + 6500 }
+export function say(f: Friend, text: string, now: number) { return speak(f, text, now, 4) }
 export function decay(stats: Stats, milliseconds: number): Stats {
   const minutes = Math.max(0, Math.min(milliseconds, 8 * 3600000)) / 60000
   return { hunger: clamp(stats.hunger - minutes * .45), happiness: clamp(stats.happiness - minutes * .22), energy: clamp(stats.energy - minutes * .16), hygiene: clamp(stats.hygiene - minutes * .3), affection: stats.affection }
 }
-export function tick(friends: Friend[], now: number, dt: number, onMeeting: (text: string) => void) {
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
+export function tick(friends: Friend[], now: number, dt: number, onMeeting: (text: string) => void, onBond: (friend: Friend) => void = () => {}) {
   for (const f of friends) {
     f.stats = decay(f.stats, dt * 1000)
+    advanceInteraction(f, now, dt, () => onBond(f))
+    f.moving = false
+    if (controlled(f)) continue
     if (now >= f.nextSpeech) {
-      say(f, f.stats.hunger < 30 ? '배에서 꼬르륵… 간식 먹고 싶어~' : phrases[Math.floor(Math.random() * phrases.length)], now)
+      speak(f, f.stats.hunger < 30 ? '배에서 꼬르륵… 간식 먹고 싶어~' : phrases[Math.floor(Math.random() * phrases.length)], now, f.stats.hunger < 30 ? 3 : 1)
       f.nextSpeech = now + between(20000, 50000)
     }
     f.moving = false
     if (now < f.restingUntil) continue
     if (!f.route.length) {
-      const other = friends.filter(p => p.id !== f.id)[Math.floor(Math.random() * 3)]
-      const social = now > f.socialAfter && Math.random() < .4
+      const peers = friends.filter(p => p.id !== f.id && !controlled(p))
+      const other = peers[Math.floor(Math.random() * peers.length)]
+      const social = !!other && now > f.socialAfter && Math.random() < .4
       const furnitureSpots = [{ x: 330, y: 270 }, { x: 770, y: 310 }, { x: 630, y: 470 }, { x: 170, y: 510 }]
       const target = social ? other : Math.random() < .45 ? furnitureSpots[Math.floor(Math.random() * furnitureSpots.length)] : cells[Math.floor(Math.random() * cells.length)]
       f.route = findRoute(f, target)
       f.meeting = social ? other.id : undefined
     }
     const peer = f.meeting ? friends.find(p => p.id === f.meeting) : undefined
-    if (peer && distance(f, peer) < 95 && now >= peer.socialAfter) {
-      say(f, `${peer.name}야, 안녕! 같이 놀자 ♡`, now)
-      say(peer, `${f.name}야~ 만나서 반가워!`, now)
+    if (peer && !controlled(peer) && distance(f, peer) < 95 && now >= peer.socialAfter && !(f.bubbleUntil > now && (f.bubblePriority ?? 0) > 2) && !(peer.bubbleUntil > now && (peer.bubblePriority ?? 0) > 2)) {
+      speak(f, `${peer.name}야, 안녕! 같이 놀자 ♡`, now, 2)
+      speak(peer, `${f.name}야~ 만나서 반가워!`, now, 2)
       for (const p of [f, peer]) {
         p.stats.happiness = clamp(p.stats.happiness + 4); p.stats.affection = clamp(p.stats.affection + 1)
         p.restingUntil = now + 7000; p.socialAfter = now + 30000; p.route = []; p.meeting = undefined; p.moving = false
@@ -110,11 +85,12 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
   }
 }
 export function care(f: Friend, action: Care, now = Date.now()): string | null {
-  if (now < f.careAfter) return null
+  if (!f.interaction?.gesture) advanceInteraction(f, now, 0)
+  if (action === 'pet') return normalPet(f, now)?.text ?? null
+  if (now < f.careAfter || controlled(f)) return null
   f.careAfter = now + 1500
   const lines: Record<Care, string> = { feed: '냠냠! 정말 맛있어~ 고마워 ♡', pet: '헤헤, 손길이 따뜻해~ ♡', wash: '보송보송! 기분까지 상쾌해~', rest: '잠깐 쉬었다가 다시 놀자~ 💤' }
   if (action === 'feed') { f.stats.hunger = clamp(f.stats.hunger + 22); f.stats.energy = clamp(f.stats.energy + 5) }
-  if (action === 'pet') { f.stats.happiness = clamp(f.stats.happiness + 16); f.stats.affection = clamp(f.stats.affection + 4) }
   if (action === 'wash') { f.stats.hygiene = clamp(f.stats.hygiene + 28); f.stats.happiness = clamp(f.stats.happiness + 4) }
   if (action === 'rest') { f.stats.energy = clamp(f.stats.energy + 20); f.restingUntil = now + 12000; f.route = []; f.moving = false }
   say(f, lines[action], now)
@@ -129,6 +105,8 @@ export function parseSave(raw: string, now = Date.now()): Save {
   for (const f of base) {
     const old = saved.friends.find(v => v && v.id === f.id)
     if (!old?.stats || !Object.keys(f.stats).every(k => typeof old.stats[k as keyof Stats] === 'number' && Number.isFinite(old.stats[k as keyof Stats]))) throw Error('손상된 상태 데이터')
+    if (Number.isFinite(old.petRewardAfter)) f.petRewardAfter = Math.min(now + interactionBalance.rewardCooldownMs, Math.max(0, old.petRewardAfter!))
+    if (typeof old.lastPetLine === 'string') f.lastPetLine = old.lastPetLine.slice(0, 200)
     f.stats = decay(Object.fromEntries(Object.entries(old.stats).filter(([k]) => k in f.stats).map(([k, v]) => [k, clamp(v)])) as Stats, now - saved.savedAt)
     if (typeof old.photo === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(old.photo) && old.photo.length < 400000 && ['momo', 'bibi'].includes(f.id)) f.photo = old.photo
     if (Number.isFinite(old.x) && Number.isFinite(old.y) && walkable(old)) { f.x = old.x; f.y = old.y }
