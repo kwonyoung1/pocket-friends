@@ -130,7 +130,7 @@ export function createGameHandler(options: {
         )
       )
         return reply({ error: '올바른 작업 번호가 필요해요.' }, 400)
-      if (body.clientVersion !== 2 && (await db.load()).data?.world?.expansion)
+      if (![2,3].includes(body.clientVersion) && (await db.load()).data?.world?.expansion)
         return reply(
           {
             error: '게임이 업데이트되었어요. 새로고침 후 다시 시도해 주세요.',
@@ -138,6 +138,7 @@ export function createGameHandler(options: {
           },
           409,
         )
+      if(body.clientVersion!==3&&(await db.load()).data?.world?.specialFriendsVersion)return reply({error:'새 특별 친구가 왔어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
       // Receipt lookup happens before evaluating a consumed hold or an already-imported world.
       const receipt = await db.commit(
         user,

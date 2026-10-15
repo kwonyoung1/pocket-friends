@@ -1,5 +1,7 @@
+import { HumanSprite } from './humans/HumanSprite'
 import type { Friend } from './game'
-export function Character({ friend, mini = false, emotion = 'normal' }: { friend: Pick<Friend, 'kind' | 'color' | 'photo' | 'name'>; mini?: boolean; emotion?: 'normal' | 'smile' | 'closed' }) {
+export function Character({ friend, mini = false, emotion = 'normal' }: { friend: Pick<Friend, 'kind' | 'color' | 'photo' | 'name'> & Partial<Friend>; mini?: boolean; emotion?: 'normal' | 'smile' | 'closed' }) {
+  if(friend.kind==='boy'||friend.kind==='girl')return <HumanSprite friend={friend} emotion={emotion} mini={mini}/>
   if (friend.photo) return <div className={`photo-character ${mini ? 'mini' : ''}`}><img src={friend.photo} alt={`${friend.name}의 등록 사진`} draggable={false} /><span className="photo-feet" /></div>
   const { kind, color } = friend
   return <svg className="character-art" viewBox="0 0 120 140" aria-hidden="true">

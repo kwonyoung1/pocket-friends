@@ -1,15 +1,19 @@
 # 포켓프렌즈 · 우리의 작은 집
 
-최대 여덟 친구와 작은 햄스터가 걷고, 만나고, 자라는 따뜻한 2D 웹게임입니다.
+일반 친구 최대 8명과 특별 지급 남자아이·여자아이 2명, 작은 햄스터가 함께 생활하는 따뜻한 2D 웹게임입니다.
 React 19 + TypeScript + Vite를 사용합니다. 기존 로컬 모드와 Supabase 공유 월드 모드를 지원합니다.
 
 [업데이트 PC 화면](docs/screenshots/life-expansion-desktop.png) · [업데이트 모바일 화면](docs/screenshots/life-expansion-mobile.png)
 
-**이미 PC·모바일 연동을 완료했다면 [생활·탐험 업데이트 설치 및 플레이 안내](docs/LIFE_EXPANSION.md)를 따라 주세요. 기존 데이터를 지우거나 Supabase 프로젝트를 다시 만들지 않습니다.**
+**이미 PC·모바일 연동을 완료했다면 [남자아이·여자아이 업데이트 안내](docs/HUMAN_FRIENDS.md)를 따라 주세요. 기존 데이터를 지우거나 프로젝트·API 키를 다시 만들지 않습니다. 이번 기능을 위한 새 SQL은 없습니다.**
 
 ![포켓프렌즈 PC 게임 화면](docs/screenshots/desktop.png)
 
 [모바일 화면 보기](docs/screenshots/mobile.png) · [특별 교감 화면](docs/screenshots/bonding-desktop.png) · [모바일 교감 화면](docs/screenshots/bonding-mobile.png)
+
+## 남자아이·여자아이 특별 친구
+
+고정 ID로 한 번만 무료 등록하며 일반 입양 한도·기존 코인·사진·육성 데이터를 유지합니다. 각자 28개 대사와 교감·자율 이동·탐험·개명을 지원합니다. 첨부 자료는 앉은 커플 그림 한 장이어서 독립 투명 PNG 2개를 이미지 편집으로 재구성했고, 없는 방향·동작 이미지는 CSS 효과로 대체했습니다. [구현 범위·이미지 한계·배포 순서](docs/HUMAN_FRIENDS.md) · [PC 화면](docs/screenshots/human-friends-desktop.png) · [모바일 화면](docs/screenshots/human-friends-mobile.png)
 
 ## 2단계: 성장과 수집
 

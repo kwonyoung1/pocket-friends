@@ -1,3 +1,4 @@
+import { normalFriendCount } from '../humans/model'
 import { FurnitureArt } from './FurnitureArt'
 export { FurnitureArt } from './FurnitureArt'
 import { useEffect, useRef, useState } from 'react'
@@ -243,7 +244,7 @@ export function LifePanel({
           <>
             <p className="menu-note">
               각 친구 10,000코인 · 종류별 한 번 · 일반 친구 최대 8명 (현재{' '}
-              {save.friends.length}명)
+              {normalFriendCount(save)}명 + 특별 친구 2명)
             </p>
             <div className="item-grid">
               {adoptionCatalog.map((d) => {
@@ -261,7 +262,7 @@ export function LifePanel({
                         busy ||
                         adopted ||
                         world(save).coins < B.adoptionPrice ||
-                        save.friends.length >= 8
+                        normalFriendCount(save) >= 8
                       }
                       onClick={() => run({ type: 'adopt', id: d.id })}
                     >

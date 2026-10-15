@@ -1,0 +1,161 @@
+.human-sprite {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 96%;
+  isolation: isolate;
+}
+.human-motion {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 94%;
+  transition:
+    transform 0.28s ease,
+    filter 0.3s ease;
+}
+.human-art {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 95%;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.human-expression {
+  position: absolute;
+  top: 2%;
+  right: 0;
+  color: #ab8360;
+  font-weight: 700;
+  font-size: 1.8cqw;
+  text-shadow: 0 1px 3px #fff9e8;
+  pointer-events: none;
+}
+.human-joy {
+  color: #d293a0;
+  animation: human-sparkle 1s ease-in-out infinite;
+}
+.human-sprite[data-human-pose='walk'] .human-motion {
+  animation: human-walk 0.55s ease-in-out infinite;
+}
+.human-sprite[data-human-pose='rest'] .human-motion {
+  transform: translateY(2%);
+}
+.human-sprite[data-human-pose='smile'] .human-motion {
+  animation: human-joy 1.4s ease-in-out infinite;
+}
+.human-sprite[data-human-pose='happy'] .human-motion {
+  animation: human-joy 0.7s ease-in-out infinite;
+}
+.human-sprite[data-human-pose='surprised'] .human-motion {
+  transform: translateY(-2%) rotate(-3deg);
+}
+.human-sprite[data-human-pose='play'] .human-motion {
+  animation: human-play 0.8s ease-in-out infinite;
+}
+.human-sprite[data-human-pose='sleep'] .human-motion {
+  animation: human-breathe 3s ease-in-out infinite;
+  filter: brightness(0.92);
+}
+.human-sprite[data-human-pose='sleepy'] .human-motion {
+  animation: human-breathe 3.5s ease-in-out infinite;
+  filter: saturate(0.88);
+}
+.human-blanket {
+  position: absolute;
+  bottom: 3%;
+  left: 16%;
+  width: 72%;
+  height: 24%;
+  border-radius: 45% 35% 20% 20%;
+  background: repeating-linear-gradient(
+    40deg,
+    #d5b9aaac 0 6px,
+    #f1e1cfbc 6px 12px
+  );
+  box-shadow: 0 2px 3px #82665015;
+  pointer-events: none;
+}
+.human-dream {
+  position: absolute;
+  top: 4%;
+  right: 0;
+  font-size: 1.4cqw;
+  color: #a79db9;
+  letter-spacing: 2px;
+  animation: human-sparkle 3s infinite;
+}
+.human-plaything {
+  position: absolute;
+  bottom: 10%;
+  right: 0;
+  color: #d0b477;
+  animation: human-toy 0.8s infinite alternate;
+}
+.mini .human-expression,
+.mini .human-dream {
+  font-size: 12px;
+}
+.room-friend:has(.human-sprite) {
+  width: 11%;
+  height: 21%;
+}
+.human-sprite.mini .human-blanket {
+  bottom: 3%;
+}
+@keyframes human-walk {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-3%) rotate(2deg);
+  }
+}
+@keyframes human-joy {
+  50% {
+    transform: translateY(-3%) rotate(1.5deg);
+  }
+}
+@keyframes human-play {
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes human-breathe {
+  0%,
+  100% {
+    transform: translateY(3%) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(2%) rotate(-5deg);
+  }
+}
+@keyframes human-sparkle {
+  50% {
+    opacity: 0.5;
+    translate: 0 -4px;
+  }
+}
+@keyframes human-toy {
+  to {
+    translate: 0 -9px;
+    rotate: 35deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .human-motion,
+  .human-expression,
+  .human-dream,
+  .human-plaything {
+    animation: none !important;
+    transition: none;
+  }
+}

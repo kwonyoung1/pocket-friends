@@ -1,3 +1,4 @@
+import { normalFriendCount } from '../humans/model.ts'
 import type { Friend, Save, Point } from '../game.ts'
 import { createFriends } from '../game.ts'
 import {
@@ -287,7 +288,7 @@ export function lifeCommand(s: Save, c: LifeCommand, now = Date.now()): string {
       return '입양할 친구를 선택해 주세요.'
     if (
       s.friends.some((f) => f.id === c.id) ||
-      s.friends.length >= B.maxFriends
+      normalFriendCount(s) >= B.maxFriends
     )
       return '이미 함께 살거나 우리 집이 가득 찼어요.'
     if (!transact(w, -B.adoptionPrice, '새 친구 입양', now))

@@ -39,6 +39,12 @@ export async function hydrateStorage() {
   valid.sort((a, b) => b.savedAt - a.savedAt)
   initialRaw = valid[0]?.raw ?? null
   if (!initialRaw && brokenRaw) { blocked = true; storageWarning = '저장 데이터가 손상되어 자동 덮어쓰기를 멈췄어요. 추억 보관으로 원본을 백업하고 올바른 파일을 복원해 주세요.' }
+  if(initialRaw&&!JSON.parse(initialRaw).world?.specialFriendsVersion){
+    let backed=false
+    try{if(!localStorage.getItem(`${STORAGE_KEY}-before-humans`))localStorage.setItem(`${STORAGE_KEY}-before-humans`,initialRaw);backed=true}catch{/* independent durable fallback */}
+    try{if(database){if(!await read('before-humans'))await put('before-humans',initialRaw);backed=true}}catch{/* preserve original */}
+    if(!backed){blocked=true;brokenRaw=initialRaw;storageWarning='특별 친구 추가 전 원본을 백업할 공간이 없어 자동 저장을 멈췄어요. 추억 보관으로 원본을 내려받아 주세요.'}
+  }
   if (initialRaw && !JSON.parse(initialRaw).world?.expansion) {
     let backed=false
     try { if(!localStorage.getItem(`${STORAGE_KEY}-before-life`))localStorage.setItem(`${STORAGE_KEY}-before-life`,initialRaw);backed=true }catch{ /* Try the other durable store. */ }

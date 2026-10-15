@@ -151,7 +151,7 @@ export const collectionItems: Item[] = names.flatMap((row, grade) =>
   })),
 )
 export const foodLikes: Record<string, string> = {
-  momo: 'lunch',
+  'special-boy': 'bread', 'special-girl': 'cake', momo: 'lunch',
   bibi: 'cake',
   coco: 'steak',
   dudu: 'bread',
@@ -161,7 +161,7 @@ export const foodLikes: Record<string, string> = {
   mungchi: 'bread',
 }
 export const sleepSchedules: Record<string, [number, number]> = {
-  momo: [-15, 350],
+  'special-boy': [5,355], 'special-girl': [-10,370], momo: [-15, 350],
   bibi: [20, 375],
   coco: [-5, 385],
   dudu: [10, 335],
