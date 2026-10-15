@@ -33,7 +33,7 @@ describe('growth, personality and v1 migration', () => {
   })
   it('care and direct pets award XP only through their cooldowns', () => {
     const s = game(), f = s.friends[0]
-    care(f, 'feed', now); care(f, 'feed', now + 1600)
+    acquire(world(s), 'snack', now);acquire(world(s), 'snack', now);useItem(s, 'snack', f.id, now);useItem(s, 'snack', f.id, now + 1600)
     expect(growth(f).xp).toBe(3); expect(missionProgress(s, 'feed', now)).toBe(1)
     normalPet(f, now + 3000); expect(growth(f).xp).toBe(4)
     normalPet(f, now + 5000); expect(growth(f).xp).toBe(4)
@@ -57,27 +57,27 @@ describe('growth, personality and v1 migration', () => {
 describe('economy, shop and inventory', () => {
   it('checks balance, level locks and double clicks; keeps an auditable nonnegative ledger', () => {
     const s = game(), w = world(s)
-    expect(buy(s, 'cake', now)).toContain('레벨')
-    buy(s, 'snack', now); expect(w.coins).toBe(280); expect(w.inventory.snack).toBe(1)
-    buy(s, 'snack', now + 1); expect(w.coins).toBe(280); expect(w.inventory.snack).toBe(1)
-    buy(s, 'ball', now + 1000); expect(w.coins).toBe(200)
+    expect(buy(s, 'toy', now)).toContain('레벨')
+    buy(s, 'snack', now); expect(w.coins).toBe(285); expect(w.inventory.snack).toBe(1)
+    buy(s, 'snack', now + 1); expect(w.coins).toBe(285); expect(w.inventory.snack).toBe(1)
+    buy(s, 'ball', now + 1000); expect(w.coins).toBe(205)
     buy(s, 'plant', now + 2000); buy(s, 'plant', now + 3000)
-    expect(w.coins).toBe(0)
+    expect(w.coins).toBe(5)
     expect(buy(s, 'snack', now + 4000)).toContain('부족')
-    expect(w.coins).toBe(0); expect(transact(w, -1, '실패', now)).toBe(false)
+    expect(w.coins).toBe(5); expect(transact(w, -6, '실패', now)).toBe(false)
     expect(w.ledger.at(-1)?.balance).toBe(300)
     expect(w.ledger.every(e => e.balance >= 0)).toBe(true)
   })
   it('consumes food once, reuses toys with cooldown, and keeps collectibles unusable', () => {
     const s = game(), w = world(s), f = s.friends[0]
     buy(s, 'snack', now); useItem(s, 'snack', f.id, now + 1000)
-    expect(w.inventory.snack).toBe(0); expect(f.stats.hunger).toBe(93); expect(growth(f).xp).toBe(3)
+    expect(w.inventory.snack).toBe(0); expect(f.stats.hunger).toBe(88); expect(growth(f).xp).toBe(3)
     useItem(s, 'snack', f.id, now + 2000); expect(w.inventory.snack).toBe(0)
     buy(s, 'ball', now + 2000); useItem(s, 'ball', f.id, now + 3000)
     expect(w.inventory.ball).toBe(1); expect(growth(f).xp).toBe(8)
     useItem(s, 'ball', f.id, now + 5000); expect(growth(f).xp).toBe(8)
     useItem(s, 'ball', f.id, now + 34000); expect(growth(f).xp).toBe(13)
-    acquire(w, 'plant', now); expect(useItem(s, 'plant', f.id, now + 36000)).toContain('장식품')
+    acquire(w, 'plant', now); expect(useItem(s, 'plant', f.id, now + 36000)).toContain('방에 배치하기')
     acquire(w, 'leaf', now); expect(useItem(s, 'leaf', f.id, now + 38000)).toContain('수집용')
   })
   it('sales decrement stock without deleting collection records', () => {
@@ -100,7 +100,7 @@ describe('real-time expeditions and exact drop odds', () => {
   it('locks a deterministic reward at start, prevents duplicate trips and blocks care/input', () => {
     const s = game(), f = s.friends[0], w = world(s)
     startExpedition(s, f.id, 'forest', now, () => .999)
-    expect(w.jobs[0].result.items).toEqual(['world-seed'])
+    expect(w.jobs[0].result.items).toEqual(['decor-3-4'])
     const energy = f.stats.energy
     startExpedition(s, f.id, 'forest', now + 1)
     expect(w.jobs).toHaveLength(1); expect(f.stats.energy).toBe(energy)
@@ -120,19 +120,19 @@ describe('real-time expeditions and exact drop odds', () => {
     expect(completeExpeditions(loaded, end + 1000)).toHaveLength(1)
     const w = world(loaded)
     expect(w.coins).toBe(420); expect(growth(loaded.friends[0]).xp).toBe(20)
-    expect(w.inventory['world-seed']).toBe(1); expect(w.book['world-seed'].firstAt).toBe(end + 1000)
+    expect(w.inventory['decor-3-4']).toBe(1); expect(w.book['decor-3-4'].firstAt).toBe(end + 1000)
     expect(w.legendaries).toHaveLength(1); expect(w.notices).toHaveLength(1)
     expect(growth(loaded.friends[0]).awayJobId).toBeUndefined()
     expect(growth(loaded.friends[0]).rareFinds).toBe(1)
     completeExpeditions(loaded, end + 2000)
     const again = parseSave(JSON.stringify(loaded), end + 3000)
     completeExpeditions(again, end + 3000)
-    expect(world(again).coins).toBe(420); expect(world(again).inventory['world-seed']).toBe(1)
+    expect(world(again).coins).toBe(420); expect(world(again).inventory['decor-3-4']).toBe(1)
   })
   it('curiosity adds an independent roll without altering any rarity weight', () => {
     const s = game(), rolls = [.1, .2, .01, .999, .5]
     startExpedition(s, 'momo', 'forest', now, () => rolls.shift() ?? .5)
-    expect(world(s).jobs[0].result.items).toEqual(['leaf', 'world-seed'])
+    expect(world(s).jobs[0].result.items).toEqual(['decor-0-0', 'decor-3-4'])
     expect(B.rarityWeights.legendary).toBe(1)
   })
 })

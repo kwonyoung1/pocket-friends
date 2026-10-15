@@ -1,4 +1,8 @@
-import { growth, dominant, rewardAction } from './progression/model.ts'
+import { busyLife, sleeping, settleLife, makeAdoptee } from './expansion/model.ts'
+import type { Life } from './expansion/model.ts'
+import type { Obstacle } from './navigation.ts'
+import { adoptionCatalog } from './expansion/config.ts'
+import { growth, dominant } from './progression/model.ts'
 import type { Growth, World } from './progression/model.ts'
 import { growthBalance } from './progression/config.ts'
 import { migrateProgress } from './progression/migrate.ts'
@@ -8,11 +12,11 @@ import type { Interaction } from './interaction.ts'
 import { interactionBalance } from './balance.ts'
 export { obstacles, walkable, findRoute } from './navigation.ts'
 
-export type Kind = 'cat' | 'bunny' | 'bear' | 'fox'
+export type Kind = 'cat' | 'bunny' | 'bear' | 'fox' | 'dog'
 export type Stats = { hunger: number; happiness: number; energy: number; hygiene: number; affection: number }
 export type Point = { x: number; y: number }
 export type Friend = {
-  remoteAuthoritative?: boolean; remoteHoldId?: string;
+  eatingUntil?: number; recoveryUntil?: number; life?: Life; navObstacles?: Obstacle[]; furnitureUntil?: number; furnitureActivity?: string; remoteAuthoritative?: boolean; remoteHoldId?: string;
   growth?: Growth; id: string; name: string; kind: Kind; color: string; description: string; photo?: string; stats: Stats
   x: number; y: number; facing: number; route: Point[]; restingUntil: number; nextSpeech: number
   interaction?: Interaction; petRewardAfter?: number; lastPetLine?: string; bubblePriority?: number;
@@ -47,7 +51,7 @@ const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 export function tick(friends: Friend[], now: number, dt: number, onMeeting: (text: string) => void, onBond: (friend: Friend) => void = () => {}, visualOnly = false) {
   for (const f of friends) {
     if (!visualOnly) f.stats = decay(f.stats, dt * 1000)
-    if (f.growth?.awayJobId) { f.moving = false; continue }
+    if (f.growth?.awayJobId || busyLife(f,now)) { f.moving = false; continue }
     advanceInteraction(f, now, dt, () => onBond(f))
     f.moving = false
     if (controlled(f)) continue
@@ -63,22 +67,22 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
     }
     if (now >= f.nextSpeech) {
       const pool = f.growth && Math.random() < .35 ? personalityPhrases[dominant(f)] : phrases
-      speak(f, f.stats.hunger < 30 ? '배에서 꼬르륵… 간식 먹고 싶어~' : pool[Math.floor(Math.random() * pool.length)], now, f.stats.hunger < 30 ? 3 : 1)
+      speak(f, f.life?.coldAt ? '에취… 훌쩍! 따뜻하게 쉬어야겠어~' : f.stats.hunger < 30 ? '배에서 꼬르륵… 간식 먹고 싶어~' : pool[Math.floor(Math.random() * pool.length)], now, f.stats.hunger < 30 || f.life?.coldAt ? 3 : 1)
       f.nextSpeech = now + between(20000, 50000)
     }
     f.moving = false
     if (now < f.restingUntil) continue
     if (!f.route.length) {
-      const peers = friends.filter(p => p.id !== f.id && !controlled(p) && !p.growth?.awayJobId)
+      const peers = friends.filter(p => p.id !== f.id && !controlled(p) && !p.growth?.awayJobId && !busyLife(p,now))
       const other = peers[Math.floor(Math.random() * peers.length)]
       const social = !!other && now > f.socialAfter && Math.random() < (f.growth ? .25 + growth(f).traits.affectionate / 250 : .4)
       const furnitureSpots = [{ x: 330, y: 270 }, { x: 770, y: 310 }, { x: 630, y: 470 }, { x: 170, y: 510 }]
       const target = social ? other : Math.random() < (f.growth ? .6 - growth(f).traits.curious / 250 : .45) ? furnitureSpots[Math.floor(Math.random() * furnitureSpots.length)] : cells[Math.floor(Math.random() * cells.length)]
-      f.route = findRoute(f, target)
+      f.route = findRoute(f, target, f.navObstacles)
       f.meeting = social ? other.id : undefined
     }
     const peer = f.meeting ? friends.find(p => p.id === f.meeting) : undefined
-    if (peer && !peer.growth?.awayJobId && !controlled(peer) && distance(f, peer) < 95 && now >= peer.socialAfter && !(f.bubbleUntil > now && (f.bubblePriority ?? 0) > 2) && !(peer.bubbleUntil > now && (peer.bubblePriority ?? 0) > 2)) {
+    if (peer && !peer.growth?.awayJobId && !busyLife(peer,now) && !controlled(peer) && distance(f, peer) < 95 && now >= peer.socialAfter && !(f.bubbleUntil > now && (f.bubblePriority ?? 0) > 2) && !(peer.bubbleUntil > now && (peer.bubblePriority ?? 0) > 2)) {
       speak(f, `${peer.name}야, 안녕! 같이 놀자 ♡`, now, 2)
       speak(peer, `${f.name}야~ 만나서 반가워!`, now, 2)
       for (const p of [f, peer]) {
@@ -90,7 +94,7 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
     }
     const target = f.route[0]
     if (!target) { f.restingUntil = now + between(2000, 6000) * (f.growth ? 1 + (growth(f).traits.calm - growth(f).traits.active) / 100 : 1); continue }
-    const d = distance(f, target), step = (f.kind === 'bear' ? 29 : f.kind === 'fox' ? 42 : 35) * dt
+    const d = distance(f, target), step = (f.kind === 'bear' ? 29 : f.kind === 'fox' ? 42 : 35) * dt * (f.life?.coldAt ? .6 : 1)
     if (d <= step) {
       f.x = target.x; f.y = target.y; f.route.shift()
       if (!f.route.length) { f.restingUntil = now + between(2000, 6000) * (f.growth ? 1 + (growth(f).traits.calm - growth(f).traits.active) / 100 : 1); f.meeting = undefined }
@@ -102,16 +106,16 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
   }
 }
 export function care(f: Friend, action: Care, now = Date.now()): string | null {
-  if (f.growth?.awayJobId) return null
+  if (f.growth?.awayJobId || f.life?.bath) return null
+  if (sleeping(f,now)) { say(f,'으응… 조금 더 잘래… 💤',now); return '새근새근 잠들어 있어요.' }
+  if (action === 'feed') return '먹이는 인벤토리에서 골라 주세요.'
+  if (action === 'wash') return '목욕은 생활 메뉴에서 시작해 주세요.'
   if (!f.interaction?.gesture) advanceInteraction(f, now, 0)
   if (action === 'pet') return normalPet(f, now)?.text ?? null
   if (now < f.careAfter || controlled(f)) return null
   f.careAfter = now + 1500
   const lines: Record<Care, string> = { feed: '냠냠! 정말 맛있어~ 고마워 ♡', pet: '헤헤, 손길이 따뜻해~ ♡', wash: '보송보송! 기분까지 상쾌해~', rest: '잠깐 쉬었다가 다시 놀자~ 💤' }
-  if (action === 'feed') { f.stats.hunger = clamp(f.stats.hunger + 22); f.stats.energy = clamp(f.stats.energy + 5) }
-  if (action === 'wash') { f.stats.hygiene = clamp(f.stats.hygiene + 28); f.stats.happiness = clamp(f.stats.happiness + 4) }
   if (action === 'rest') { f.stats.energy = clamp(f.stats.energy + 20); f.restingUntil = now + 12000; f.route = []; f.moving = false }
-  if (action === 'feed') rewardAction(f, 'feed', now)
   say(f, lines[action], now)
   return lines[action]
 }
@@ -119,8 +123,10 @@ export function parseSave(raw: string, now = Date.now()): Save {
   const data: unknown = JSON.parse(raw)
   if (!data || typeof data !== 'object' || !('version' in data) || ![1, 2].includes(Number(data.version))) throw Error('지원하지 않는 저장 형식')
   const saved = data as Save
-  if (!Number.isFinite(saved.savedAt) || !Array.isArray(saved.friends) || saved.friends.length !== 4) throw Error('손상된 저장 데이터')
+  if (!Number.isFinite(saved.savedAt) || !Array.isArray(saved.friends) || saved.friends.length < 4 || saved.friends.length > 8) throw Error('손상된 저장 데이터')
   const base = createFriends(now)
+  if(new Set(saved.friends.map(f=>f.id)).size!==saved.friends.length)throw Error('중복된 친구 데이터')
+  for(const old of saved.friends.filter(f=>!base.some(b=>b.id===f.id))){if(!adoptionCatalog.some(d=>d.id===old.id))throw Error('알 수 없는 친구');base.push(makeAdoptee(old.id,now))}
   for (const f of base) {
     const old = saved.friends.find(v => v && v.id === f.id)
     if (!old?.stats || !Object.keys(f.stats).every(k => typeof old.stats[k as keyof Stats] === 'number' && Number.isFinite(old.stats[k as keyof Stats]))) throw Error('손상된 상태 데이터')
@@ -134,7 +140,9 @@ export function parseSave(raw: string, now = Date.now()): Save {
     if (Number.isFinite(old.x) && Number.isFinite(old.y) && walkable(old)) { f.x = old.x; f.y = old.y }
   }
   const memories = Array.isArray(saved.memories) ? saved.memories.filter(m => m && typeof m.text === 'string' && typeof m.id === 'string' && Number.isFinite(m.at)).slice(0, 20) : []
-  return migrateProgress({ version: 2, savedAt: now, friends: base, memories }, saved.friends, saved.world, now)
+  const result = migrateProgress({ version: 2, savedAt: now, friends: base, memories }, saved.friends, saved.world, now)
+  settleLife(result,now)
+  return result
 }
 
 const personalityPhrases = { active: ['통통! 오늘도 신나게 움직여 볼까?', '같이 공놀이 하자~!'], calm: ['여기서 잠깐 쉬면 참 좋겠다~', '천천히 가도 괜찮아~'], curious: ['저 가구 뒤에는 뭐가 있을까?', '오늘도 새로운 걸 발견하고 싶어!'], adventurous: ['다음에는 어디로 모험을 떠나 볼까?', '보물을 찾아 떠나고 싶어~!'], affectionate: ['친구야~ 같이 놀자 ♡', '너랑 있으면 매일 행복해!'] }

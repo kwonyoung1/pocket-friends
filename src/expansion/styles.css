@@ -1,0 +1,481 @@
+.life-profile {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin: 20px 0;
+}
+.life-profile > .character-art {
+  width: 110px;
+  height: 125px;
+}
+.life-card {
+  background: #fcf8f0;
+  border: 1px solid #eadfd1;
+  border-radius: 18px;
+  padding: 18px;
+  margin: 14px 0;
+}
+.life-card h3 {
+  margin: 0 0 8px;
+}
+.life-card p {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.life-card form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+.life-card label {
+  display: grid;
+  gap: 6px;
+}
+.life-card input {
+  font: inherit;
+  border: 1px solid #dacabd;
+  border-radius: 9px;
+  padding: 10px;
+  width: 180px;
+}
+.adopt-avatar {
+  height: 150px;
+  text-align: center;
+}
+.adopt-avatar svg {
+  height: 100%;
+  width: 130px;
+}
+.hamster-art {
+  width: 90px;
+  max-height: 120px;
+}
+.placed-furniture,
+.furniture-preview {
+  position: absolute;
+  width: 10%;
+  height: 17%;
+  transform: translate(-50%, -85%);
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: grab;
+  touch-action: none;
+}
+.furniture-art {
+  height: 100%;
+  width: 100%;
+  overflow: visible;
+}
+.furniture-legendary {
+  filter: drop-shadow(0 0 6px #ffe29899);
+  animation: furniture-glow 3s ease-in-out infinite alternate;
+}
+.placed-furniture:focus-visible {
+  outline: 3px solid #b88970;
+  border-radius: 12px;
+}
+.placement-editor {
+  position: absolute;
+  inset: 0;
+  z-index: 3000;
+  touch-action: none;
+  background: #faf4dd20;
+  border: 3px dashed #b99e75;
+  border-radius: 12px;
+  user-select: none;
+}
+.furniture-preview {
+  pointer-events: none;
+  opacity: 0.8;
+  filter: drop-shadow(0 0 6px #a3bd90);
+}
+.furniture-controls {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3100;
+  background: #fffaf0f5;
+  border: 1px solid #dacaad;
+  box-shadow: 0 5px 20px #63534320;
+  padding: 9px;
+  border-radius: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: max-content;
+  max-width: 96%;
+  justify-content: center;
+  font-size: 12px;
+}
+.furniture-controls button,
+.discovery-notice button {
+  border: 1px solid #d7c5ae;
+  background: #f1e4ce;
+  color: #66523d;
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+.room-hamster {
+  position: absolute;
+  width: 5.5%;
+  height: 11%;
+  transform: translate(-50%, -82%);
+  pointer-events: none;
+}
+.room-hamster svg {
+  width: 100%;
+  height: 100%;
+  transform: scaleX(var(--hamster-facing));
+}
+.hamster-walking svg {
+  animation: hamster-hop 0.3s infinite alternate;
+}
+.hamster-sleeping svg {
+  animation: hamster-breathe 2s infinite alternate;
+}
+.room-hamster small {
+  position: absolute;
+  top: -10%;
+  right: 0;
+  color: #9d95b2;
+  letter-spacing: 2px;
+}
+.life-bath .friend-figure {
+  opacity: 0.85;
+}
+.life-bath .friend-lift {
+  animation: bath-bob 2s infinite;
+}
+.life-sleep .friend-lift {
+  animation: hamster-breathe 3s infinite alternate;
+}
+.life-symbol {
+  position: absolute;
+  top: -3%;
+  right: -15%;
+  font-size: 19px;
+  pointer-events: none;
+  animation: life-float 3s infinite;
+}
+.life-bath .life-symbol {
+  font-size: 30px;
+  top: 20%;
+  right: 0;
+  left: 0;
+}
+.life-cold .friend-name::after {
+  content: ' 🤧';
+}
+.friend-activity {
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  white-space: nowrap;
+  background: #fff9e8bc;
+  border-radius: 6px;
+  padding: 2px 5px;
+}
+.discovery-notice {
+  position: fixed;
+  bottom: 78px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1900;
+  background: #fff5d9;
+  border: 1px solid #e1ca8c;
+  box-shadow: 0 7px 24px #65513d20;
+  border-radius: 15px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  max-width: 94%;
+  width: max-content;
+}
+.discovery-notice > span {
+  color: #c4a04f;
+  font-size: 28px;
+  animation: furniture-glow 1s infinite alternate;
+}
+.mobile-care-summary {
+  display: none;
+}
+.life-nav-button {
+  border: 1px solid #ddcbb7;
+  border-radius: 12px;
+  color: #88694e;
+  background: #f8efdf;
+  padding: 10px 15px;
+  cursor: pointer;
+  font: inherit;
+}
+.regional-book-filter {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 10px 0;
+}
+.regional-book-filter select {
+  padding: 8px;
+  border: 1px solid #e0d2bf;
+  border-radius: 9px;
+  background: #fffaf1;
+}
+@keyframes hamster-hop {
+  to {
+    translate: 0 -4px;
+  }
+}
+@keyframes hamster-breathe {
+  to {
+    scale: 1.025 0.97;
+  }
+}
+@keyframes bath-bob {
+  50% {
+    translate: 0 -3px;
+  }
+}
+@keyframes life-float {
+  50% {
+    translate: 0 -5px;
+  }
+}
+@keyframes furniture-glow {
+  to {
+    filter: drop-shadow(0 0 12px #e8c95c);
+    opacity: 0.85;
+  }
+}
+@media (max-width: 700px) {
+  .intro {
+    padding-bottom: 12px;
+  }
+  .intro .today {
+    display: none;
+  }
+  .adventure-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1700;
+    background: #fbf7eeef;
+    backdrop-filter: blur(8px);
+    padding: 8px 2px;
+    gap: 4px;
+  }
+  .adventure-nav button {
+    font-size: 10px;
+    padding: 8px 5px;
+    min-width: 0;
+    flex: 1;
+  }
+  .adventure-nav button span {
+    white-space: normal;
+  }
+  .room-panel .room {
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 1000/750;
+  }
+  .room-panel {
+    position: relative;
+  }
+  .care-panel {
+    position: relative;
+  }
+  .mobile-care-summary {
+    display: block;
+    border: 0;
+    background: #f0e5d2;
+    border-radius: 10px;
+    width: 100%;
+    padding: 12px;
+    font: inherit;
+    color: #765d47;
+    margin-bottom: 12px;
+  }
+  .care-panel.mobile-collapsed > :not(.mobile-care-summary) {
+    display: none;
+  }
+  .room-toolbar .room-caption {
+    display: none;
+  }
+  .room-footer-note {
+    display: none;
+  }
+  .life-card form input {
+    width: 150px;
+  }
+  .game-menu {
+    max-height: 88dvh;
+  }
+  .friend-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .discovery-notice {
+    bottom: 15px;
+    font-size: 11px;
+  }
+  .furniture-controls {
+    font-size: 10px;
+    gap: 5px;
+  }
+  .furniture-controls button {
+    padding: 7px;
+  }
+  .life-nav-button {
+    font-size: 10px;
+    padding: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-hamster svg,
+  .life-symbol,
+  .life-sleep .friend-lift,
+  .life-bath .friend-lift,
+  .furniture-legendary,
+  .discovery-notice > span {
+    animation: none;
+  }
+}
+
+.adventure-nav {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.item-emoji > .furniture-art {
+  width: 80px;
+  height: 90px;
+}
+.item-top:has(.furniture-art) {
+  min-height: 90px;
+}
+.room-edit-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2100;
+  border: 1px solid #dfccb0;
+  background: #fff7e7e8;
+  border-radius: 20px;
+  padding: 7px 12px;
+  font-size: 11px;
+  color: #947859;
+}
+.room-edit-toggle[aria-pressed='true'] {
+  background: #d9c5a0;
+  color: #604b32;
+}
+.room-friend,
+.placed-furniture,
+.room {
+  scroll-margin-top: 110px;
+}
+.placed-furniture {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+@media (max-width: 700px) {
+  .header {
+    height: 75px;
+  }
+  .intro {
+    padding: 17px 0;
+  }
+  .intro h1 {
+    font-size: 22px;
+    margin: 4px 0;
+  }
+  .intro .eyebrow {
+    display: none;
+  }
+  .intro p {
+    font-size: 10px;
+  }
+  .adventure-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    margin-bottom: 12px;
+  }
+  .adventure-nav > button {
+    padding: 9px 5px;
+    font-size: 10px;
+    min-height: 40px;
+    gap: 5px;
+  }
+  .adventure-nav > button > svg {
+    width: 13px;
+  }
+  .adventure-nav > button:last-child {
+    grid-column: span 2;
+  }
+  .care-panel.mobile-collapsed {
+    padding: 10px;
+  }
+  .care-panel > .mobile-care-summary {
+    width: 100%;
+    margin: 0;
+    min-height: 44px;
+    border-radius: 10px;
+  }
+  .room-edit-toggle {
+    top: 8px;
+    right: 8px;
+    font-size: 10px;
+    padding: 7px;
+  }
+  .room-label {
+    font-size: 8px;
+    top: 8px;
+    left: 8px;
+  }
+  .furniture-controls {
+    bottom: 3px;
+  }
+  .room-friend,
+  .placed-furniture,
+  .room {
+    scroll-margin-top: 115px;
+  }
+}
+
+.placed-furniture,
+.furniture-preview {
+  width: 8.5%;
+  height: 16%;
+}
+.placed-furniture[data-item='decor-3-0'],
+.furniture-preview[data-item='decor-3-0'],
+.placed-furniture[data-item='decor-3-7'],
+.furniture-preview[data-item='decor-3-7'] {
+  width: 12.5%;
+  height: 24%;
+}
+.placed-furniture[data-item='decor-2-7'],
+.furniture-preview[data-item='decor-2-7'] {
+  width: 13%;
+  height: 18%;
+}
+.eating .friend-emotion {
+  animation: eat-nibble 0.4s ease-in-out 5;
+}
+.life-card .small-primary + .small-primary {
+  margin-top: 8px;
+}
+@keyframes eat-nibble {
+  50% {
+    transform: translateY(-3%) scale(1.04, 0.98);
+  }
+}
+
+.room[data-night=true] .room-art{filter:brightness(.86) saturate(.84)}.room[data-night=true] [data-art=light],.room[data-night=true] [data-art="decor-1-3"]{filter:drop-shadow(0 0 14px #ffdf84);animation:night-lamp 3s ease-in-out infinite alternate}.furniture-relax .friend-emotion{transform:translateY(4%) scale(1.03,.94)}@keyframes night-lamp{to{filter:drop-shadow(0 0 23px #ffe4a6)}}
+@media(max-width:700px){.care-panel.mobile-collapsed{display:block}.adventure-nav>button{font-size:9px;gap:3px;padding:8px 3px}.adventure-nav>button span{word-break:keep-all}.adventure-nav small{font-size:7px;padding:1px 3px}}
+@media(prefers-reduced-motion:reduce){.room[data-night=true] [data-art=light],.room[data-night=true] [data-art="decor-1-3"]{animation:none}}

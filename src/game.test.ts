@@ -11,7 +11,7 @@ describe('room navigation and autonomous behaviour', () => {
   it('routes around the table and sofa using only walkable points', () => {
     const route = findRoute({ x: 610, y: 470 }, { x: 850, y: 470 })
     expect(route.length).toBeGreaterThan(6)
-    expect(route.every(walkable)).toBe(true)
+    expect(route.every(p=>walkable(p))).toBe(true)
     expect(route.some(p => p.y < 420 || p.y > 515)).toBe(true)
     for (const p of route) expect(walkable(p)).toBe(true)
   })
@@ -68,18 +68,18 @@ describe('room navigation and autonomous behaviour', () => {
   })
 })
 describe('care and persistence', () => {
-  it('care changes the appropriate stats, enforces cooldown and clamps at 100', () => {
+  it('care cannot create free food or instant baths; pet/rest still clamp at 100', () => {
     const f = createFriends(start)[0]
     f.stats.hunger = 40
-    expect(care(f, 'feed', start)).toMatch('냠냠')
-    expect(f.stats.hunger).toBe(62)
-    expect(care(f, 'feed', start + 100)).toBeNull()
-    expect(f.stats.hunger).toBe(62)
+    expect(care(f, 'feed', start)).toContain('인벤토리')
+    expect(f.stats.hunger).toBe(40)
+    expect(care(f, 'feed', start + 100)).toContain('인벤토리')
+    expect(f.stats.hunger).toBe(40)
     care(f, 'pet', start + 2000)
     expect(f.stats.affection).toBe(21)
     expect(f.stats.happiness).toBe(87)
     care(f, 'wash', start + 4000)
-    expect(f.stats.hygiene).toBe(100)
+    expect(f.stats.hygiene).toBe(82)
     care(f, 'rest', start + 6000)
     expect(f.stats.energy).toBe(100)
     expect(f.restingUntil).toBe(start + 18000)

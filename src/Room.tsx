@@ -1,5 +1,5 @@
 export function RoomArt() {
-  return <svg className="room-art" viewBox="0 0 1000 640" aria-hidden="true">
+  return <svg className="room-art" viewBox="0 0 1000 640" preserveAspectRatio="none" aria-hidden="true">
     <defs>
       <pattern id="floor" width="170" height="76" patternUnits="userSpaceOnUse"><rect width="170" height="76" fill="#f3e2ca" /><path d="M0 75h170M0 0v76M85 0v0" stroke="#e7cfaf" strokeWidth="2" /><path d="M15 12h50m28 37h54M23 63h22" stroke="#ecd6b8" strokeWidth="2" strokeLinecap="round" /></pattern>
       <pattern id="wall" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#f5eee2" /><circle cx="12" cy="12" r="1" fill="#ddd6c5" /></pattern>

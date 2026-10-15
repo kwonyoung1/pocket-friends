@@ -1,3 +1,4 @@
+import { busyLife } from './expansion/model.ts'
 import { rewardAction } from './progression/model.ts'
 import type { Friend, Point } from './game.ts'
 import { interactionBalance as balance } from './balance.ts'
@@ -24,7 +25,7 @@ export const reactionLinesByAffinity: Record<Affinity, string[]> = {
   friendly: ['고마워~!', '나 쓰다듬는 거 좋아해!', '오늘도 같이 놀자~', ...normalLines],
   close: ['계속 이렇게 있어줘~', '너랑 있으면 너무 좋아!', '나한테는 네가 최고야~', '우리 정말 친해진 것 같아!'],
 }
-const voices = { cat: '냐아, ', bunny: '헤헤, ', bear: '으음~ ', fox: '헤헷! ' }
+const voices = { cat: '냐아, ', bunny: '헤헤, ', bear: '으음~ ', dog: '멍~! ', fox: '헤헷! ' }
 export function reactionLine(f: Friend, special: boolean) {
   const pool = special ? specialLines : reactionLinesByAffinity[affinity(f)]
   const suffix = special ? { shy: ' 조금 쑥스럽지만… ♡', friendly: '', close: ' 내 단짝은 역시 너야 ♡' }[affinity(f)] : ''
@@ -44,6 +45,7 @@ function interaction(phase: Phase, now: number, zone: Zone): Interaction {
 }
 function stop(f: Friend) { f.moving = false; f.route = []; f.meeting = undefined; if (f.growth) f.growth.specialUntil = 0 }
 export function grantPetReward(f: Friend, special: boolean, now: number) {
+  if (busyLife(f,now)) return false
   if (f.remoteAuthoritative || f.growth?.awayJobId || now < (f.petRewardAfter ?? 0)) return false
   const reward = special ? balance.special : balance.normal
   f.stats.happiness = Math.min(100, Math.max(0, f.stats.happiness + reward.happiness))
@@ -53,6 +55,7 @@ export function grantPetReward(f: Friend, special: boolean, now: number) {
   return true
 }
 export function normalPet(f: Friend, now: number, zone: Zone = 'body') {
+  if(busyLife(f,now)){speak(f,'으응… 포근해… 💤',now,4);return null}
   if (f.growth?.awayJobId || f.interaction?.gesture) return null
   stop(f)
   f.interaction = interaction('delighted', now, zone)
@@ -62,6 +65,7 @@ export function normalPet(f: Friend, now: number, zone: Zone = 'body') {
   return { text, rewarded: grantPetReward(f, false, now) }
 }
 export function beginGesture(f: Friend, pointerId: number, client: Point, zone: Zone, now: number, pointerType: string) {
+  if(busyLife(f,now)){speak(f,'잠깐만~ 쉬고 있어… 💤',now,4);return false}
   if (f.growth?.awayJobId || f.interaction?.gesture) return false
   stop(f)
   f.interaction = interaction('pressing', now, zone)
@@ -83,7 +87,7 @@ export function moveGesture(f: Friend, pointerId: number, client: Point, delta: 
     }
   }
   if (state.phase === 'dragging') {
-    gesture.target = validPosition({ x: gesture.origin.x + delta.x, y: gesture.origin.y + delta.y })
+    gesture.target = validPosition({ x: gesture.origin.x + delta.x, y: gesture.origin.y + delta.y }, f.navObstacles)
     state.tilt = Math.max(-12, Math.min(12, (client.x - gesture.lastX) * .6))
     if (Math.abs(client.x - gesture.lastX) > .2) f.facing = client.x > gesture.lastX ? 1 : -1
     gesture.lastX = client.x
@@ -96,7 +100,7 @@ export function advanceInteraction(f: Friend, now: number, dt: number, onReward:
   if (s.gesture) {
     if (s.phase === 'dragging') {
       const follow = 1 - Math.exp(-balance.followSpeed * dt)
-      const position = validPosition({ x: f.x + (s.gesture.target.x - f.x) * follow, y: f.y + (s.gesture.target.y - f.y) * follow })
+      const position = validPosition({ x: f.x + (s.gesture.target.x - f.x) * follow, y: f.y + (s.gesture.target.y - f.y) * follow }, f.navObstacles)
       f.x = position.x; f.y = position.y; s.tilt *= Math.exp(-dt * 5)
     } else if (now - s.startedAt >= balance.bondMs) {
       if (s.phase !== 'bonding') {
@@ -126,7 +130,7 @@ export function endGesture(f: Friend, pointerId: number, now: number, cancel = f
   if (!cancel) advanceInteraction(f, now, 0, onReward)
   const was = s.phase, zone = s.zone
   if (was === 'dragging') {
-    const p = cancel ? validPosition(f) : s.gesture.target
+    const p = cancel ? validPosition(f, f.navObstacles) : s.gesture.target
     f.x = p.x; f.y = p.y
   }
   delete s.gesture
