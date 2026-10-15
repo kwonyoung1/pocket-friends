@@ -4,17 +4,23 @@ import { Heart } from 'lucide-react'
 import { Character } from './Character'
 import type { Friend } from './game'
 import { affinity, beginGesture, bodyZone, endGesture, normalPet, moveGesture } from './interaction'
+import type { GameCommand } from './cloud/protocol'
 import { interactionBalance } from './balance'
 
-type Props = { friend: Friend; selected: boolean; select: () => void; changed: () => void; bonded: (friend: Friend) => void }
-export function InteractiveFriend({ friend: f, selected, select, changed, bonded }: Props) {
+type Props = { friend: Friend; selected: boolean; select: () => void; changed: () => void; bonded: (friend: Friend) => void; remote?: { busy: boolean; send: (c: GameCommand) => Promise<void> } }
+export function InteractiveFriend({ friend: f, selected, select, changed, bonded, remote }: Props) {
   const button = useRef<HTMLButtonElement>(null)
   const finish = useCallback((pointerId: number, cancel = false) => {
     if (f.interaction?.gesture?.pointerId !== pointerId) return
+    const phase = f.interaction.phase, holdId = f.remoteHoldId
     endGesture(f, pointerId, Date.now(), cancel, () => bonded(f))
+    if (remote && holdId) {
+      const command: GameCommand = !cancel && phase === 'dragging' ? { type: 'drop', friendId: f.id, holdId, x: f.x, y: f.y } : !cancel && phase === 'pressing' ? { type: 'pet', friendId: f.id, holdId } : { type: 'hold-cancel', friendId: f.id, holdId }
+      void remote.send(command)
+    }
     if (button.current?.hasPointerCapture(pointerId)) button.current.releasePointerCapture(pointerId)
     changed()
-  }, [f, changed, bonded])
+  }, [f, changed, bonded, remote?.send])
   useEffect(() => {
     const cancel = () => { const id = f.interaction?.gesture?.pointerId; if (id !== undefined) finish(id, true) }
     const visibility = () => { if (document.hidden) cancel() }
@@ -40,6 +46,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     const rect = e.currentTarget.querySelector('.friend-figure')!.getBoundingClientRect()
     const zone = bodyZone(f, Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)))
     if (!beginGesture(f, e.pointerId, { x: e.clientX, y: e.clientY }, zone, Date.now(), e.pointerType)) return
+    if (remote) { f.remoteHoldId = crypto.randomUUID(); void remote.send({ type: 'hold-start', friendId: f.id, holdId: f.remoteHoldId }) }
     e.preventDefault(); e.currentTarget.focus({ preventScroll: true }); select()
     try { e.currentTarget.setPointerCapture(e.pointerId) } catch { finish(e.pointerId, true) }
   }
@@ -72,7 +79,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     onContextMenu={e => e.preventDefault()} onDragStart={e => e.preventDefault()}
     onClick={e => {
       // Pointer taps commit on pointerup; only keyboard/assistive clicks commit here.
-      if (e.detail === 0 && !f.interaction?.gesture) { select(); normalPet(f, Date.now()); changed() }
+      if (e.detail === 0 && !f.interaction?.gesture) { select(); normalPet(f, Date.now()); if (remote) void remote.send({ type: 'care', action: 'pet', friendId: f.id }); changed() }
     }}>
     {f.bubbleUntil > Date.now() && <span className="speech" role="status" style={f.x < 200 ? { left: 0, transform: 'none' } : f.x > 800 ? { left: 'auto', right: 0, transform: 'none' } : undefined}>{f.bubble}</span>}
     <span className="interaction-shadow" aria-hidden="true" />

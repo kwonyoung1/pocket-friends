@@ -1,17 +1,18 @@
-import { growth, dominant, rewardAction } from './progression/model'
-import type { Growth, World } from './progression/model'
-import { growthBalance } from './progression/config'
-import { migrateProgress } from './progression/migrate'
-import { cells, findRoute, walkable } from './navigation'
-import { advanceInteraction, controlled, normalPet, speak } from './interaction'
-import type { Interaction } from './interaction'
-import { interactionBalance } from './balance'
-export { obstacles, walkable, findRoute } from './navigation'
+import { growth, dominant, rewardAction } from './progression/model.ts'
+import type { Growth, World } from './progression/model.ts'
+import { growthBalance } from './progression/config.ts'
+import { migrateProgress } from './progression/migrate.ts'
+import { cells, findRoute, walkable } from './navigation.ts'
+import { advanceInteraction, controlled, normalPet, speak } from './interaction.ts'
+import type { Interaction } from './interaction.ts'
+import { interactionBalance } from './balance.ts'
+export { obstacles, walkable, findRoute } from './navigation.ts'
 
 export type Kind = 'cat' | 'bunny' | 'bear' | 'fox'
 export type Stats = { hunger: number; happiness: number; energy: number; hygiene: number; affection: number }
 export type Point = { x: number; y: number }
 export type Friend = {
+  remoteAuthoritative?: boolean; remoteHoldId?: string;
   growth?: Growth; id: string; name: string; kind: Kind; color: string; description: string; photo?: string; stats: Stats
   x: number; y: number; facing: number; route: Point[]; restingUntil: number; nextSpeech: number
   interaction?: Interaction; petRewardAfter?: number; lastPetLine?: string; bubblePriority?: number;
@@ -43,9 +44,9 @@ export function decay(stats: Stats, milliseconds: number): Stats {
   return { hunger: clamp(stats.hunger - minutes * .45), happiness: clamp(stats.happiness - minutes * .22), energy: clamp(stats.energy - minutes * .16), hygiene: clamp(stats.hygiene - minutes * .3), affection: stats.affection }
 }
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
-export function tick(friends: Friend[], now: number, dt: number, onMeeting: (text: string) => void, onBond: (friend: Friend) => void = () => {}) {
+export function tick(friends: Friend[], now: number, dt: number, onMeeting: (text: string) => void, onBond: (friend: Friend) => void = () => {}, visualOnly = false) {
   for (const f of friends) {
-    f.stats = decay(f.stats, dt * 1000)
+    if (!visualOnly) f.stats = decay(f.stats, dt * 1000)
     if (f.growth?.awayJobId) { f.moving = false; continue }
     advanceInteraction(f, now, dt, () => onBond(f))
     f.moving = false
@@ -81,7 +82,7 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
       speak(f, `${peer.name}야, 안녕! 같이 놀자 ♡`, now, 2)
       speak(peer, `${f.name}야~ 만나서 반가워!`, now, 2)
       for (const p of [f, peer]) {
-        p.stats.happiness = clamp(p.stats.happiness + 4); p.stats.affection = clamp(p.stats.affection + (p.growth && dominant(p) === 'affectionate' ? 1 + growthBalance.bonuses.affectionateSocial : 1))
+        if (!visualOnly) { p.stats.happiness = clamp(p.stats.happiness + 4); p.stats.affection = clamp(p.stats.affection + (p.growth && dominant(p) === 'affectionate' ? 1 + growthBalance.bonuses.affectionateSocial : 1)) }
         p.restingUntil = now + 7000; p.socialAfter = now + 30000; p.route = []; p.meeting = undefined; p.moving = false
       }
       onMeeting(`${f.name}와 ${peer.name}, 반갑게 인사했어요`)

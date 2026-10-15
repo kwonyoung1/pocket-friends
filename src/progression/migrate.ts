@@ -1,8 +1,8 @@
-import type { Save } from '../game'
-import { growthBalance as B, itemById, regions } from './config'
-import type { Trait } from './config'
-import { newGrowth, newWorld, dailyKey, xpNeeded } from './model'
-import type { Growth, World, Action, Expedition } from './model'
+import type { Save } from '../game.ts'
+import { growthBalance as B, itemById, regions } from './config.ts'
+import type { Trait } from './config.ts'
+import { newGrowth, newWorld, dailyKey, xpNeeded } from './model.ts'
+import type { Growth, World, Action, Expedition } from './model.ts'
 const record = (v: unknown): Record<string, unknown> => { if (!v || typeof v !== 'object' || Array.isArray(v)) throw Error('저장 데이터 형식이 올바르지 않아요.'); return v as Record<string, unknown> }
 const number = (v: unknown, min = 0, max = 8e15, integer = true) => { if (typeof v !== 'number' || !Number.isFinite(v) || v < min || v > max || (integer && !Number.isSafeInteger(v))) throw Error('저장 데이터 수치가 올바르지 않아요.'); return v }
 const text = (v: unknown, max = 200) => { if (typeof v !== 'string' || v.length > max) throw Error('저장 데이터 문장이 올바르지 않아요.'); return v }

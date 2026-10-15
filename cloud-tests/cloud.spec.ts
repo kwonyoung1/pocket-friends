@@ -1,0 +1,142 @@
+import { expect } from '@playwright/test'
+import { test } from './fixture'
+import type { Page } from '@playwright/test'
+import { freshWorld } from '../src/cloud/engine'
+async function enter(page: Page, secret: string) {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: '포켓프렌즈', exact: true })).toBeVisible()
+  await page.getByLabel('접속 비밀번호').fill(secret)
+  await page.getByRole('button', { name: '입장하기' }).click()
+  await expect(page.getByRole('button', { name: '로그아웃' })).toBeVisible()
+}
+async function fresh(page: Page, secret: string) {
+  await enter(page, secret)
+  await page.getByRole('button', { name: '새 공유 월드로 시작하기' }).click()
+  await page.getByRole('button', { name: '확인하고 공유 월드 만들기' }).click()
+  await page.getByRole('button', { name: '이 클라우드 월드 사용하기' }).click()
+  await expect(page.getByTestId('room-momo')).toBeVisible()
+}
+async function menu(page: Page, name: string) { await page.getByRole('navigation', { name: '성장과 모험 메뉴' }).getByRole('button', { name, exact: true }).click() }
+test('password gate rejects incorrect entry; importing preserves the original browser data and photo', async ({ page, backend }, info) => {
+  const original = freshWorld(Date.now()); original.world!.coins = 777
+  original.friends[0].photo = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = c.height = 20; c.getContext('2d')!.fillRect(0, 0, 20, 20); return c.toDataURL('image/png') })
+  const raw = JSON.stringify(original)
+  await page.addInitScript(raw => localStorage.setItem('pocket-friends-v1', raw), raw)
+  await page.goto('/')
+  await expect(page.getByTestId('room-momo')).toHaveCount(0)
+  await expect(page.getByLabel('접속 비밀번호')).toBeVisible()
+  await page.screenshot({ path: `docs/screenshots/cloud-login-${info.project.name}.png`, fullPage: true })
+  await page.getByLabel('접속 비밀번호').fill('incorrect')
+  await page.getByRole('button', { name: '입장하기' }).click()
+  await expect(page.getByRole('alert')).toContainText('맞지 않아요')
+  await page.getByLabel('접속 비밀번호').fill(backend.secret)
+  await page.getByRole('button', { name: '입장하기' }).click()
+  await expect(page.getByRole('button', { name: '이 기기 데이터를 기준으로 가져오기' })).toBeEnabled()
+  await page.screenshot({ path: `docs/screenshots/cloud-import-${info.project.name}.png`, fullPage: true })
+  await page.getByRole('button', { name: '이 기기 데이터를 기준으로 가져오기' }).click()
+  await page.getByRole('button', { name: '확인하고 공유 월드 만들기' }).click()
+  await page.getByRole('button', { name: '이 클라우드 월드 사용하기' }).click()
+  await expect(page.getByRole('button', { name: '보유 코인 777' })).toBeVisible()
+  await expect(page.getByTestId('room-momo').getByRole('img')).toBeVisible()
+  await page.getByRole('complementary').getByRole('button', { name: /먹이 주기/ }).click()
+  await expect.poll(() => backend.row().revision).toBeGreaterThan(1)
+  expect(await page.evaluate(() => localStorage.getItem('pocket-friends-v1'))).toBe(raw)
+  await page.reload()
+  await page.getByRole('button', { name: '이 클라우드 월드 사용하기' }).click()
+  await expect(page.getByTestId('room-momo').getByRole('img')).toBeVisible()
+  await page.getByRole('button', { name: '로그아웃' }).click()
+  await expect(page.getByLabel('접속 비밀번호')).toBeVisible()
+  await expect(page.getByTestId('room-momo')).toHaveCount(0)
+})
+test('two devices share purchases; a committed response lost on the network retries without buying twice', async ({ page, backend, browser }) => {
+  await fresh(page, backend.secret)
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  await backend.attach(phone)
+  const second = await phone.newPage(); await enter(second, backend.secret)
+  await second.getByRole('button', { name: '이 클라우드 월드 사용하기' }).click()
+  await menu(page, '상점'); backend.loseNextBuyResponse()
+  await page.getByTestId('item-snack').getByRole('button', { name: '구매하기' }).click()
+  await expect(page.getByRole('alert')).toContainText('동기화에 실패')
+  expect(backend.row().data!.world!.coins).toBe(280)
+  await page.getByRole('button', { name: '같은 작업 다시 시도' }).click()
+  await expect(page.getByRole('button', { name: '보유 코인 280' })).toBeVisible()
+  expect(backend.row().data!.world!.inventory.snack).toBe(1)
+  await second.getByRole('button', { name: '새로 동기화', exact: true }).click()
+  await expect(second.getByRole('button', { name: '보유 코인 280' })).toBeVisible()
+  await menu(second, '인벤토리'); await expect(second.getByTestId('item-snack')).toContainText('보유 1개')
+  await phone.close()
+})
+test('short tap, special hold and dragging keep server rewards separate from local animation', async ({ page, backend }) => {
+  await fresh(page, backend.secret)
+  const actor = page.getByTestId('room-momo')
+  // Stop local movement only while choosing the starting point; pointer capture owns it afterward.
+  await actor.scrollIntoViewIfNeeded()
+  const p = await actor.locator('.friend-figure').boundingBox(); expect(p).not.toBeNull()
+  await page.mouse.move(p!.x + p!.width / 2, p!.y + p!.height / 2); await page.mouse.down(); await page.mouse.up()
+  await expect.poll(() => backend.row().data!.friends[0].stats.affection).toBe(21)
+  await expect(page.locator('.cloud-status')).not.toContainText('처리 중')
+  const bibi = page.getByTestId('room-bibi'); await bibi.scrollIntoViewIfNeeded()
+  const q = await bibi.locator('.friend-figure').boundingBox()
+  await page.mouse.move(q!.x + q!.width / 2, q!.y + q!.height / 2); await page.mouse.down()
+  await expect(bibi).toHaveAttribute('data-phase', 'bonding', { timeout: 6000 })
+  await expect.poll(() => backend.row().data!.friends[1].stats.affection).toBe(23)
+  await page.mouse.up(); await expect(page.locator('.cloud-status')).not.toContainText('처리 중')
+  const coco = page.getByTestId('room-coco'); await coco.scrollIntoViewIfNeeded()
+  const r = await coco.locator('.friend-figure').boundingBox()
+  await page.mouse.move(r!.x + r!.width / 2, r!.y + r!.height / 2); await page.mouse.down()
+  await page.mouse.move(r!.x + r!.width / 2 + 35, r!.y + r!.height / 2 + 15, { steps: 4 })
+  await page.mouse.up()
+  await expect.poll(() => backend.row().holds.coco).toBeUndefined()
+  expect(backend.row().data!.friends[2].stats.affection).toBe(20)
+  expect(await page.evaluate(() => document.body.scrollWidth > innerWidth)).toBe(false)
+})
+
+test('storage failure blocks a new command before spending any cloud coins', async ({ page, backend }) => {
+  await fresh(page, backend.secret)
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem
+    Storage.prototype.setItem = function(key: string, value: string) { if (key === 'pocket-friends-cloud-pending') throw Error('full'); original.call(this, key, value) }
+  })
+  await menu(page, '상점')
+  await page.getByTestId('item-snack').getByRole('button', { name: '구매하기' }).click()
+  await expect(page.getByRole('alert')).toContainText('요청을 보내지 않았어요')
+  expect(backend.row().data!.world!.coins).toBe(300)
+  expect(backend.row().data!.world!.inventory.snack).toBeUndefined()
+})
+
+test('a chosen backup can be the initial cloud source without replacing this device original', async ({ page, backend }) => {
+  const local = freshWorld(Date.now()), source = freshWorld(Date.now())
+  local.world!.coins = 321; source.world!.coins = 654
+  const raw = JSON.stringify(local)
+  await page.addInitScript(raw => localStorage.setItem('pocket-friends-v1', raw), raw)
+  await enter(page, backend.secret)
+  const input = page.getByLabel('클라우드 이전 원본 백업 선택')
+  await input.setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{bad') })
+  await expect(page.getByRole('alert')).toContainText('백업을 읽지 못했어요')
+  await input.setInputFiles({ name: 'chosen-backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(source)) })
+  await expect(page.getByText('선택한 백업 파일', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '이 기기 데이터를 기준으로 가져오기' }).click()
+  await page.getByRole('button', { name: '확인하고 공유 월드 만들기' }).click()
+  await page.getByRole('button', { name: '이 클라우드 월드 사용하기' }).click()
+  await expect(page.getByRole('button', { name: '보유 코인 654' })).toBeVisible()
+  expect(await page.evaluate(() => localStorage.getItem('pocket-friends-v1'))).toBe(raw)
+})
+
+test('two native touch holds remain independent while cloud commands are serialized', async ({ page, backend }) => {
+  await fresh(page, backend.secret)
+  await page.locator('.room').scrollIntoViewIfNeeded()
+  const points = []
+  for (const id of ['momo', 'bibi']) {
+    const r = await page.getByTestId(`room-${id}`).locator('.friend-figure').boundingBox()
+    points.push({ x: r!.x + r!.width / 2, y: r!.y + r!.height / 2 })
+  }
+  const session = await page.context().newCDPSession(page)
+  await session.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 4 })
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...points[0], id: 1 }] })
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...points[0], id: 1 }, { ...points[1], id: 2 }] })
+  await expect(page.locator('.room-friend[data-phase=bonding]')).toHaveCount(2, { timeout: 8000 })
+  await expect.poll(() => backend.row().data!.friends.slice(0, 2).map(f => f.stats.affection)).toEqual([23, 23])
+  await session.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] })
+  await expect(page.locator('.room-friend[data-phase=idle]')).toHaveCount(4)
+  await session.detach()
+})
