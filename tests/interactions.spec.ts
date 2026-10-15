@@ -135,7 +135,7 @@ test('legacy photos/stats survive, captured state resets on reload, and reward c
   const friends = createFriends(epoch.getTime())
   friends[0].photo = await page.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 32; const ctx = canvas.getContext('2d')!; ctx.fillStyle = '#e1b799'; ctx.fillRect(0, 0, 32, 32); return canvas.toDataURL('image/png') })
   friends[0].stats.affection = 76
-  await page.addInitScript(data => { if (!sessionStorage.getItem('legacy-seeded')) { localStorage.setItem('pocket-friends-v1', JSON.stringify(data)); sessionStorage.setItem('legacy-seeded', '1') } }, { version: 1, savedAt: epoch.getTime(), friends, memories: [] })
+  await page.addInitScript(data => { if (!sessionStorage.getItem('legacy-seeded')) { localStorage.setItem('pocket-friends-v1', JSON.stringify(data)); sessionStorage.setItem('legacy-seeded', '1') } }, { version: 1, savedAt: epoch.getTime() + 1001, friends, memories: [] })
   await page.reload()
   const actor = page.getByTestId('room-momo')
   await expect(actor.getByRole('img', { name: '모모의 등록 사진' })).toBeVisible()

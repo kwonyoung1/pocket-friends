@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test'
+import { expectFriendsToWalk } from './movement'
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-15T03:00:00Z') })
+  await page.clock.pauseAt(new Date('2026-10-15T03:00:01Z'))
+  // Reproducible destinations and rest lengths on local and CI browsers.
+  await page.addInitScript(() => {
+    let seed = 42
+    Math.random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296 }
+  })
   await page.goto('/')
 })
 test('four friends walk across the room, talk, respond to care and persist after reload', async ({ page }) => {
@@ -9,10 +16,7 @@ test('four friends walk across the room, talk, respond to care and persist after
   await expect(page.getByRole('heading', { name: '오늘도 함께라서, 포근한 하루.' })).toBeVisible()
   const actors = page.locator('.room-friend')
   await expect(actors).toHaveCount(4)
-  const before = await actors.evaluateAll(nodes => nodes.map(n => [n.getAttribute('data-x'), n.getAttribute('data-y')]))
-  await page.clock.runFor(10000)
-  const after = await actors.evaluateAll(nodes => nodes.map(n => [n.getAttribute('data-x'), n.getAttribute('data-y')]))
-  after.forEach((p, i) => expect(p).not.toEqual(before[i]))
+  await expectFriendsToWalk(page, ['momo', 'bibi', 'coco', 'dudu'])
   await page.getByRole('button', { name: '코코 상태 확인' }).click()
   await expect(page.getByRole('complementary', { name: '코코 돌보기' })).toBeVisible()
   const affectionBefore = await page.locator('.affection strong').textContent()
@@ -39,7 +43,7 @@ test('uploads a character photo, crops it, stores it locally and restores it', a
     ctx.fillStyle = '#76583e'; ctx.fillRect(35, 40, 10, 10); ctx.fillRect(75, 40, 10, 10)
     return canvas.toDataURL('image/png').split(',')[1]
   })
-  await page.locator('input[type=file]').setInputFiles({ name: 'my-friend.png', mimeType: 'image/png', buffer: Buffer.from(data, 'base64') })
+  await page.getByLabel('캐릭터 사진 선택').setInputFiles({ name: 'my-friend.png', mimeType: 'image/png', buffer: Buffer.from(data, 'base64') })
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.getByLabel('확대', { exact: true }).fill('1.5')
   await page.getByLabel('좌우 위치').fill('10')
@@ -52,13 +56,13 @@ test('uploads a character photo, crops it, stores it locally and restores it', a
   expect(image).toMatch(/^data:image\/webp;base64,/)
   expect(image!.length).toBeLessThan(400000)
   await page.locator('.friend-card').nth(1).getByRole('button', { name: /내 사진으로 등록/ }).click()
-  await page.locator('input[type=file]').setInputFiles({ name: 'second.png', mimeType: 'image/png', buffer: Buffer.from(data, 'base64') })
+  await page.getByLabel('캐릭터 사진 선택').setInputFiles({ name: 'second.png', mimeType: 'image/png', buffer: Buffer.from(data, 'base64') })
   await page.getByRole('button', { name: '이 모습으로 등록하기' }).click()
   await expect(page.getByTestId('room-bibi').getByRole('img')).toBeVisible()
   await expect(page.getByTestId('room-momo').getByRole('img', { name: '모모의 등록 사진' })).toBeVisible()
 })
 test('rejects invalid photos and explains storage failures without crashing', async ({ page }) => {
-  await page.locator('input[type=file]').setInputFiles({ name: 'invalid.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') })
+  await page.getByLabel('캐릭터 사진 선택').setInputFiles({ name: 'invalid.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') })
   await expect(page.getByRole('status')).toContainText('JPG, PNG, WebP')
   await page.evaluate(() => { Storage.prototype.setItem = () => { throw new DOMException('full', 'QuotaExceededError') } })
   await page.getByRole('button', { name: /먹이 주기/ }).click()
@@ -74,11 +78,11 @@ test('registers two different parts of the same wide photo without losing its ed
     return canvas.toDataURL('image/png').split(',')[1]
   })
   const file = { name: 'two-friends.png', mimeType: 'image/png', buffer: Buffer.from(source, 'base64') }
-  await page.locator('input[type=file]').setInputFiles(file)
+  await page.getByLabel('캐릭터 사진 선택').setInputFiles(file)
   await page.getByLabel('좌우 위치').fill('100')
   await page.getByRole('button', { name: '이 모습으로 등록하기' }).click()
   await page.locator('.friend-card').nth(1).getByRole('button', { name: /내 사진으로 등록/ }).click()
-  await page.locator('input[type=file]').setInputFiles(file)
+  await page.getByLabel('캐릭터 사진 선택').setInputFiles(file)
   await page.getByLabel('좌우 위치').fill('-100')
   await page.getByRole('button', { name: '이 모습으로 등록하기' }).click()
   const colors = await page.evaluate(async () => {

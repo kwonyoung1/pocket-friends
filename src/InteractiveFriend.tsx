@@ -60,7 +60,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
   const hearts = phase === 'bonding' ? (head ? 7 : 5) + (close ? 2 : 0) : head ? 2 : 1
   const elapsed = Date.now() - (f.interaction?.startedAt ?? Date.now())
   return <button ref={button}
-    className={`room-friend ${selected ? 'selected' : ''} ${f.moving ? 'walking' : ''} interaction-${phase} ${head ? 'head-pet' : ''} ${close ? 'close-friend' : ''}`}
+    className={`room-friend ${selected ? 'selected' : ''} ${f.moving ? 'walking' : ''} interaction-${phase} ${head ? 'head-pet' : ''} ${close ? 'close-friend' : ''} ${(f.growth?.specialUntil ?? 0) > Date.now() ? 'personality-action' : ''}`}
     aria-label={`${f.name} 쓰다듬기 또는 끌어서 이동`} aria-pressed={selected} aria-describedby="interaction-help"
     data-testid={`room-${f.id}`} data-x={f.x.toFixed(1)} data-y={f.y.toFixed(1)} data-moving={f.moving}
     data-phase={phase} data-zone={f.interaction?.zone ?? 'body'} data-affinity={affinity(f)}
@@ -79,6 +79,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     <span className="friend-lift" style={phase === 'dragging' ? { transform: `translateY(-16%) rotate(${f.interaction?.tilt ?? 0}deg)` } : undefined}>
       <span className="friend-emotion"><span className="friend-figure" style={{ transform: `scaleX(${f.facing})` }}><Character friend={f} emotion={held ? 'closed' : happy ? 'smile' : 'normal'} /></span></span>
     </span>
+    {(f.growth?.levelUpUntil ?? 0) > Date.now() && <span className="level-up-effect" role="status">✦ LEVEL UP · Lv.{f.growth?.level} ✦</span>}
     {effect && <span className={`pet-particles ${phase === 'bonding' ? 'many-hearts' : ''}`} aria-hidden="true">
       {Array.from({ length: hearts }, (_, i) => <span className="pet-heart" key={i} style={{ '--i': i, '--drift': `${(i % 2 ? 1 : -1) * (18 + i * 6)}px` } as CSSProperties}>♥</span>)}
       <span className="pet-sparkle one">✧</span><span className="pet-sparkle two">✦</span>{phase === 'bonding' && <span className="pet-sparkle three">✧</span>}

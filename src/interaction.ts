@@ -1,3 +1,4 @@
+import { rewardAction } from './progression/model'
 import type { Friend, Point } from './game'
 import { interactionBalance as balance } from './balance'
 import { validPosition } from './navigation'
@@ -41,17 +42,18 @@ export function speak(f: Friend, text: string, now: number, priority: number, du
 function interaction(phase: Phase, now: number, zone: Zone): Interaction {
   return { phase, startedAt: now, effectUntil: now + balance.tapEffectMs, resumeAt: now + balance.resumeMs, zone, tilt: 0, rewardAttempted: false }
 }
-function stop(f: Friend) { f.moving = false; f.route = []; f.meeting = undefined }
+function stop(f: Friend) { f.moving = false; f.route = []; f.meeting = undefined; if (f.growth) f.growth.specialUntil = 0 }
 export function grantPetReward(f: Friend, special: boolean, now: number) {
-  if (now < (f.petRewardAfter ?? 0)) return false
+  if (f.growth?.awayJobId || now < (f.petRewardAfter ?? 0)) return false
   const reward = special ? balance.special : balance.normal
   f.stats.happiness = Math.min(100, Math.max(0, f.stats.happiness + reward.happiness))
   f.stats.affection = Math.min(100, Math.max(0, f.stats.affection + reward.affection))
   f.petRewardAfter = now + balance.rewardCooldownMs
+  rewardAction(f, special ? 'special' : 'pet', now)
   return true
 }
 export function normalPet(f: Friend, now: number, zone: Zone = 'body') {
-  if (f.interaction?.gesture) return null
+  if (f.growth?.awayJobId || f.interaction?.gesture) return null
   stop(f)
   f.interaction = interaction('delighted', now, zone)
   f.interaction.resumeAt = now + balance.tapEffectMs
@@ -60,7 +62,7 @@ export function normalPet(f: Friend, now: number, zone: Zone = 'body') {
   return { text, rewarded: grantPetReward(f, false, now) }
 }
 export function beginGesture(f: Friend, pointerId: number, client: Point, zone: Zone, now: number, pointerType: string) {
-  if (f.interaction?.gesture) return false
+  if (f.growth?.awayJobId || f.interaction?.gesture) return false
   stop(f)
   f.interaction = interaction('pressing', now, zone)
   f.interaction.gesture = {
