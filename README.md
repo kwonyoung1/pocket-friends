@@ -1,2 +1,78 @@
-# pocket-friends
-4마리 캐릭터 육성 웹게임
+# 포켓프렌즈 · 우리의 작은 집
+
+네 친구가 각자의 속도로 걷고, 만나고, 자라는 따뜻한 2D 웹게임입니다.
+React 19 + TypeScript + Vite로 만든 1단계 버전이며 별도 서버·API 키·로그인이 필요하지 않습니다.
+
+![포켓프렌즈 PC 게임 화면](docs/screenshots/desktop.png)
+
+[모바일 화면 보기](docs/screenshots/mobile.png)
+
+## 바로 실행하기
+
+Node.js 24와 npm을 사용합니다. 터미널에서 저장소 폴더를 열고 실행하세요.
+
+```bash
+npm ci
+npm run dev
+```
+
+Vite가 표시하는 주소를 브라우저에서 여세요. PC와 모바일 터치 화면을 지원합니다.
+클라우드에서는 기존 `/workspace/pocket-friends` 체크아웃을 사용합니다.
+
+## 게임 방법
+
+1. 방 안의 캐릭터 또는 아래 친구 카드를 누르면 해당 친구의 상태가 열립니다.
+2. **먹이 주기**, **쓰다듬기**, **씻겨 주기**, **쉬게 하기**로 돌봐 주세요. 연속 클릭에는 1.5초의 대기 시간이 있습니다.
+3. 친구들은 가구를 피해 걷고, 가구 근처에 머물거나 잠깐 쉽니다. 친구에게 다가가 인사하면 행복도와 친밀도가 올라갑니다.
+4. 각자 20~50초 간격으로 한국어 말풍선을 띄웁니다. 돌봄과 만남에도 별도 반응을 보입니다.
+5. **모모·비비** 카드 아래 **내 사진으로 등록**을 눌러 각각 사진을 등록하세요. JPG·PNG·WebP, 최대 12MB를 지원합니다. 사진 전체에서 원하는 친구가 보이도록 확대·좌우·상하 위치를 맞춘 뒤 **이 모습으로 등록하기**를 누르세요. 같은 사진을 두 번 선택해 서로 다른 부분을 각각 등록할 수도 있습니다. 코코와 두두는 직접 그린 SVG 기본 캐릭터입니다. 사진 등록 전에는 네 친구 모두 기본 모습으로 등장합니다.
+6. 위쪽 스피커 버튼은 돌봄 효과음을 켜고 끕니다. 기본은 꺼짐입니다.
+
+## 저장과 개인정보
+
+- 상태·친밀도·사진·최근 추억을 **현재 브라우저의 localStorage**에 5초마다, 돌봄/사진 등록 직후, 페이지 이탈 시 저장합니다.
+- 다시 접속하면 상태를 복원하고, 자리를 비운 시간에 따라 포만감·행복도·체력·청결도를 줄입니다. 오프라인 감소는 최대 8시간까지만 적용됩니다.
+- 사진은 브라우저에서 256px WebP로 줄여 저장합니다. 이미지와 육성 데이터는 외부 서버에 전송하지 않습니다. 글꼴도 앱에 포함되어 Google Fonts 연결이 필요 없습니다.
+- 브라우저/기기/사이트 주소가 바뀌면 저장 데이터가 공유되지 않습니다. 시크릿 모드 종료나 사이트 데이터 삭제 시 데이터가 지워질 수 있습니다.
+- 저장 공간이 부족하면 경고합니다. 화면 아래 **추억 보관**을 누르면 현재 데이터를 JSON 파일로 내려받습니다. 이 버전에는 JSON 파일을 다시 불러오는 UI가 없습니다.
+
+## 검증 명령
+
+```bash
+npm test                 # 이동, 가구 회피, 만남, 대사 주기, 돌봄, 저장/오프라인 복원
+npm run build            # TypeScript 검사 + 배포용 dist 생성
+npx playwright install chromium  # 브라우저가 없을 때 최초 한 번
+npm run test:e2e         # PC 및 모바일 Chromium 기능 테스트
+npm run preview          # 빌드 결과 확인
+```
+
+브라우저 테스트는 시스템 Chromium이 있으면 사용하고, 없으면 Playwright Chromium을 사용합니다.
+CI에서는 `npx playwright install --with-deps chromium`으로 브라우저와 시스템 라이브러리를 준비합니다.
+모바일 테스트는 Chromium의 iPhone 13 화면 크기·터치 에뮬레이션이며 실제 iOS Safari 검증은 별도입니다.
+
+## GitHub Pages에 배포하기 — 처음 한 번
+
+저장소 소유자 권한으로 다음 순서대로 눌러 주세요.
+
+1. GitHub에서 **kwonyoung1/pocket-friends** 저장소를 엽니다.
+2. 위쪽 **Settings** → 왼쪽 **Pages**를 누릅니다.
+3. **Build and deployment** 아래 **Source**를 **GitHub Actions**로 선택합니다. 별도 API 키는 필요하지 않습니다.
+4. 게임 코드를 `main`에 반영합니다. PR이 아직 없으면 **Pull requests** → **New pull request** → base **main**, compare **feat/pocket-friends-stage-one** → **Create pull request**를 누르세요. 만든 PR에서 초안이면 **Ready for review** → **Merge pull request** → **Confirm merge**를 누릅니다. PR 병합은 사이트 배포를 시작합니다.
+5. 위쪽 **Actions** → **Test and deploy Pocket Friends**를 누르면 빌드·테스트·배포 진행 상태가 보입니다. 이미 main에 반영되어 있으면 **Run workflow** → Branch **main** → **Run workflow**로 수동 실행할 수도 있습니다.
+6. 모든 단계가 초록색이면 **Settings** → **Pages** → **Visit site**를 누르세요.
+
+`.github/workflows/deploy.yml`은 PR에서 빌드·단위 테스트·PC/모바일 브라우저 테스트를 실행하고, `main` 반영 시에만 Pages에 배포합니다. 테스트가 실패하면 배포하지 않습니다. 저장소 요금제/공개 범위에 따라 GitHub Pages 사용 가능 여부가 달라질 수 있습니다.
+
+## 구성
+
+- `src/game.ts`: 가구 회피 경로 탐색, 독립 이동/휴식, 인사, 대사, 육성, 저장 데이터 검증
+- `src/App.tsx`: 게임 화면, 캐릭터 선택/돌봄, 사진 편집, 자동 저장
+- `src/Character.tsx`, `src/Room.tsx`: 자체 제작 SVG 캐릭터 및 방 일러스트
+- `src/styles.css`: PC/모바일 반응형 UI, 보행 모션, 동작 줄이기 설정
+- `src/game.test.ts`, `tests/game.spec.ts`: 게임 로직 및 실제 브라우저 테스트
+
+## 1단계 범위와 남은 기능
+
+필수 육성·자율 이동·상호작용·한국어 말풍선·사진 2개 등록·브라우저 저장을 구현했습니다.
+사진 속 여러 캐릭터 자동 분리/배경 제거, 계정 기반 기기 간 동기화, 성장에 따른 외형 진화, 실제 날씨 API, JSON 복원 UI는 포함하지 않습니다.
+“오늘 날씨 한번 확인해야겠다~”는 캐릭터의 일상 대사이며 외부 날씨를 조회하지 않습니다.
