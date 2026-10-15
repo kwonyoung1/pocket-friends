@@ -3,6 +3,8 @@ import type { ChangeEvent } from 'react'
 import { ArrowDownToLine, ArrowUpRight, Bath, Camera, Check, ChevronRight, Cloud, Heart, House, ImagePlus, Leaf, Moon, PawPrint, Sparkles, Sun, Utensils, Volume2, VolumeX, X, Zap } from 'lucide-react'
 import { Character } from './Character'
 import { RoomArt } from './Room'
+import { InteractiveFriend } from './InteractiveFriend'
+import { interactionBalance } from './balance'
 import { care, clamp, createFriends, decay, parseSave, STORAGE_KEY, tick } from './game'
 import type { Care, Friend, Memory, Save, Stats } from './game'
 
@@ -22,7 +24,7 @@ const statInfo: { key: keyof Stats; name: string; color: string; icon: typeof He
 ]
 const careInfo: { action: Care; label: string; hint: string; icon: typeof Heart }[] = [
   { action: 'feed', label: '먹이 주기', hint: '포만감 +22', icon: Utensils },
-  { action: 'pet', label: '쓰다듬기', hint: '행복 +16 · 친밀 +4', icon: Heart },
+  { action: 'pet', label: '쓰다듬기', hint: `행복 +${interactionBalance.normal.happiness} · 친밀 +${interactionBalance.normal.affection}`, icon: Heart },
   { action: 'wash', label: '씻겨 주기', hint: '청결도 +28', icon: Bath },
   { action: 'rest', label: '쉬게 하기', hint: '체력 +20', icon: Moon },
 ]
@@ -64,13 +66,16 @@ function App() {
     const entry: Memory = { id: crypto.randomUUID(), text, at: Date.now() }
     model.current.memories = [entry, ...model.current.memories].slice(0, 20)
   }, [])
+  const bonded = useCallback((f: Friend) => {
+    remember(`${f.name}와 오래 마음을 나눴어요 ♡`); persist()
+  }, [remember, persist])
   useEffect(() => {
     let frame = 0, previous = performance.now(), lastRender = 0, hiddenAt = 0
     const loop = (stamp: number) => {
       const dt = Math.min(Math.max((stamp - previous) / 1000, 0), .15)
       previous = stamp
-      tick(model.current.friends, Date.now(), dt, remember)
-      if (stamp - lastRender > 80) { render(v => v + 1); lastRender = stamp }
+      tick(model.current.friends, Date.now(), dt, remember, bonded)
+      if (model.current.friends.some(f => f.interaction?.gesture) || stamp - lastRender > 80) { render(v => v + 1); lastRender = stamp }
       frame = requestAnimationFrame(loop)
     }
     frame = requestAnimationFrame(loop)
@@ -85,7 +90,7 @@ function App() {
     document.addEventListener('visibilitychange', visibility)
     window.addEventListener('pagehide', persist)
     return () => { cancelAnimationFrame(frame); clearInterval(interval); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', persist) }
-  }, [persist, remember])
+  }, [persist, remember, bonded])
   useEffect(() => {
     if (!notice) return
     const id = setTimeout(() => setNotice(''), 5500)
@@ -163,19 +168,15 @@ function App() {
       <div className="game-layout">
         <section className="room-panel" aria-label="친구들이 생활하는 방"><div className="room-toolbar"><div><span className="live-dot" /><strong>우리의 거실</strong><span className="room-caption">작은 발걸음으로 채워지는 공간</span></div><span className="friend-count"><PawPrint size={14} /> 4명의 친구</span></div>
           <div className="room"><RoomArt /><div className="room-label"><Sun size={13} /> 햇살 가득한 오후</div>
-            {friends.map(f => <button key={f.id} className={`room-friend ${selected === f.id ? 'selected' : ''} ${f.moving ? 'walking' : ''}`} aria-label={`${f.name} 선택, ${mood(f)}`} aria-pressed={selected === f.id} data-testid={`room-${f.id}`} data-x={f.x.toFixed(1)} data-y={f.y.toFixed(1)} data-moving={f.moving} style={{ left: `${f.x / 10}%`, top: `${f.y / 6.4}%`, zIndex: Math.round(f.y) }} onClick={() => { setSelected(f.id); chime() }}>
-              {f.bubbleUntil > Date.now() && <span className="speech" role="status" style={f.x < 200 ? { left: 0, transform: 'none' } : f.x > 800 ? { left: 'auto', right: 0, transform: 'none' } : undefined}>{f.bubble}</span>}
-              <span className="friend-figure" style={{ transform: `scaleX(${f.facing})` }}><Character friend={f} /></span>
-              <span className="friend-name">{selected === f.id && <Heart size={10} fill="currentColor" aria-hidden="true" />} {f.name}</span>
-            </button>)}
+            {friends.map(f => <InteractiveFriend key={f.id} friend={f} selected={selected === f.id} select={() => setSelected(f.id)} changed={persist} bonded={bonded} />)}
           </div>
-          <div className="room-footer"><span><Sparkles size={15} /> 친구를 콕 눌러 마음을 나눠 보세요</span><span className="room-footer-note">각자의 속도로, 함께 자라는 중</span></div>
+          <div className="room-footer" id="interaction-help"><span><Sparkles size={15} /> 톡 쓰다듬기 · 2초 꾹 교감 · 끌어서 이동</span><span className="room-footer-note">각자의 속도로, 함께 자라는 중</span></div>
         </section>
         <aside className="care-panel" aria-label={`${friend.name} 돌보기`}><div className="panel-heading"><span>MY LITTLE FRIEND</span><span className="small-heart"><Heart size={15} /></span></div>
           <div className="selected-profile"><div className="profile-portrait" style={{ background: `${friend.color}35` }}><Character friend={friend} mini /><span className="profile-sparkle">✧</span></div><div><div className="profile-title"><h2>{friend.name}</h2><span>함께한 1단계</span></div><p>{friend.description}</p><span className="mood"><span />{mood(friend)}</span></div></div>
           <div className="affection"><div><Heart size={14} /><span>우리의 친밀도</span><strong>{Math.round(friend.stats.affection)}<small> / 100</small></strong></div><div className="affection-track"><span style={{ width: `${friend.stats.affection}%` }} /></div><p>{friend.stats.affection < 40 ? '조금씩 서로를 알아가는 중이에요' : friend.stats.affection < 75 ? '당신의 손길이 익숙해졌어요 ♡' : '누구보다 소중한 단짝이 되었어요 ♡'}</p></div>
           <div className="stats">{statInfo.map(({ key, name, color, icon: Icon }) => <div className="stat" key={key}><div><span><Icon size={14} />{name}</span><strong>{Math.round(friend.stats[key])}<small> / 100</small></strong></div><div className="stat-track" role="progressbar" aria-label={name} aria-valuenow={Math.round(friend.stats[key])} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${clamp(friend.stats[key])}%`, background: color }} /></div></div>)}</div>
-          <div className="care-title">다정한 마음을 전해요 <Heart size={12} /></div><div className="care-actions">{careInfo.map(({ action, label, hint, icon: Icon }) => <button key={action} onClick={() => doCare(action)} className={`care-button ${action}`}><Icon size={21} strokeWidth={1.6} /><strong>{label}</strong><small>{hint}</small></button>)}</div><p className="care-note">작은 관심 하나가 친구에게는 큰 행복이에요.</p>
+          <div className="care-title">다정한 마음을 전해요 <Heart size={12} /></div><div className="care-actions">{careInfo.map(({ action, label, hint, icon: Icon }) => <button key={action} onClick={() => doCare(action)} className={`care-button ${action}`}><Icon size={21} strokeWidth={1.6} /><strong>{label}</strong><small>{hint}</small></button>)}</div><p className="care-note">교감 보상은 친구마다 {interactionBalance.rewardCooldownMs / 1000}초에 한 번 · {interactionBalance.bondMs / 1000}초 꾹 누르면 특별 교감</p>
         </aside>
       </div>
       <section className="friends-section"><div className="section-heading"><div><h2>우리 집 친구들 <span>04</span></h2><p>네 가지 성격, 네 배의 사랑스러움</p></div><span><Leaf size={15} /> 천천히, 함께 자라요</span></div>
