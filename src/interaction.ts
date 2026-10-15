@@ -1,7 +1,7 @@
-import { rewardAction } from './progression/model'
-import type { Friend, Point } from './game'
-import { interactionBalance as balance } from './balance'
-import { validPosition } from './navigation'
+import { rewardAction } from './progression/model.ts'
+import type { Friend, Point } from './game.ts'
+import { interactionBalance as balance } from './balance.ts'
+import { validPosition } from './navigation.ts'
 
 export type Phase = 'idle' | 'pressing' | 'petting' | 'bonding' | 'dragging' | 'delighted' | 'landing' | 'settling'
 export type Zone = 'head' | 'body'
@@ -44,7 +44,7 @@ function interaction(phase: Phase, now: number, zone: Zone): Interaction {
 }
 function stop(f: Friend) { f.moving = false; f.route = []; f.meeting = undefined; if (f.growth) f.growth.specialUntil = 0 }
 export function grantPetReward(f: Friend, special: boolean, now: number) {
-  if (f.growth?.awayJobId || now < (f.petRewardAfter ?? 0)) return false
+  if (f.remoteAuthoritative || f.growth?.awayJobId || now < (f.petRewardAfter ?? 0)) return false
   const reward = special ? balance.special : balance.normal
   f.stats.happiness = Math.min(100, Math.max(0, f.stats.happiness + reward.happiness))
   f.stats.affection = Math.min(100, Math.max(0, f.stats.affection + reward.affection))
@@ -105,7 +105,7 @@ export function advanceInteraction(f: Friend, now: number, dt: number, onReward:
       }
       if (!s.rewardAttempted) {
         s.rewardAttempted = true
-        if (grantPetReward(f, true, now)) onReward()
+        if (grantPetReward(f, true, now) || f.remoteAuthoritative) onReward()
       }
     } else if (now - s.startedAt >= balance.holdStartMs && s.phase === 'pressing') {
       s.phase = 'petting'

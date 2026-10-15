@@ -1,6 +1,6 @@
-import type { Friend, Save } from '../game'
-import { growthBalance as B, itemById, missions, regions, traitLabels } from './config'
-import type { Rarity, Trait } from './config'
+import type { Friend, Save } from '../game.ts'
+import { growthBalance as B, itemById, missions, regions, traitLabels } from './config.ts'
+import type { Rarity, Trait } from './config.ts'
 export type Action = 'feed' | 'play' | 'pet' | 'special' | 'explore'
 export type Growth = {
   level: number; xp: number; traits: Record<Trait, number>; rewardAfter: Partial<Record<Action, number>>; traitAfter: number

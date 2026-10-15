@@ -5,19 +5,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/check-cloud-env.mjs && tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:cloud": "playwright test --config playwright.cloud.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "^5.3.1",
     "@fontsource/gowun-dodum": "^5.3.0",
+    "@supabase/supabase-js": "^2.117.3",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "@playwright/test": "^1.56.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.0",

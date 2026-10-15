@@ -1,0 +1,5 @@
+project_id = "pocket-friends"
+
+[functions.game]
+# The handler validates every JWT with auth.getUser, then checks world membership.
+verify_jwt = false

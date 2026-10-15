@@ -1,4 +1,4 @@
-import type { Point } from './game'
+import type { Point } from './game.ts'
 
 // Coordinates mark feet in the 1000 × 640 room. Furniture includes a walking clearance.
 export const obstacles = [
