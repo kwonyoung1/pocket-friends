@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
+import { expectFriendsToWalk } from './movement'
 import { createFriends } from '../src/game'
 import type { Save } from '../src/game'
 import { growth, world, startExpedition, rewardAction, acquire } from '../src/progression/model'
@@ -64,10 +65,7 @@ test('expedition keeps others active, blocks care, returns once after wall time 
   await close(page)
   await expect(page.getByTestId('room-momo')).toHaveCount(0)
   await expect(page.getByRole('button', { name: /먹이 주기/ })).toBeDisabled()
-  const before = await page.getByTestId('room-bibi').getAttribute('data-x')
-  await page.clock.runFor(6000)
-  const after = await page.getByTestId('room-bibi').getAttribute('data-x')
-  expect(after).not.toBe(before)
+  await expectFriendsToWalk(page, ['bibi', 'coco', 'dudu'])
   await page.clock.fastForward(job.endsAt - (epoch + 1000) + 3000)
   await page.clock.runFor(1200)
   if (await page.getByRole('button', { name: '소중히 간직할게 ♡' }).count()) await page.getByRole('button', { name: '소중히 간직할게 ♡' }).click()

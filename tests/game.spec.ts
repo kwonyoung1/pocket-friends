@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test'
+import { expectFriendsToWalk } from './movement'
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-15T03:00:00Z') })
+  await page.clock.pauseAt(new Date('2026-10-15T03:00:01Z'))
+  // Reproducible destinations and rest lengths on local and CI browsers.
+  await page.addInitScript(() => {
+    let seed = 42
+    Math.random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296 }
+  })
   await page.goto('/')
 })
 test('four friends walk across the room, talk, respond to care and persist after reload', async ({ page }) => {
@@ -9,10 +16,7 @@ test('four friends walk across the room, talk, respond to care and persist after
   await expect(page.getByRole('heading', { name: '오늘도 함께라서, 포근한 하루.' })).toBeVisible()
   const actors = page.locator('.room-friend')
   await expect(actors).toHaveCount(4)
-  const before = await actors.evaluateAll(nodes => nodes.map(n => [n.getAttribute('data-x'), n.getAttribute('data-y')]))
-  await page.clock.runFor(10000)
-  const after = await actors.evaluateAll(nodes => nodes.map(n => [n.getAttribute('data-x'), n.getAttribute('data-y')]))
-  after.forEach((p, i) => expect(p).not.toEqual(before[i]))
+  await expectFriendsToWalk(page, ['momo', 'bibi', 'coco', 'dudu'])
   await page.getByRole('button', { name: '코코 상태 확인' }).click()
   await expect(page.getByRole('complementary', { name: '코코 돌보기' })).toBeVisible()
   const affectionBefore = await page.locator('.affection strong').textContent()

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cells } from './navigation'
 import { care, createFriends, decay, findRoute, parseSave, tick, walkable } from './game'
 const start = 1760000000000
 function seeded() {
@@ -36,6 +37,21 @@ describe('room navigation and autonomous behaviour', () => {
     friends.forEach((f, i) => expect(Math.hypot(f.x - origins[i].x, f.y - origins[i].y)).toBeGreaterThan(10))
     expect(meetings.length).toBeGreaterThan(0)
     expect(friends.some(f => f.stats.affection > 20)).toBe(true)
+  })
+  it('may rest at its randomly chosen current tile, then resumes walking to a new destination', () => {
+    const f = createFriends(start)[0]
+    f.restingUntil = start
+    const currentIndex = cells.findIndex(p => p.x === f.x && p.y === f.y)
+    expect(currentIndex).toBeGreaterThanOrEqual(0)
+    // Peer choice, random-floor choice, current tile, six-second rest.
+    const choices = [0, .99, (currentIndex + .5) / cells.length, .99]
+    let call = 0
+    vi.spyOn(Math, 'random').mockImplementation(() => choices[call++ % choices.length])
+    for (let i = 1; i <= 100; i++) tick([f], start + i * 100, .1, () => {})
+    expect([f.x, f.y]).toEqual([330, 350])
+    vi.mocked(Math.random).mockReturnValue(.99)
+    for (let i = 101; i <= 160; i++) tick([f], start + i * 100, .1, () => {})
+    expect(Math.hypot(f.x - 330, f.y - 350)).toBeGreaterThan(10)
   })
   it('speaks Korean automatically and schedules the next line 20–50 seconds later', () => {
     seeded()
