@@ -42,7 +42,7 @@ export function speak(f: Friend, text: string, now: number, priority: number, du
 function interaction(phase: Phase, now: number, zone: Zone): Interaction {
   return { phase, startedAt: now, effectUntil: now + balance.tapEffectMs, resumeAt: now + balance.resumeMs, zone, tilt: 0, rewardAttempted: false }
 }
-function stop(f: Friend) { f.moving = false; f.route = []; f.meeting = undefined }
+function stop(f: Friend) { f.moving = false; f.route = []; f.meeting = undefined; if (f.growth) f.growth.specialUntil = 0 }
 export function grantPetReward(f: Friend, special: boolean, now: number) {
   if (f.growth?.awayJobId || now < (f.petRewardAfter ?? 0)) return false
   const reward = special ? balance.special : balance.normal

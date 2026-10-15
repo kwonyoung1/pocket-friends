@@ -204,3 +204,12 @@ it('the live heartbeat rolls daily missions over at KST midnight without another
   Object.defineProperty(copy.world.inventory, '__proto__', { value: 1, enumerable: true })
   expect(() => parseSave(JSON.stringify(copy), nextDay)).toThrow()
 })
+it('direct petting and dragging immediately cancel ambient personality animation', () => {
+  const s = game(), f = s.friends[0], g = growth(f)
+  g.specialUntil = now + 2000
+  normalPet(f, now)
+  expect(g.specialUntil).toBe(0)
+  g.specialUntil = now + 2000
+  beginGesture(f, 1, { x: 0, y: 0 }, 'head', now + 100, 'mouse')
+  expect(g.specialUntil).toBe(0)
+})
