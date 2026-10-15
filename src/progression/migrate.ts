@@ -55,6 +55,7 @@ export function migrateWorld(raw: unknown, now: number): World {
   w.buyAfter = r.buyAfter === undefined ? 0 : number(r.buyAfter); w.useAfter = r.useAfter === undefined ? 0 : number(r.useAfter)
   w.decorationSlots = {}; if (r.decorationSlots) for (const [slot, value] of Object.entries(record(r.decorationSlots))) w.decorationSlots[slot] = text(value)
   if (w.day !== dailyKey(now)) { w.day = dailyKey(now); w.claimedMissions = [] }
+  if (r.careRulesVersion !== undefined) { if (r.careRulesVersion !== 1) throw Error('지원하지 않는 돌봄 규칙'); w.careRulesVersion = 1 }
   if(r.specialFriendsVersion!==undefined){if(r.specialFriendsVersion!==1)throw Error('지원하지 않는 특별 친구 저장 형식');w.specialFriendsVersion=1}
   w.expansion=migrateExpansion(r.expansion)
   return w

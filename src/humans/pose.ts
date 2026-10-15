@@ -29,6 +29,7 @@ export function humanPose(
     return 'smile'
   if ((f.furnitureUntil ?? 0) > now && f.furnitureActivity?.includes('놀이'))
     return 'play'
+  if ((f.stats?.energy ?? 100) <= 30 || f.life?.coldAt) return 'sleepy'
   if (f.moving) return 'walk'
   if (f.life?.coldAt) return 'sleepy'
   if ((f.bubbleUntil ?? 0) > now && f.bubblePriority === 2) return 'smile'

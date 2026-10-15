@@ -1,3 +1,4 @@
+import { settleCareAlerts } from '../careNeeds.ts'
 import { specialIds } from '../humans/config.ts'
 import { grantSpecialFriends } from '../humans/model.ts'
 import {
@@ -283,6 +284,8 @@ export function applyCommand(
     p.route = []
     p.moving = false
   }
+  settleCareAlerts(save.friends, now)
+  world(save, now).careRulesVersion = 1
   save.savedAt = now
   return { save, holds, message }
 }

@@ -47,3 +47,23 @@
 @media(prefers-reduced-motion:reduce){.pet-heart{opacity:.85;top:calc(-8% - var(--i)*10%)}.pet-sparkle{opacity:1}.friend-lift{transition:none}.interaction-dragging .friend-lift{transform:translateY(-10%)!important}}
 .room-friend:focus-visible{outline:1.5px dashed #aa8a68;outline-offset:5px!important}
 .many-hearts .pet-heart{animation-delay:calc(var(--i) * -.22s)}
+
+/* Care overlays keep the original artwork, anchors and pointer targets intact. */
+.special-badge{display:inline-block;color:#9b6b86;background:#faedf4;border-radius:12px;padding:3px 9px;font-size:11px;margin:3px 0}
+.pet-reward-status,.care-needs{font-size:12px;line-height:1.7;color:#896d61;margin:7px 0;overflow-wrap:anywhere}
+.pet-reward-status{background:#fbf2e8;padding:7px 10px;border-radius:10px}
+.need-icons{position:absolute;right:1%;top:30%;display:flex;flex-direction:column;gap:2px;pointer-events:none;font-size:14px;filter:drop-shadow(0 1px 2px #fff)}
+.need-icons>span{background:#fff8ebeb;border-radius:50%;line-height:1.5;min-width:22px}
+.care-dust{position:absolute;inset:25% 0 10%;pointer-events:none;color:#9b886c;display:flex;align-items:end;justify-content:space-around;font-size:23px;opacity:.7}
+.care-dust i{font-style:normal;animation:care-dust-float 3s infinite alternate}.care-dust i:nth-child(2n){animation-delay:-1.5s}.very-dusty .care-dust{opacity:1}
+.need-hunger.interaction-idle:not(.walking) .friend-emotion{animation:hungry-rub 2.4s ease-in-out infinite}
+.need-energy.interaction-idle:not(.walking) .friend-emotion{animation:tired-yawn 4s ease-in-out infinite}
+.social-greeting.interaction-idle .friend-emotion{animation:friend-nod 1.3s ease-in-out 3}
+@keyframes care-dust-float{from{transform:translateY(0);opacity:.4}to{transform:translateY(-12px);opacity:.9}}
+@keyframes hungry-rub{0%,70%,100%{transform:rotate(0)}80%{transform:rotate(-3deg)}90%{transform:rotate(3deg)}}
+@keyframes tired-yawn{0%,100%{transform:translateY(0)}50%{transform:translateY(3px) rotate(-3deg)}}
+@keyframes friend-nod{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(3px) rotate(5deg)}}
+@media(prefers-reduced-motion:reduce){.care-dust i,.need-hunger .friend-emotion,.need-energy .friend-emotion,.social-greeting .friend-emotion{animation:none!important}}
+.need-hygiene.interaction-idle:not(.walking):not(.need-energy):not(.need-hunger) .friend-emotion{animation:hungry-rub 3.3s ease-in-out infinite}
+.very-hungry.interaction-idle .friend-lift{transform:translateY(3%)}
+.need-energy .need-icons>span[aria-label="휴식이 필요해요"]{animation:care-dust-float 3s ease-in-out infinite alternate}

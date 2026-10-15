@@ -1,6 +1,6 @@
 import { loadEnv } from 'vite'
 const env = { ...loadEnv('production', process.cwd(), ''), ...process.env }
-if (env.VITE_CLOUD_ENABLED === 'true') {
+if (env.VITE_CLOUD_ENABLED === 'true' || env.VITE_SUPABASE_URL || env.VITE_SUPABASE_ANON_KEY) {
   const url = env.VITE_SUPABASE_URL ?? '', key = env.VITE_SUPABASE_ANON_KEY ?? ''
   let publishable = /^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(key)
   try { publishable ||= JSON.parse(Buffer.from(key.split('.')[1] ?? '', 'base64url').toString()).role === 'anon' } catch { /* invalid key */ }

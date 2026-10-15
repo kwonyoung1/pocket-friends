@@ -26,6 +26,7 @@ export type Holds = Record<
 export type ServerWorld = WorldRow & { holds: Holds }
 export type CommandResult = { row: WorldRow; message: string }
 export type CloudGame = {
+  now: () => number
   row: WorldRow
   busy: boolean
   error: string

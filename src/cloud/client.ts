@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient, RealtimeChannel } from '@supabase/supabase-js'
 import type { GameCommand, WorldRow } from './protocol'
+import { resolveCloudConfiguration } from './configuration'
 export type InitialCommand = { type: 'initialize'; source: 'fresh' | 'local'; data?: unknown }
 type Pending = { operation: string; command: GameCommand | InitialCommand }
 export type CloudState = { phase: 'loading' | 'login' | 'ready'; row: WorldRow | null; busy: boolean; error: string; message: string; realtime: boolean; pending: boolean }
@@ -15,6 +16,9 @@ export class CloudClient {
   private reading = false
   private heartbeat = 0
   private disposed = false
+  private serverAt = 0
+  private receivedAt = 0
+  now = () => this.serverAt + (performance.now() - this.receivedAt)
   readonly sdk: SupabaseClient
   constructor(private url: string, private key: string) {
     this.sdk = createClient(url, key, { auth: { storageKey: 'pocket-friends-cloud-auth', persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
@@ -31,8 +35,9 @@ export class CloudClient {
     if (!session) { this.update({ phase: 'login' }); throw Error('다시 로그인해 주세요.') }
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000)
     try {
-      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 3 }), signal: controller.signal })
+      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 4 }), signal: controller.signal })
       const result = await response.json()
+      if (Number.isFinite(result.serverTime)) { this.serverAt = result.serverTime; this.receivedAt = performance.now() }
       if (!response.ok) {
         if (response.status === 401 || response.status === 403 && body && typeof body === 'object' && 'action' in body && body.action !== 'login') this.update({ phase: 'login' })
         if (result.row) this.accept(result.row)
@@ -113,9 +118,5 @@ export class CloudClient {
   dispose() { this.stop(); this.disposed = true }
 }
 export function cloudConfiguration() {
-  const enabled = import.meta.env.VITE_CLOUD_ENABLED === 'true'
-  const url = import.meta.env.VITE_SUPABASE_URL ?? '', key = import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''
-  let error = ''
-  if (enabled && (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url) || !key)) error = '클라우드 설정이 아직 완료되지 않았어요. Supabase URL과 공개 키를 설정한 뒤 다시 배포해 주세요.'
-  return { enabled, url, key, error }
+  return resolveCloudConfiguration({ VITE_CLOUD_ENABLED: import.meta.env.VITE_CLOUD_ENABLED, VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY }, import.meta.env.PROD)
 }

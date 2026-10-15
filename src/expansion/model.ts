@@ -148,8 +148,12 @@ export function settleLife(s: Save, now = Date.now()) {
       delete l.bath
       f.stats.hygiene = Math.max(0, 100 - (sinceEnd / 60000) * 0.3)
       f.stats.happiness = Math.min(100, f.stats.happiness + 4)
-      announce(f, '보송보송~ 목욕 끝!')
+      announce(f, '개운하다! 보송보송~ 목욕 끝!')
       f.restingUntil = now + 1500
+    }
+    if (sleepMs > 0 && !sleeping(f, now) && f.stats.energy > 30 && previous < now) {
+      const wakeHour = ((now + 9 * 3600000) % 86400000) / 60000
+      if (wakeHour >= wake && previous < Math.floor((now + 9 * 3600000) / 86400000) * 86400000 - 9 * 3600000 + wake * 60000) announce(f, '푹 쉬었어! 기운이 돌아왔어~')
     }
     l.lastSettledAt = Math.max(l.lastSettledAt, now)
   }
