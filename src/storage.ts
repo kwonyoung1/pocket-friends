@@ -39,6 +39,12 @@ export async function hydrateStorage() {
   valid.sort((a, b) => b.savedAt - a.savedAt)
   initialRaw = valid[0]?.raw ?? null
   if (!initialRaw && brokenRaw) { blocked = true; storageWarning = '저장 데이터가 손상되어 자동 덮어쓰기를 멈췄어요. 추억 보관으로 원본을 백업하고 올바른 파일을 복원해 주세요.' }
+  if (initialRaw && !JSON.parse(initialRaw).world?.expansion) {
+    let backed=false
+    try { if(!localStorage.getItem(`${STORAGE_KEY}-before-life`))localStorage.setItem(`${STORAGE_KEY}-before-life`,initialRaw);backed=true }catch{ /* Try the other durable store. */ }
+    try {if(database){if(!await read('before-life'))await put('before-life',initialRaw);backed=true}}catch{ /* Preserve the original if neither backup succeeds. */ }
+    if(!backed){blocked=true;brokenRaw=initialRaw;storageWarning='업데이트 전 원본을 백업할 공간이 없어 자동 저장을 멈췄어요. 추억 보관으로 원본을 내려받아 주세요.'}
+  }
   if (initialRaw && JSON.parse(initialRaw).version === 1) {
     try { if (database && !await read('before-v2')) await put('before-v2', initialRaw) } catch { /* The legacy source remains intact until a validated snapshot is saved. */ }
     try { if (!localStorage.getItem(`${STORAGE_KEY}-before-v2`)) localStorage.setItem(`${STORAGE_KEY}-before-v2`, initialRaw) } catch { /* IndexedDB backup or manual export is still available. */ }
