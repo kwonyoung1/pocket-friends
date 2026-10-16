@@ -1,3 +1,4 @@
+import {defaultTaste} from './adventure/catalog'
 import { specialIds } from './humans/config'
 import { grantSpecialFriends } from './humans/model'
 import { itemById } from './progression/config'
@@ -18,7 +19,7 @@ import { Character } from './Character'
 import { RoomArt } from './Room'
 import { InteractiveFriend } from './InteractiveFriend'
 import { interactionBalance } from './balance'
-import { care, clamp, createFriends, decay, parseSave, tick } from './game'
+import { care, clamp, createFriends, decay, parseSave, tick, restLabel } from './game'
 import type { Care, Friend, Memory, Save, Stats } from './game'
 
 function load() {
@@ -77,6 +78,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
   const uploadTarget = useRef('momo')
   const audio = useRef<AudioContext | null>(null)
   const friends = model.current.friends
+  if(!cloud) {world(model.current).adventureVersion=1; for(const f of friends)f.foodTaste??=defaultTaste(f.id)}
   const friend = friends.find(f => f.id === selected)!
   const notify = useCallback((message: string) => setNotice(message), [])
   const persist = useCallback(() => {
@@ -106,7 +108,8 @@ function App({ cloud }: { cloud?: CloudGame }) {
       const pose = { x: old.x, y: old.y, route: old.route, facing: old.facing, interaction: old.interaction, remoteHoldId: old.remoteHoldId, bubble: old.bubble, bubbleUntil: old.bubbleUntil, bubblePriority: old.bubblePriority, nextSpeech: old.nextSpeech, socialUntil: old.socialUntil, restingUntil: old.restingUntil }
       if (server.growth) server.growth.events = server.growth.events.filter(text => { const key = `${old.id}:${text}`; if (seenEvents.current.has(key)) return false; seenEvents.current.add(key); return true })
       const previous=serverPositions.current.get(server.id),moved=previous&&(previous.x!==server.x||previous.y!==server.y)
-      Object.assign(old, server, pose, moved&&!old.interaction?.gesture?{x:server.x,y:server.y,route:[]}: {}, { remoteAuthoritative: true })
+      const manualRest = server.lastRestRewardAt !== old.lastRestRewardAt && (server.restingUntil ?? 0) > cloud.now()
+      Object.assign(old, server, pose, manualRest ? { restingUntil: server.restingUntil, route: [], moving: false } : {}, moved&&!old.interaction?.gesture?{x:server.x,y:server.y,route:[]}: {}, { remoteAuthoritative: true })
       serverPositions.current.set(server.id,{x:server.x,y:server.y})
       if (server.growth?.awayJobId) { old.interaction = undefined; old.route = [] }
     }
@@ -259,6 +262,8 @@ function App({ cloud }: { cloud?: CloudGame }) {
           <div className="selected-profile"><div className="profile-portrait" style={{ background: `${friend.color}35` }}><Character friend={friend} mini /><span className="profile-sparkle">✧</span></div><div><div className="profile-title"><h2>{friend.name}</h2><span>Lv.{growth(friend).level}</span></div><p>{friend.description}</p><span className="mood"><span />{mood(friend)}</span></div></div>
           {isSpecialCharacter(friend) && <span className="special-badge">✦ 특별 친구</span>}
           <p className="pet-reward-status" data-testid="pet-reward-status">{petRewardLabel(friend, cloud ? cloud.now() : Date.now())}</p>
+          <p className="rest-status" data-testid="rest-status">{restLabel(friend,cloud?cloud.now():Date.now())}</p>
+          <p className="food-taste">좋아해요: {itemById[(friend.foodTaste??defaultTaste(friend.id)).like]?.name} · 아쉬워요: {itemById[(friend.foodTaste??defaultTaste(friend.id)).dislike]?.name}</p>
           <p className="care-needs" data-testid="care-needs">{careNeeds(friend).map(n => needLabels[n]).join(' · ') || '지금은 편안하게 지내고 있어요'}</p>
           <GrowthBar friend={friend} />
           {growth(friend).awayJobId && <div className="away-notice">🧭 탐험 중 · 귀환하면 다시 돌볼 수 있어요.</div>}
@@ -277,11 +282,11 @@ function App({ cloud }: { cloud?: CloudGame }) {
     <input className="sr-only" ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" aria-label="캐릭터 사진 선택" onChange={chooseFile} />
     <input className="sr-only" ref={restoreRef} type="file" accept="application/json,.json" aria-label="게임 백업 선택" onChange={chooseBackup} />
     {notice && <div className="toast" role="status"><Heart size={16} />{notice}<button aria-label="알림 닫기" onClick={() => setNotice('')}><X size={14} /></button></div>}
-    {menu && <GameMenu onPlace={itemId=>{setDraft({itemId,x:530,y:390});setMenu(null);document.querySelector('.room')?.scrollIntoView({block:'center',behavior:'smooth'})}} key={menu} save={model.current} tab={menu} close={() => setMenu(null)} selected={selected} select={setSelected} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy} />}
+    {menu && <GameMenu now={cloud?.now} onPlace={itemId=>{setDraft({itemId,x:530,y:390});setMenu(null);document.querySelector('.room')?.scrollIntoView({block:'center',behavior:'smooth'})}} key={menu} save={model.current} tab={menu} close={() => setMenu(null)} selected={selected} select={setSelected} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy} />}
     {restore && <div className="modal-backdrop restore-backdrop"><div className="photo-modal" role="dialog" aria-modal="true" aria-label="백업 복원 확인"><h2>이 추억으로 돌아갈까요?</h2><p>친구 {restore.friends.length}명 · {world(restore).coins}코인<br />현재 게임을 별도로 백업한 다음 이 파일로 바꿔요.</p><button className="primary-button" disabled={restoring} onClick={confirmRestore}>{restoring ? '백업하고 복원하는 중…' : '현재 게임 백업 후 복원'}</button><button className="restore-cancel" disabled={restoring} onClick={() => setRestore(null)}>취소</button></div></div>}
     {lifeOpen&&<LifePanel key={friend.id} save={model.current} friend={friend} close={()=>setLifeOpen(false)} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/>}
     {!lifeOpen&&!menu&&<DiscoveryNotice save={model.current} changed={persist} command={cloud?.send}/>}
-    <LegendaryNotice save={model.current} changed={persist} command={cloud?.send} />
+    <LegendaryNotice sound={sound} save={model.current} changed={persist} command={cloud?.send} />
     {crop && <PhotoDialog shared={!!cloud} crop={crop} setCrop={setCrop} busy={imageBusy} save={savePhoto} />}
   </div>
 }

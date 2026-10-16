@@ -84,9 +84,9 @@ describe('economy, shop and inventory', () => {
     const s = game(), w = world(s)
     acquire(w, 'forest-gem', now)
     sell(s, 'forest-gem', now + 1000)
-    expect(w.coins).toBe(350); expect(w.inventory['forest-gem']).toBe(0)
+    expect(w.coins).toBe(400); expect(w.inventory['forest-gem']).toBe(0)
     expect(w.book['forest-gem'].firstAt).toBe(now)
-    sell(s, 'forest-gem', now + 2000); expect(w.coins).toBe(350)
+    sell(s, 'forest-gem', now + 2000); expect(w.coins).toBe(400)
     acquire(w, 'world-seed', now, s.friends[0]); expect(sell(s, 'world-seed', now + 3000)).toContain('판매할 수 없는')
   })
 })
@@ -95,12 +95,12 @@ describe('real-time expeditions and exact drop odds', () => {
     const counts = { common: 0, uncommon: 0, rare: 0, legendary: 0 }
     for (let i = 0; i < 10000; i++) counts[rollRarity(() => (i + .5) / 10000)]++
     expect(counts).toEqual({ common: 6500, uncommon: 2500, rare: 900, legendary: 100 })
-    for (const r of regions) for (const rarity of Object.keys(counts) as (keyof typeof counts)[]) expect(itemById[chooseLoot(r.id, rarity, () => .5)].rarity).toBe(rarity)
+    for (const r of regions) for (const rarity of Object.keys(counts) as (keyof typeof counts)[]) {if(rarity==='legendary'&&['forest','beach'].includes(r.id))expect(()=>chooseLoot(r.id,rarity)).toThrow();else expect(itemById[chooseLoot(r.id, rarity, () => .5)].rarity).toBe(rarity)}
   })
   it('locks a deterministic reward at start, prevents duplicate trips and blocks care/input', () => {
     const s = game(), f = s.friends[0], w = world(s)
     startExpedition(s, f.id, 'forest', now, () => .999)
-    expect(w.jobs[0].result.items).toEqual(['decor-3-4'])
+    expect(w.jobs[0].result.items).toEqual(['fossil'])
     const energy = f.stats.energy
     startExpedition(s, f.id, 'forest', now + 1)
     expect(w.jobs).toHaveLength(1); expect(f.stats.energy).toBe(energy)
@@ -113,6 +113,8 @@ describe('real-time expeditions and exact drop odds', () => {
   it('returns once after offline reload and permanently records legendary finds and dates', () => {
     const s = game(), f = s.friends[0]
     startExpedition(s, f.id, 'forest', now, () => .999)
+    // A pre-update departure keeps its already locked furniture reward.
+    world(s).jobs[0].result.items=['decor-3-4']
     const result = structuredClone(world(s).jobs[0].result), end = world(s).jobs[0].endsAt
     const loaded = parseSave(JSON.stringify(s), end + 1000)
     expect(world(loaded).jobs[0].result).toEqual(result)
@@ -132,7 +134,7 @@ describe('real-time expeditions and exact drop odds', () => {
   it('curiosity adds an independent roll without altering any rarity weight', () => {
     const s = game(), rolls = [.1, .2, .01, .999, .5]
     startExpedition(s, 'momo', 'forest', now, () => rolls.shift() ?? .5)
-    expect(world(s).jobs[0].result.items).toEqual(['decor-0-0', 'decor-3-4'])
+    expect(world(s).jobs[0].result.items).toEqual(['leaf', 'treasure-amethyst'])
     expect(B.rarityWeights.legendary).toBe(1)
   })
 })

@@ -1,3 +1,4 @@
+import {defaultTaste} from '../adventure/catalog'
 import { normalFriendCount } from '../humans/model'
 import { FurnitureArt } from './FurnitureArt'
 export { FurnitureArt } from './FurnitureArt'
@@ -9,7 +10,6 @@ import { itemById } from '../progression/config'
 import { buy, world } from '../progression/model'
 import {
   adoptionCatalog,
-  foodLikes,
   lifeBalance as B,
   regionWeights,
   tripEvents,
@@ -134,7 +134,7 @@ export function LifePanel({
               <Character friend={f} mini />
               <div>
                 <h3>{f.name}의 하루</h3>
-                <p>좋아하는 음식: {itemById[foodLikes[f.id]]?.name}</p>
+                <p>좋아하는 음식 (1.5배): {itemById[(f.foodTaste??defaultTaste(f.id)).like]?.name}</p>
                 <p>수면 {sleepLabel(f)}</p>
                 <p>
                   {f.growth?.awayJobId

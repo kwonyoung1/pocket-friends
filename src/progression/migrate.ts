@@ -1,3 +1,4 @@
+import { migrateWords } from '../words/state.ts'
 import { specialIds } from '../humans/config.ts'
 import { migrateExpansion, migrateLife } from '../expansion/migrate.ts'
 import { adoptionCatalog, tripEvents } from '../expansion/config.ts'
@@ -39,7 +40,7 @@ export function migrateWorld(raw: unknown, now: number): World {
     const j = record(value), result = record(j.result)
     const regionId = text(j.regionId), friendId = text(j.friendId)
     if (!regions.some(r => r.id === regionId) || !['momo', 'bibi', 'coco', 'dudu', ...adoptionCatalog.map(d=>d.id),...specialIds].includes(friendId)) throw Error('탐험 기록이 올바르지 않아요.')
-    const itemIds = stringList(result.items, 2)
+    const itemIds = stringList(result.items, 3)
     if (!itemIds.length || itemIds.some(id => !Object.hasOwn(itemById, id))) throw Error('탐험 보상 기록이 올바르지 않아요.')
     const job: Expedition = { id: text(j.id), friendId, regionId, startedAt: number(j.startedAt), endsAt: number(j.endsAt), energyCost: number(j.energyCost, 0, 100), result: { coins: number(result.coins, 0, 1e6), xp: number(result.xp, 0, 1000), items: itemIds } }
     for(const key of ['cold','hamster'] as const)if(result[key]!==undefined){if(typeof result[key]!=='boolean')throw Error('탐험 확률 기록이 올바르지 않아요.');job.result[key]=result[key]}
@@ -49,12 +50,14 @@ export function migrateWorld(raw: unknown, now: number): World {
     return job
   })
   if (new Set(w.jobs.map(j => j.id)).size !== w.jobs.length) throw Error('탐험 기록이 중복돼요.')
-  const found = (value: unknown) => { const e = record(value); const itemId = text(e.itemId); if (itemById[itemId]?.rarity !== 'legendary') throw Error('전설 기록이 올바르지 않아요.'); return { id: text(e.id), itemId, friendId: text(e.friendId), at: number(e.at) } }
+  const found = (value: unknown) => { const e = record(value); const itemId = text(e.itemId); if (itemById[itemId]?.rarity !== 'legendary') throw Error('전설 기록이 올바르지 않아요.'); return { id: text(e.id), itemId, friendId: text(e.friendId), at: number(e.at), ...(typeof e.first==='boolean'?{first:e.first}:{}) } }
   w.legendaries = list(r.legendaries ?? []).map(found); w.notices = list(r.notices ?? [], 1000).map(found)
   w.day = text(r.day ?? dailyKey(now), 10); w.attendanceDays = stringList(r.attendanceDays ?? []); w.claimedMissions = stringList(r.claimedMissions ?? [], 4); w.achievements = stringList(r.achievements ?? [], 10)
   w.buyAfter = r.buyAfter === undefined ? 0 : number(r.buyAfter); w.useAfter = r.useAfter === undefined ? 0 : number(r.useAfter)
   w.decorationSlots = {}; if (r.decorationSlots) for (const [slot, value] of Object.entries(record(r.decorationSlots))) w.decorationSlots[slot] = text(value)
   if (w.day !== dailyKey(now)) { w.day = dailyKey(now); w.claimedMissions = [] }
+  if(r.adventureVersion!==undefined){if(r.adventureVersion!==1)throw Error('지원하지 않는 탐험 업데이트');w.adventureVersion=1}
+  w.words=migrateWords(r.words)
   if (r.careRulesVersion !== undefined) { if (r.careRulesVersion !== 1) throw Error('지원하지 않는 돌봄 규칙'); w.careRulesVersion = 1 }
   if(r.specialFriendsVersion!==undefined){if(r.specialFriendsVersion!==1)throw Error('지원하지 않는 특별 친구 저장 형식');w.specialFriendsVersion=1}
   w.expansion=migrateExpansion(r.expansion)

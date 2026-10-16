@@ -1,3 +1,4 @@
+import {foodPreferences} from '../adventure/catalog.ts'
 import type { Rarity, Item } from '../progression/config.ts'
 export const lifeBalance = {
   bathMs: 30 * 60000,
@@ -47,10 +48,10 @@ export const adoptionCatalog = [
   },
 ]
 export const regionWeights: Record<string, Record<Rarity, number>> = {
-  forest: { common: 70, uncommon: 24, rare: 5.5, legendary: 0.5 },
-  beach: { common: 55, uncommon: 32, rare: 12, legendary: 1 },
-  cave: { common: 40, uncommon: 37, rare: 20, legendary: 3 },
-  garden: { common: 25, uncommon: 40, rare: 29, legendary: 6 },
+  forest: { common: 70, uncommon: 24, rare: 6, legendary: 0 },
+  beach: { common: 55, uncommon: 32, rare: 13, legendary: 0 },
+  cave: { common: 40, uncommon: 37, rare: 22.75, legendary: 0.25 },
+  garden: { common: 25, uncommon: 40, rare: 34.5, legendary: 0.5 },
 }
 export const tripEvents = [
   { id: 'treasure', name: '작은 보물 상자', chance: 0.03, coins: 150 },
@@ -150,16 +151,7 @@ export const collectionItems: Item[] = names.flatMap((row, grade) =>
     effects: {},
   })),
 )
-export const foodLikes: Record<string, string> = {
-  'special-boy': 'bread', 'special-girl': 'cake', momo: 'lunch',
-  bibi: 'cake',
-  coco: 'steak',
-  dudu: 'bread',
-  lulu: 'lunch',
-  toto: 'steak',
-  byeol: 'cake',
-  mungchi: 'bread',
-}
+export const foodLikes:Record<string,string>=Object.fromEntries(Object.entries(foodPreferences).map(([id,t])=>[id,t.like]))
 export const sleepSchedules: Record<string, [number, number]> = {
   'special-boy': [5,355], 'special-girl': [-10,370], momo: [-15, 350],
   bibi: [20, 375],

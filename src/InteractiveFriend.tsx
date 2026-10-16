@@ -68,11 +68,12 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
   const close = affinity(f) === 'close'
   const intensity = (head ? 1.2 : 1) * (close ? 1.2 : 1)
   const recovering=(f.recoveryUntil??0)>Date.now()
-  const effect = held || phase === 'delighted' || recovering
+  const foodHappy=f.foodReaction?.kind==='liked'&&f.foodReaction.until>Date.now()
+  const effect = foodHappy || held || phase === 'delighted' || recovering
   const hearts = phase === 'bonding' ? (head ? 7 : 5) + (close ? 2 : 0) : head ? 2 : 1
   const elapsed = Date.now() - (f.interaction?.startedAt ?? Date.now())
   return <button ref={button}
-    className={`room-friend ${needs.map(n => `need-${n}`).join(' ')} ${f.stats.hygiene <= 10 ? 'very-dusty' : ''} ${f.stats.hunger <= 10 ? 'very-hungry' : ''} ${(f.socialUntil ?? 0) > Date.now() ? 'social-greeting' : ''} ${!f.moving&&(f.furnitureUntil??0)>Date.now()&&/휴식|쉬기|햄스터/.test(f.furnitureActivity??'')?'furniture-relax':''} ${(f.eatingUntil??0)>Date.now()?'eating':''} ${asleep?'life-sleep':''} ${bathing?'life-bath':''} ${f.life?.coldAt?'life-cold':''} ${selected ? 'selected' : ''} ${f.moving ? 'walking' : ''} interaction-${phase} ${head ? 'head-pet' : ''} ${close ? 'close-friend' : ''} ${(f.growth?.specialUntil ?? 0) > Date.now() ? 'personality-action' : ''}`}
+    className={`room-friend ${f.foodReaction&&f.foodReaction.until>Date.now()?`food-${f.foodReaction.kind}`:''} ${needs.map(n => `need-${n}`).join(' ')} ${f.stats.hygiene <= 10 ? 'very-dusty' : ''} ${f.stats.hunger <= 10 ? 'very-hungry' : ''} ${(f.socialUntil ?? 0) > Date.now() ? 'social-greeting' : ''} ${!f.moving&&(f.furnitureUntil??0)>Date.now()&&/휴식|쉬기|햄스터/.test(f.furnitureActivity??'')?'furniture-relax':''} ${(f.eatingUntil??0)>Date.now()?'eating':''} ${asleep?'life-sleep':''} ${bathing?'life-bath':''} ${f.life?.coldAt?'life-cold':''} ${selected ? 'selected' : ''} ${f.moving ? 'walking' : ''} interaction-${phase} ${head ? 'head-pet' : ''} ${close ? 'close-friend' : ''} ${(f.growth?.specialUntil ?? 0) > Date.now() ? 'personality-action' : ''}`}
     aria-label={`${f.name} 쓰다듬기 또는 끌어서 이동`} aria-pressed={selected} aria-describedby="interaction-help"
     data-testid={`room-${f.id}`} data-x={f.x.toFixed(1)} data-y={f.y.toFixed(1)} data-moving={f.moving}
     data-phase={phase} data-zone={f.interaction?.zone ?? 'body'} data-affinity={affinity(f)}
@@ -89,7 +90,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     {f.bubbleUntil > Date.now() && <span className="speech" role="status" style={f.x < 200 ? { left: 0, transform: 'none' } : f.x > 800 ? { left: 'auto', right: 0, transform: 'none' } : undefined}>{f.bubble}</span>}
     <span className="interaction-shadow" aria-hidden="true" />
     <span className="friend-lift" style={phase === 'dragging' ? { transform: `translateY(-16%) rotate(${f.interaction?.tilt ?? 0}deg)` } : undefined}>
-      <span className="friend-emotion"><span className="friend-figure" style={{ transform: `scaleX(${f.facing})` }}><Character friend={f} emotion={held || asleep || f.life?.coldAt || f.stats.energy <= 30 ? 'closed' : happy || recovering ? 'smile' : 'normal'} /></span></span>
+      <span className="friend-emotion"><span className="friend-figure" style={{ transform: `scaleX(${f.facing})` }}><Character friend={f} emotion={held || asleep || f.life?.coldAt || f.stats.energy <= 30 || (f.foodReaction?.kind==='disliked'&&f.foodReaction.until>Date.now()) ? 'closed' : happy || recovering || foodHappy ? 'smile' : 'normal'} /></span></span>
     </span>
     {(f.growth?.levelUpUntil ?? 0) > Date.now() && <span className="level-up-effect" role="status">✦ LEVEL UP · Lv.{f.growth?.level} ✦</span>}
     {effect && <span className={`pet-particles ${phase === 'bonding' ? 'many-hearts' : ''}`} aria-hidden="true">

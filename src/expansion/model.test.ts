@@ -42,7 +42,7 @@ function game(at = noon): Save {
   return s
 }
 describe('life and data preservation', () => {
-  it('no free food path exists; purchased food consumes once, favorite grants happiness, values stay bounded', () => {
+  it('no free food path exists; purchased food consumes once, legacy favorite bonus is replaced by explicit taste multipliers, values stay bounded', () => {
     const s = game(),
       f = s.friends[0]
     f.stats.hunger = 1
@@ -53,7 +53,7 @@ describe('life and data preservation', () => {
     acquire(world(s), 'lunch', noon)
     useItem(s, 'lunch', f.id, noon)
     expect(f.stats.hunger).toBe(36)
-    expect(f.stats.happiness).toBe(25)
+    expect(f.stats.happiness).toBe(20)
     useItem(s, 'lunch', f.id, noon + 11000)
     expect(f.stats.hunger).toBe(36)
     expect(world(s).inventory.lunch).toBe(0)
@@ -211,7 +211,7 @@ describe('exploration, furnishing and new friends', () => {
   })
   it('locks independent cold, hamster and event rolls once per trip and grants each result exactly once', () => {
     const s = game(),
-      rolls = [0.5, 0.1, 0.99, 0.01, 0.001, 0.01] // item grade, pool, curious extra, cold, hamster, event
+      rolls = [0.5, 0.1, 0.99, 0.99, 0.01, 0.001, 0.01] // item grade, pool, curious extra, cold, hamster, event
     startExpedition(s, 'momo', 'forest', noon, () => rolls.shift() ?? 0.99)
     const job = world(s).jobs[0]
     expect(job.result.cold).toBe(true)

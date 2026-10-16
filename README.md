@@ -5,7 +5,7 @@ React 19 + TypeScript + Vite를 사용합니다. 개발 서버의 로컬 모드�
 
 [업데이트 PC 화면](docs/screenshots/life-expansion-desktop.png) · [업데이트 모바일 화면](docs/screenshots/life-expansion-mobile.png)
 
-**최신 업데이트: [대사·돌봄·6시간 보상·비밀번호 배포 안내](docs/CARE_UPDATE.md) · [검증 결과](docs/CARE_UPDATE_VERIFICATION.md). 기존 데이터를 지우거나 프로젝트·API 키를 다시 만들지 않습니다. 새 SQL은 필요하지 않습니다.**
+**최신 업데이트: [탐험 보물·음식 취향·영단어 탐험·4시간 휴식 배포 안내](docs/ADVENTURE_UPDATE.md). 단어는 초기 90개입니다. 기존 프로젝트를 유지하며 추가 SQL 1개 적용 후 서버 → 화면 순서로 배포합니다. [이전 돌봄 업데이트](docs/CARE_UPDATE.md)**
 
 ![포켓프렌즈 PC 게임 화면](docs/screenshots/desktop.png)
 

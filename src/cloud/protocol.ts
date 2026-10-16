@@ -1,6 +1,7 @@
 import type { LifeCommand } from '../expansion/model.ts'
 import type { Save } from '../game.ts'
 export type GameCommand =
+  | import('../words/state.ts').WordCommand
   | LifeCommand
   | { type: 'claim-special-friends' | 'refresh' | 'attendance' | 'dismiss-notice' }
   | { type: 'buy' | 'sell' | 'achievement'; id: string }
