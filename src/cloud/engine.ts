@@ -1,3 +1,6 @@
+import {wordCommand,expireWords} from '../words/model.ts'
+import type {WordCommand} from '../words/state.ts'
+import {defaultTaste} from '../adventure/catalog.ts'
 import { settleCareAlerts } from '../careNeeds.ts'
 import { specialIds } from '../humans/config.ts'
 import { grantSpecialFriends } from '../humans/model.ts'
@@ -42,6 +45,17 @@ export function validateCommand(value: unknown): GameCommand {
   if ('friendId' in c && !friendIds.includes(String(c.friendId)))
     throw Error('친구를 선택해 주세요.')
   switch (c.type) {
+    case 'word-start':
+      if(!['reward','review'].includes(String(c.mode)))throw Error('게임 모드를 확인해 주세요.')
+      break
+    case 'word-answer':
+    case 'word-reveal':
+    case 'word-skip':
+    case 'word-next':
+    case 'word-hint':
+    case 'word-abandon':
+      if(!['reward','review'].includes(String(c.mode))||!string(c.sessionId,36)||!string(c.wordId,100)||(c.type==='word-answer'&&(typeof c.answer!=='string'||c.answer.length>120)))throw Error('단어 문제 정보를 확인해 주세요.')
+      break
     case 'bath':
     case 'medicine':
       if (!friendIds.includes(String(c.friendId)))
@@ -155,10 +169,12 @@ export function applyCommand(
     holds = structuredClone(oldHolds)
   for (const f of save.friends) {
     f.stats = decay(f.stats, Math.max(0, now - save.savedAt))
+    f.foodTaste??=defaultTaste(f.id)
     delete f.interaction
   }
   for (const id of Object.keys(holds))
     if (now - holds[id].at > 60000) delete holds[id]
+  expireWords(save,now)
   settleLife(save, now)
   attachNavigation(save)
   const returns = completeExpeditions(save, now)
@@ -170,6 +186,8 @@ export function applyCommand(
   if ('friendId' in c && !f) throw Error('아직 함께 살지 않는 친구예요.')
   let message = returns.join(' · ') || '클라우드와 동기화했어요.'
   switch (c.type) {
+    case 'word-start': case 'word-answer': case 'word-reveal': case 'word-skip': case 'word-next': case 'word-hint': case 'word-abandon':
+      message=wordCommand(save,c as WordCommand,now);break
     case 'claim-special-friends': message=grantSpecialFriends(save,now)?'남자아이와 여자아이가 새 가족이 되었어요! 특별 친구는 무료예요.':'특별 친구들과 함께하고 있어요.';break
     case 'bath':
     case 'medicine':
@@ -285,6 +303,7 @@ export function applyCommand(
     p.moving = false
   }
   settleCareAlerts(save.friends, now)
+  world(save, now).adventureVersion = 1
   world(save, now).careRulesVersion = 1
   save.savedAt = now
   return { save, holds, message }

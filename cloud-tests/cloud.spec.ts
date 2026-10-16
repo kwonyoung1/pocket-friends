@@ -227,3 +227,42 @@ test('free human gifts appear on both devices once and keep their names, individ
  await second.reload();await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await expect(second.getByTestId('room-special-girl').locator('.human-art')).toBeVisible()
  expect(backend.row().data!.friends.filter(f=>f.id==='special-boy')).toHaveLength(1);expect(backend.row().data!.friends.filter(f=>f.id==='special-girl')).toHaveLength(1);await phone.close()
 })
+
+test('word expedition shares all thirty graded questions across devices and pays the result once',async({page,backend,browser})=>{
+ test.setTimeout(120000)
+ await fresh(page,backend.secret);await menu(page,'영단어 탐험');await page.getByRole('button',{name:'영단어 탐험 시작',exact:true}).click()
+ const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
+ try{
+  const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
+  const bank=await import('../src/words/bank')
+  let active=page
+  for(let i=0;i<30;i++){
+   if(i===10){await expect(page.locator('.word-stage')).toContainText('11 / 30문제');await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await menu(second,'영단어 탐험');active=second}
+   await expect(active.locator('.word-stage')).toContainText(`${i+1} / 30문제`)
+   const id=await active.getByTestId('word-play').getAttribute('data-word-id')
+   await active.getByLabel('한국어 뜻',{exact:true}).fill(bank.wordById[id!].acceptedAnswers[0]);await active.getByRole('button',{name:'정답 확인',exact:true}).click()
+   if(i===15){await expect(active.locator('.word-stage')).toContainText('17 / 30문제');await expect(active.locator('.cloud-status')).not.toContainText('처리 중');await active.reload();await active.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(active,'영단어 탐험')}
+  }
+  await expect(active.getByTestId('word-reward')).toHaveText('300코인')
+  expect(backend.row().data!.world!.coins).toBe(600)
+  expect(backend.row().data!.world!.ledger.filter(e=>e.reason==='영단어 탐험 완료')).toHaveLength(1)
+  await expect(active.locator('.cloud-status')).not.toContainText('처리 중');await active.reload();await active.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(active,'영단어 탐험')
+  await expect(active.getByTestId('word-reward')).toHaveText('300코인');await expect(active.getByRole('button',{name:'영단어 탐험 시작',exact:true})).toBeDisabled()
+  expect(backend.row().data!.world!.coins).toBe(600)
+  expect(await active.evaluate(()=>document.body.scrollWidth>innerWidth)).toBe(false)
+ }finally{await phone.close()}
+})
+
+test('new favorite food and four-hour manual rest synchronize without changing the imported original',async({page,backend,browser})=>{
+ const source=freshWorld(Date.parse('2026-10-15T03:00:00Z'));source.world!.coins=1000;source.friends[0].stats.hunger=0;source.friends[0].stats.happiness=0;source.friends[0].stats.energy=20
+ const raw=JSON.stringify(source);await page.addInitScript(raw=>localStorage.setItem('pocket-friends-v1',raw),raw)
+ await enter(page,backend.secret);await page.getByRole('button',{name:'이 기기 데이터를 기준으로 가져오기'}).click();await page.getByRole('button',{name:'확인하고 공유 월드 만들기'}).click();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
+ await menu(page,'상점');await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'구매하기'}).click();await expect(page.getByRole('button',{name:'보유 코인 940'})).toBeVisible();await page.getByRole('button',{name:'메뉴 닫기'}).click()
+ await menu(page,'인벤토리');await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'모모에게 주기'}).click();await expect.poll(()=>backend.row().data!.world!.inventory['strawberry-milk']).toBe(0);await page.getByRole('button',{name:'메뉴 닫기'}).click()
+ await page.getByRole('button',{name:'모모 상태 확인'}).click();await page.getByRole('complementary').getByRole('button',{name:/쉬게 하기/}).click();await expect(page.getByTestId('rest-status')).toContainText('4시간 0분')
+ await expect(page.getByTestId('room-momo')).toHaveClass(/furniture-relax/)
+ expect(backend.row().data!.friends[0].stats.hunger).toBeCloseTo(15,0);expect(backend.row().data!.friends[0].stats.happiness).toBeCloseTo(23,0)
+ const stamp=backend.row().data!.friends[0].lastRestRewardAt
+ const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
+ try{const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await second.getByRole('button',{name:'모모 상태 확인'}).click();await expect(second.getByTestId('rest-status')).toContainText('4시간 0분');await second.getByRole('complementary').getByRole('button',{name:/쉬게 하기/}).click();await expect(second.locator('.cloud-status')).not.toContainText('처리 중');expect(backend.row().data!.friends[0].lastRestRewardAt).toBe(stamp);expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw)}finally{await phone.close()}
+})

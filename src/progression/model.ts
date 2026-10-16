@@ -1,10 +1,11 @@
+import { defaultTaste, furnitureChance } from '../adventure/catalog.ts'
 import { humanLine } from '../humans/config.ts'
 import { rollTripExtras } from '../expansion/rolls.ts'
 import { busyLife, expansion, life, lifeCommand } from '../expansion/model.ts'
 import type { Expansion } from '../expansion/model.ts'
-import { collectionItems, foodLikes, regionWeights, tripEvents } from '../expansion/config.ts'
+import { collectionItems, regionWeights, tripEvents } from '../expansion/config.ts'
 import type { Friend, Save } from '../game.ts'
-import { growthBalance as B, itemById, missions, regions, traitLabels } from './config.ts'
+import { growthBalance as B, itemById, missions, regions, traitLabels, salePrice, items } from './config.ts'
 import type { Rarity, Trait } from './config.ts'
 export type Action = 'feed' | 'play' | 'pet' | 'special' | 'explore'
 export type Growth = {
@@ -14,9 +15,9 @@ export type Growth = {
 }
 export type Expedition = { id: string; friendId: string; regionId: string; startedAt: number; endsAt: number; energyCost: number; result: { coins: number; xp: number; items: string[]; cold?: boolean; hamster?: boolean; eventId?: string }; claimedAt?: number }
 export type World = {
-  careRulesVersion?: 1; specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
-  jobs: Expedition[]; book: Record<string, { firstAt: number; lastAt: number; count: number }>; legendaries: { id: string; itemId: string; friendId: string; at: number }[]
-  notices: { id: string; itemId: string; friendId: string; at: number }[]; day: string; attendanceDays: string[]; claimedMissions: string[]; achievements: string[]
+  adventureVersion?: 1; words?: import('../words/state.ts').WordProgress; careRulesVersion?: 1; specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
+  jobs: Expedition[]; book: Record<string, { firstAt: number; lastAt: number; count: number }>; legendaries: { id: string; itemId: string; friendId: string; at: number; first?: boolean }[]
+  notices: { id: string; itemId: string; friendId: string; at: number; first?: boolean }[]; day: string; attendanceDays: string[]; claimedMissions: string[]; achievements: string[]
   buyAfter: number; useAfter: number; decorationSlots: Record<string, string>
 }
 export function dailyKey(now = Date.now()) { return new Date(now + (9 - B.dailyResetHourKst) * 3600000).toISOString().slice(0, 10) }
@@ -78,7 +79,7 @@ export function acquire(w: World, itemId: string, now: number, f?: Friend) {
   w.book[itemId] = { firstAt: old?.firstAt ?? now, lastAt: now, count: (old?.count ?? 0) + 1 }
   if (f && (item.rarity === 'rare' || item.rarity === 'legendary')) growth(f, now).rareFinds++
   if (item.rarity === 'legendary') {
-    const found = { id: uid(), itemId, friendId: f?.id ?? '', at: now }
+    const found = { id: uid(), itemId, friendId: f?.id ?? '', at: now, first: !old }
     w.legendaries.unshift(found); w.notices.push(found)
     if (f) announce(f, `대박! 전설의 보물, ${item.name}이야! 꼭 간직할래!`)
   }
@@ -102,12 +103,13 @@ export function useItem(save: Save, itemId: string, friendId: string, now = Date
   if (item.category === 'treasure') return '사용하지 않는 수집용 보물이에요.'
   if (now < w.useAfter || now < (growth(f).rewardAfter[item.category === 'food' ? 'feed' : 'play'] ?? 0)) return '친구가 즐기는 중이에요. 잠깐 기다려 주세요.'
   if (item.consumable) w.inventory[itemId]--
-  for (const [key, amount] of Object.entries(item.effects)) { const stat = key as keyof Friend['stats']; f.stats[stat] = Math.max(0, Math.min(100, f.stats[stat] + amount)) }
+  for (const [key, amount] of Object.entries(item.effects)) { const stat = key as keyof Friend['stats']; const taste=f.foodTaste??=defaultTaste(f.id); const factor=item.category==='food'&&itemId!=='snack'&&(stat==='hunger'||stat==='happiness')&&amount>0?(taste.like===itemId?1.5:taste.dislike===itemId?.8:1):1; f.stats[stat] = Math.max(0, Math.min(100, f.stats[stat] + Math.round(amount*factor))) }
   w.useAfter = now + B.itemUseCooldownMs
   rewardAction(f, item.category === 'food' ? 'feed' : 'play', now)
-  const favorite=item.category==='food'&&foodLikes[f.id]===itemId
-  if(favorite) f.stats.happiness=Math.min(100,f.stats.happiness+5)
-  announce(f, favorite?'내가 제일 좋아하는 음식이야! 냠냠~ ♡':item.category === 'food' ? '잘 먹었어! 고마워~' : '같이 노니까 정말 신나! 한 번 더~!')
+  const favorite=item.category==='food'&&itemId!=='snack'&&f.foodTaste?.like===itemId
+  const disliked=item.category==='food'&&itemId!=='snack'&&f.foodTaste?.dislike===itemId
+  f.foodReaction = item.category==='food'?{kind:favorite?'liked':disliked?'disliked':'normal',until:now+2500}:undefined
+  announce(f, disliked?'음... 다음에는 다른 거 먹고 싶어~ 그래도 잘 먹을게!':favorite?'내가 제일 좋아하는 음식이야! 냠냠~ ♡':item.category === 'food' ? '잘 먹었어! 고마워~' : '같이 노니까 정말 신나! 한 번 더~!')
   if(item.category==='food')f.eatingUntil=now+2000
   f.furnitureUntil=now+2000;f.furnitureActivity=item.category==='food'?'냠냠 먹는 중':'신나는 놀이'
   return `${f.name}와 ${item.name}을 ${item.category === 'food' ? '먹었어요' : '가지고 놀았어요'}!`
@@ -116,7 +118,7 @@ export function sell(save: Save, itemId: string, now = Date.now()) {
   const w = world(save, now), item = itemById[itemId]
   if (!item?.sellable || !(w.inventory[itemId] > 0)) return '판매할 수 없는 아이템이에요.'
   if (now < w.buyAfter) return '거래 중이에요. 잠깐 기다려 주세요.'
-  if (!transact(w, Math.floor(item.price / 2), `${item.name} 판매`, now)) return '거래할 수 없어요.'
+  if (!transact(w, salePrice(item), `${item.name} 판매`, now)) return '거래할 수 없어요.'
   w.inventory[itemId]--; w.buyAfter = now + B.purchaseCooldownMs
   return `${item.name} 1개를 판매했어요.`
 }
@@ -131,7 +133,9 @@ export function rarityPercent(rarity: Rarity) { return B.rarityWeights[rarity] /
 export function chooseLoot(regionId: string, rarity: Rarity, random = Math.random) {
   const region = regions.find(r => r.id === regionId)
   if (!region) throw Error('알 수 없는 지역')
-  const pool = collectionItems.filter(i=>i.rarity===rarity && Number(i.id.split('-')[2])%4===regions.findIndex(r=>r.id===regionId)).map(i=>i.id)
+  const allowed = regionId==='cave'||regionId==='garden'
+  const pool = items.filter(i=>i.category==='treasure'&&i.rarity===rarity&&(rarity!=='legendary'||allowed)).map(i=>i.id)
+  if(!pool.length) throw Error('이 지역에 없는 보물 등급이에요.')
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))]
 }
 export function expeditionTerms(f: Friend, regionId: string) {
@@ -149,6 +153,7 @@ export function startExpedition(save: Save, friendId: string, regionId: string, 
   if (f.stats.energy < terms.energy) return `체력이 ${terms.energy} 이상 필요해요.`
   const resultItems = [chooseLoot(regionId, rollRarity(random,regionId), random)]
   if (dominant(f) === 'curious' && random() < B.bonuses.curiousExtra) resultItems.push(chooseLoot(regionId, rollRarity(random,regionId), random))
+  if(random()<furnitureChance) { const rarity=rollRarity(random,regionId); const pool=collectionItems.filter(i=>i.rarity===rarity&&Number(i.id.split('-')[2])%4===regions.findIndex(r=>r.id===regionId)); resultItems.push(pool[Math.min(pool.length-1,Math.floor(random()*pool.length))].id) }
   const job: Expedition = { id: uid(), friendId, regionId, startedAt: now, endsAt: now + terms.duration, energyCost: terms.energy, result: { coins: r.coins, xp: terms.xp, items: resultItems } }
   // Independent rolls, once per trip. Stored before departure; reloading cannot reroll.
   const extras=rollTripExtras(random)

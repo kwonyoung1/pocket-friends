@@ -111,6 +111,8 @@ for (const { roll, eventId, reward } of [
 }
 test('offline legendary reward is durable, gold notice can be dismissed, and collection retains the date', async ({ page }) => {
   const s = fixture(); startExpedition(s, 'momo', 'forest', epoch - 3600000, () => .999)
+  // A reward locked before this update must survive the new regional tables.
+  world(s).jobs[0].result.items=['decor-3-4']
   await seed(page, s); await page.clock.runFor(100)
   await expect(page.getByRole('heading', { name: '전설의 보물을 발견했어요!' })).toBeVisible()
   await page.getByRole('button', { name: '소중히 간직할게 ♡' }).click()

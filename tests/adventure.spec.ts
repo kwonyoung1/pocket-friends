@@ -1,0 +1,30 @@
+import {test,expect} from '@playwright/test'
+import {freshWorld} from '../src/cloud/engine'
+import {acquire,world} from '../src/progression/model'
+const at=Date.parse('2026-10-16T03:00:00Z')
+test('treasure illustrations, sale confirmation, new foods and four-hour manual rest retain existing data',async({page})=>{
+ const s=freshWorld(at);s.friends[0].stats.hunger=0;s.friends[0].stats.happiness=0;s.friends[0].stats.energy=20;acquire(world(s),'treasure-diamond',at,s.friends[0]);s.world!.coins=1000;s.world!.notices=[]
+ await page.clock.install({time:new Date(at)});await page.clock.pauseAt(new Date(at+1000))
+ await page.addInitScript(s=>{if(!sessionStorage.getItem('new-adventure')){localStorage.setItem('pocket-friends-v1',JSON.stringify(s));sessionStorage.setItem('new-adventure','yes')}},s)
+ await page.goto('/');await page.getByRole('navigation').getByRole('button',{name:'인벤토리',exact:true}).click()
+ const item=page.getByTestId('item-treasure-diamond');await expect(item.locator('svg.treasure-art')).toBeVisible()
+ await item.getByRole('button',{name:'1개 판매',exact:true}).click();await expect(page.getByRole('alertdialog',{name:'보물 판매 확인'})).toBeVisible()
+ await page.getByRole('button',{name:'취소',exact:true}).click();await expect(item).toContainText('보유 1개')
+ await item.getByRole('button',{name:'1개 판매',exact:true}).click();await page.getByRole('button',{name:'확인하고 1개 판매'}).click()
+ await expect(page.getByRole('button',{name:'보유 코인 4000'})).toBeVisible()
+ await page.getByRole('button',{name:'메뉴 닫기'}).click();await page.clock.runFor(1000)
+ await page.getByRole('navigation').getByRole('button',{name:'상점',exact:true}).click()
+ await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'구매하기'}).click()
+ await page.getByRole('button',{name:'메뉴 닫기'}).click();await page.getByRole('navigation').getByRole('button',{name:'인벤토리',exact:true}).click()
+ await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'모모에게 주기'}).click()
+ await page.getByRole('button',{name:'메뉴 닫기'}).click();await page.getByRole('button',{name:'모모 상태 확인'}).click()
+ await expect(page.getByTestId('room-momo')).toHaveClass(/food-liked/)
+ const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('pocket-friends-v1')!))
+ expect(before.friends[0].stats.hunger).toBeCloseTo(15,0);expect(before.friends[0].stats.happiness).toBeCloseTo(23,0)
+ await page.getByRole('complementary').getByRole('button',{name:/쉬게 하기/}).click()
+ await expect(page.getByTestId('rest-status')).toContainText('4시간 0분')
+ await page.clock.runFor(2000);await page.getByRole('complementary').getByRole('button',{name:/쉬게 하기/}).click()
+ await page.reload();await page.getByRole('button',{name:'모모 상태 확인'}).click();await expect(page.getByTestId('rest-status')).toContainText('4시간 0분')
+ const restored=await page.evaluate(()=>JSON.parse(localStorage.getItem('pocket-friends-v1')!))
+ expect(restored.world.coins).toBe(3940);expect(restored.world.book['treasure-diamond'].count).toBe(1);expect(restored.world.inventory['treasure-diamond']).toBe(0)
+})

@@ -7,6 +7,7 @@ import type { ServerWorld, Holds, GameCommand } from './protocol'
 import { applyCommand, freshWorld, importWorld } from './engine'
 import { beginGesture, endGesture } from '../interaction'
 import { tick } from '../game'
+import {wordById} from '../words/bank'
 import { startExpedition, world } from '../progression/model'
 const pc = '10000000-0000-4000-8000-000000000001',
   mobile = '10000000-0000-4000-8000-000000000002'
@@ -19,7 +20,7 @@ const secret = crypto.randomUUID() // not the user's actual password
 async function reset() {
   at = now
   await db.exec(
-    "reset role; delete from game_upgrade_backups; delete from game_operations; delete from game_members; delete from game_login_limits; update game_worlds set data=null, revision=0, holds='{}', imported_by=null;",
+    "reset role; delete from game_adventure_backups; delete from game_upgrade_backups; delete from game_operations; delete from game_members; delete from game_login_limits; update game_worlds set data=null, revision=0, holds='{}', imported_by=null;",
   )
 }
 async function call(user: string | null, body: unknown) {
@@ -31,7 +32,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 4 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 5 }),
     }),
   )
 }
@@ -64,6 +65,7 @@ beforeAll(async () => {
   await db.exec(
     readFileSync('supabase/migrations/202610150002_life_backup.sql', 'utf8'),
   )
+  await db.exec(readFileSync('supabase/migrations/202610160001_adventure.sql','utf8'))
   repo = {
     async loginSlot() {
       return (await db.query<{ ok: boolean }>('select game_login_slot() as ok'))
@@ -98,7 +100,7 @@ beforeAll(async () => {
         await db.query<{
           result: { status: 'ok' | 'duplicate' | 'conflict'; message: string }
         }>(
-          `select ${data && typeof data === 'object' && 'world' in data && (data as { world?: { expansion?: unknown } }).world?.expansion ? 'game_commit_expansion' : 'game_commit'}($1,$2,$3::jsonb,$4,$5::jsonb,$6::jsonb,$7) result`,
+          `select ${data && typeof data === 'object' && 'world' in data && (data as {world?:{adventureVersion?:number}}).world?.adventureVersion ? 'game_commit_adventure' : data && typeof data === 'object' && 'world' in data && (data as { world?: { expansion?: unknown } }).world?.expansion ? 'game_commit_expansion' : 'game_commit'}($1,$2,$3::jsonb,$4,$5::jsonb,$6::jsonb,$7) result`,
           [
             user,
             operation,
@@ -309,6 +311,64 @@ describe.sequential(
   },
 )
 describe('migration and client visual isolation', () => {
+  it('server verifies treasure value and food quantities under concurrent commands and receipt retries',async()=>{
+    await reset();await login(pc);await login(mobile)
+    const old=freshWorld(now);old.world!.inventory['treasure-diamond']=1;old.world!.inventory['strawberry-milk']=2;old.friends[0].stats.hunger=0;old.friends[0].stats.happiness=0
+    await command(pc,{type:'initialize',source:'local',data:old})
+    const c={type:'sell',id:'treasure-diamond',price:999999,quantity:100}
+    const [a]=await Promise.all([command(pc,c),command(mobile,c)])
+    await command(pc,c,a.operation)
+    expect((await repo.load()).data!.world!.coins).toBe(3300)
+    expect((await repo.load()).data!.world!.inventory['treasure-diamond']).toBe(0)
+    await Promise.all([command(pc,{type:'use',id:'strawberry-milk',friendId:'momo'}),command(mobile,{type:'use',id:'strawberry-milk',friendId:'momo'})])
+    const final=(await repo.load()).data!
+    expect(final.world!.inventory['strawberry-milk']).toBe(1)
+    expect(final.friends[0].stats.hunger).toBe(15);expect(final.friends[0].stats.happiness).toBe(23)
+  })
+  it('new SQL is repeatable, backs up the untouched world atomically, and protects backup reads', async () => {
+    await reset();await login(pc)
+    const source=freshWorld(now);source.friends[0].photo='data:image/png;base64,AAAA';source.world!.coins=876
+    await command(pc,{type:'initialize',source:'local',data:source})
+    const before=await repo.load()
+    const sql=readFileSync('supabase/migrations/202610160001_adventure.sql','utf8')
+    await db.exec(sql);await db.exec(sql)
+    expect(await repo.load()).toEqual(before)
+    await command(pc,{type:'refresh'})
+    const backup=(await db.query<{data:unknown}>('select data from game_adventure_backups')).rows
+    expect(backup).toHaveLength(1);expect(backup[0].data).toEqual(before.data)
+    await command(pc,{type:'refresh'});expect((await db.query('select * from game_adventure_backups')).rows).toHaveLength(1)
+    await db.exec('set role authenticated');await expect(db.query('select * from game_adventure_backups')).rejects.toThrow(/permission denied/);await db.exec('reset role')
+  })
+  it('two devices share one quiz and grade each question once, including concurrent final payouts and retries', async () => {
+    await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'})
+    await Promise.all([command(pc,{type:'word-start',mode:'reward'}),command(mobile,{type:'word-start',mode:'reward'})])
+    let r=(await repo.load()).data!.world!.words!.round!
+    const session=r.id,first=r.questions[0],answer={type:'word-answer',mode:'reward',sessionId:session,wordId:first.wordId,answer:wordById[first.wordId].acceptedAnswers[0]}
+    await Promise.all([command(pc,answer),command(mobile,answer)])
+    r=(await repo.load()).data!.world!.words!.round!;expect(r.index).toBe(1)
+    for(let i=1;i<29;i++){const q=r.questions[r.index];await command(pc,{...answer,wordId:q.wordId,answer:wordById[q.wordId].acceptedAnswers[0]});r=(await repo.load()).data!.world!.words!.round!}
+    const last=r.questions[29],c={...answer,wordId:last.wordId,answer:wordById[last.wordId].acceptedAnswers[0],reward:99999}
+    const [a,b]=await Promise.all([command(pc,c),command(mobile,c)])
+    expect(a.response.status).toBe(200);expect(b.response.status).toBe(200)
+    await command(pc,c,a.operation)
+    const final=(await repo.load()).data!
+    expect(final.world!.coins).toBe(600);expect(final.world!.words!.round!.reward).toBe(300)
+    expect(final.world!.ledger.filter(e=>e.reason==='영단어 탐험 완료')).toHaveLength(1)
+    await command(mobile,{type:'word-start',mode:'reward'});expect((await repo.load()).data!.world!.words!.round!.id).toBe(session)
+  })
+  it('manual rest is atomic across devices, uses server time and cannot reset through a refresh', async () => {
+    await reset();await login(pc);await login(mobile)
+    const source=freshWorld(now);source.friends[0].stats.energy=20
+    await command(pc,{type:'initialize',source:'local',data:source})
+    const c={type:'care',action:'rest',friendId:'momo',now:now+86400000}
+    await Promise.all([command(pc,c),command(mobile,c)])
+    expect((await repo.load()).data!.friends[0].stats.energy).toBe(40)
+    await command(mobile,{type:'refresh'});expect((await repo.load()).data!.friends[0].lastRestRewardAt).toBe(now)
+    at=now+4*3600000-1;await command(pc,c)
+    expect((await repo.load()).data!.friends[0].lastRestRewardAt).toBe(now)
+    at++;await command(mobile,c)
+    expect((await repo.load()).data!.friends[0].lastRestRewardAt).toBe(at)
+  })
   it('server time and atomic commits enforce six-hour pet rewards across two devices and stale clients', async () => {
     await reset(); await login(pc); await login(mobile)
     const old = freshWorld(now); old.friends[0].stats.happiness = 40

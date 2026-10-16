@@ -479,3 +479,8 @@
 .room[data-night=true] .room-art{filter:brightness(.86) saturate(.84)}.room[data-night=true] [data-art=light],.room[data-night=true] [data-art="decor-1-3"]{filter:drop-shadow(0 0 14px #ffdf84);animation:night-lamp 3s ease-in-out infinite alternate}.furniture-relax .friend-emotion{transform:translateY(4%) scale(1.03,.94)}@keyframes night-lamp{to{filter:drop-shadow(0 0 23px #ffe4a6)}}
 @media(max-width:700px){.care-panel.mobile-collapsed{display:block}.adventure-nav>button{font-size:9px;gap:3px;padding:8px 3px}.adventure-nav>button span{word-break:keep-all}.adventure-nav small{font-size:7px;padding:1px 3px}}
 @media(prefers-reduced-motion:reduce){.room[data-night=true] [data-art=light],.room[data-night=true] [data-art="decor-1-3"]{animation:none}}
+
+/* Room actors/edit controls stay below page-level menus regardless of their depth. */
+.room {
+  isolation: isolate;
+}

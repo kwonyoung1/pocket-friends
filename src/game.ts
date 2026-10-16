@@ -1,3 +1,4 @@
+import { defaultTaste, restCooldownMs } from './adventure/catalog.ts'
 import { careAlertMs, careNeeds, careSpeed, isSpecialCharacter, needLine, specialAmbient } from './careNeeds.ts'
 import { specialIds, humanLine } from './humans/config.ts'
 import { makeSpecialFriend } from './humans/model.ts'
@@ -19,6 +20,7 @@ export type Kind = 'cat' | 'bunny' | 'bear' | 'fox' | 'dog' | 'boy' | 'girl'
 export type Stats = { hunger: number; happiness: number; energy: number; hygiene: number; affection: number }
 export type Point = { x: number; y: number }
 export type Friend = {
+  foodTaste?: {like:string;dislike:string}; foodReaction?: {kind:'liked'|'disliked'|'normal';until:number}; lastRestRewardAt?: number;
   eatingUntil?: number; recoveryUntil?: number; life?: Life; navObstacles?: Obstacle[]; furnitureUntil?: number; furnitureActivity?: string; remoteAuthoritative?: boolean; remoteHoldId?: string;
   growth?: Growth; id: string; name: string; kind: Kind; color: string; description: string; photo?: string; stats: Stats
   x: number; y: number; facing: number; route: Point[]; restingUntil: number; nextSpeech: number
@@ -127,9 +129,10 @@ export function care(f: Friend, action: Care, now = Date.now()): string | null {
   if (!f.interaction?.gesture) advanceInteraction(f, now, 0)
   if (action === 'pet') return normalPet(f, now)?.text ?? null
   if (now < f.careAfter || controlled(f)) return null
+  if (action === 'rest' && restRemaining(f,now)>0) { say(f,'포근하게 쉬고 있어~ 다음 회복을 기다려 줘!',now); return '다음 쉬게 하기 보상까지 기다려 주세요.' }
   f.careAfter = now + 1500
   const lines: Record<Care, string> = { feed: '냠냠! 정말 맛있어~ 고마워 ♡', pet: '헤헤, 손길이 따뜻해~ ♡', wash: '보송보송! 기분까지 상쾌해~', rest: '푹 쉬었어! 다시 힘이 난다~' }
-  if (action === 'rest') { f.stats.energy = clamp(f.stats.energy + 20); f.restingUntil = now + 12000; f.route = []; f.moving = false }
+  if (action === 'rest') { f.lastRestRewardAt=now; f.stats.energy = clamp(f.stats.energy + 20); f.restingUntil = now + 12000; f.furnitureUntil = now + 12000; f.furnitureActivity = '포근한 수동 휴식'; f.route = []; f.moving = false }
   say(f, lines[action], now)
   return lines[action]
 }
@@ -146,6 +149,8 @@ export function parseSave(raw: string, now = Date.now()): Save {
     if (!old?.stats || !Object.keys(f.stats).every(k => typeof old.stats[k as keyof Stats] === 'number' && Number.isFinite(old.stats[k as keyof Stats]))) throw Error('손상된 상태 데이터')
     if (typeof old.name === 'string' && old.name.trim()) f.name = old.name.slice(0, 30)
     if (old.facing === -1) f.facing = -1
+    f.foodTaste = old.foodTaste && typeof old.foodTaste.like==='string' && typeof old.foodTaste.dislike==='string' && old.foodTaste.like!=='snack' && old.foodTaste.dislike!=='snack' && old.foodTaste.like!==old.foodTaste.dislike ? {...old.foodTaste} : defaultTaste(f.id)
+    if(Number.isFinite(old.lastRestRewardAt)) f.lastRestRewardAt=old.lastRestRewardAt
     if (Number.isFinite(old.careAfter)) f.careAfter = old.careAfter
     if (Number.isFinite(old.nextSpeech)) f.nextSpeech = old.nextSpeech
     if (Number.isFinite(old.petRewardAfter)) f.petRewardAfter = Math.min(now + interactionBalance.rewardCooldownMs, Math.max(0, old.petRewardAfter!))
@@ -163,3 +168,6 @@ export function parseSave(raw: string, now = Date.now()): Save {
   settleLife(result,now)
   return result
 }
+
+export function restRemaining(f:Friend,now:number) { return Math.max(0,(f.lastRestRewardAt===undefined?0:f.lastRestRewardAt+restCooldownMs)-now) }
+export function restLabel(f:Friend,now:number) { const m=Math.ceil(restRemaining(f,now)/60000);return m?`다음 쉬게 하기: ${Math.floor(m/60)}시간 ${m%60}분 후`:'쉬게 하기 가능!' }
