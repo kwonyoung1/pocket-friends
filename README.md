@@ -5,7 +5,7 @@ React 19 + TypeScript + Vite를 사용합니다. 개발 서버의 로컬 모드�
 
 [업데이트 PC 화면](docs/screenshots/life-expansion-desktop.png) · [업데이트 모바일 화면](docs/screenshots/life-expansion-mobile.png)
 
-**최신 업데이트: [탐험 보물·음식 취향·영단어 탐험·4시간 휴식 배포 안내](docs/ADVENTURE_UPDATE.md). 단어는 초기 90개입니다. 기존 프로젝트를 유지하며 추가 SQL 1개 적용 후 서버 → 화면 순서로 배포합니다. [이전 돌봄 업데이트](docs/CARE_UPDATE.md)**
+**최신 업데이트: [다중 구매·일괄 판매·오답 노트·방 면적 1.5배 배포 안내](docs/WIDE_UPDATE.md). 기존90개에 난이도별100개씩 추가하여 단어는390개입니다. 추가 SQL 한 개 적용 후 서버 → 화면 순서로 배포합니다. [검증 보고서](docs/WIDE_VERIFICATION.md)**
 
 ![포켓프렌즈 PC 게임 화면](docs/screenshots/desktop.png)
 

@@ -1,3 +1,4 @@
+import {wordBankInfo} from './selection'
 import {expect,it} from 'vitest'
 import {freshWorld,applyCommand} from '../cloud/engine'
 import {wordBank,wordById} from './bank'
@@ -7,11 +8,12 @@ import {scores,wordCooldownMs,wordRecoveryMs} from './state'
 import {parseSave} from '../game'
 const at=Date.parse('2026-10-16T03:00:00Z')
 function fixture(){const s=freshWorld(at);wordCommand(s,{type:'word-start',mode:'reward'},at,()=>.5);return s}
-function current(s:ReturnType<typeof fixture>,type:Exclude<WordCommand['type'],'word-start'>,answer?:string,mode:'reward'|'review'='reward'):Exclude<WordCommand,{type:'word-start'}>{const p=wordProgress(s),r=mode==='review'?p.review!:p.round!;return{type,mode,sessionId:r.id,wordId:r.questions[r.index].wordId,answer}}
+function current(s:ReturnType<typeof fixture>,type:Exclude<WordCommand['type'],'word-start'|'word-delete'>,answer?:string):Extract<WordCommand,{sessionId:string}>{const r=wordProgress(s).round!;return{type,mode:'reward',sessionId:r.id,wordId:r.questions[r.index].wordId,answer}}
 function solve(s:ReturnType<typeof fixture>,miss=0){const base=wordProgress(s).round!.startedAt;for(let i=0;i<30;i++){const q=wordProgress(s).round!.questions[wordProgress(s).round!.index];wordCommand(s,current(s,i<miss?'word-skip':'word-answer',wordById[q.wordId].acceptedAnswers[0]),base+i+1)}}
-it('ships exactly 90 unique reviewed entries, 30 per level, with complete examples and safe exact Korean variants',()=>{
- expect(wordBank).toHaveLength(90);expect(new Set(wordBank.map(w=>w.word.toLowerCase())).size).toBe(90)
- for(const level of [1,2,3])expect(wordBank.filter(w=>w.level===level)).toHaveLength(30)
+it('ships exactly 390 unique reviewed entries, 130 per level, with complete examples and safe exact Korean variants',()=>{
+ expect(wordBankInfo.total).toBe(wordBank.length);expect(wordBankInfo.addedPerLevel).toBe(100)
+ expect(wordBank).toHaveLength(390);expect(new Set(wordBank.map(w=>w.word.toLowerCase())).size).toBe(390)
+ for(const level of [1,2,3])expect(wordBank.filter(w=>w.level===level)).toHaveLength(130)
  for(const w of wordBank){expect(w.example.toLowerCase()).toContain(w.word==='begin'?'begin':w.word==='emphasize'?'emphasized':w.word==='establish'?'established':w.word==='sleep'?'sleep':w.word);expect(w.pos.length).toBeGreaterThan(0);expect(w.hint).toMatch(/[ㄱ-ㅎ]/);expect(w.meanings.length).toBeGreaterThan(0)}
  const run=wordById['word-run'];for(const a of [' 달리다! ','뛰다','운영하다','작동하다'])expect(accepts(run,a)).toBe(true)
  expect(accepts(wordById['word-discover'],'발견 해요.')).toBe(true)
@@ -20,15 +22,15 @@ it('ships exactly 90 unique reviewed entries, 30 per level, with complete exampl
 })
 it('has three ten-question stages without duplicates, exhausts unseen pools first and avoids the previous round',()=>{
  const s=fixture(),seen=new Set<string>();let previous:string[]=[]
- for(let game=0;game<4;game++){
+ for(let game=0;game<14;game++){
   if(game)wordCommand(s,{type:'word-start',mode:'reward'},at+game*wordCooldownMs,()=>.5)
   const r=wordProgress(s).round!,ids=r.questions.map(q=>q.wordId)
   expect(new Set(ids).size).toBe(30);expect(ids.some(id=>previous.includes(id))).toBe(false)
   r.questions.forEach((q,i)=>expect(q.level).toBe(Math.floor(i/10)+1))
-  if(game<3)ids.forEach(id=>{expect(seen.has(id)).toBe(false);seen.add(id)})
+  if(game<13)ids.forEach(id=>{expect(seen.has(id)).toBe(false);seen.add(id)})
   previous=ids;solve(s)
  }
- expect(seen.size).toBe(90)
+ expect(seen.size).toBe(390)
 })
 it('grades once across answer, reveal, skip and next actions, ignores stale question IDs and blank input',()=>{
  const s=fixture(),r=wordProgress(s).round!,q=r.questions[0],base=current(s,'word-answer','')
@@ -67,16 +69,42 @@ it('resumes progress and hints after reload, preserves cooldown on abandonment, 
  wordCommand(restored,current(restored,'word-answer','틀린 답'),at+wordCooldownMs+wordRecoveryMs)
  expect(wordProgress(restored).round!.expired).toBe(true);expect(restored.world!.coins).toBe(300)
 })
-it('records mistakes and allows reward-free review without modifying the reward clock or active reward round',()=>{
- const s=fixture();wordCommand(s,current(s,'word-reveal'),at+1);const p=wordProgress(s),active=structuredClone(p.round),clock=p.nextStartAt
- wordCommand(s,{type:'word-start',mode:'review'},at+2)
- const q=p.review!.questions[0];wordCommand(s,current(s,'word-answer',wordById[q.wordId].acceptedAnswers[0],'review'),at+3)
- expect(p.review!.reward).toBe(0);expect(p.round).toEqual(active);expect(p.nextStartAt).toBe(clock);expect(s.world!.coins).toBe(300)
- expect(Object.values(p.mistakes)[0].count).toBe(1)
+it('keeps old review data inert and removes mistakes manually without changing the clock or scores',()=>{
+ const s=fixture();wordCommand(s,current(s,'word-reveal'),at+1);const p=wordProgress(s),id=p.round!.questions[0].wordId,active=structuredClone(p.round),clock=p.nextStartAt
+ p.review={...structuredClone(p.round!),mode:'review'};const archived=structuredClone(p.review)
+ wordCommand(s,{type:'word-delete',ids:[id]},at+2)
+ expect(p.mistakes[id]).toBeUndefined();expect(p.removals?.[0].reason).toBe('manual');expect(p.round).toEqual(active);expect(p.nextStartAt).toBe(clock);expect(s.world!.coins).toBe(300);expect(wordById[id]).toBeDefined();expect(parseSave(JSON.stringify(s),at).world!.words!.review).toEqual(archived)
+ expect(()=>wordCommand(s,{type:'word-start',mode:'review'} as unknown as WordCommand,at+3)).toThrow('별도 복습')
 })
 it('server ignores forged reward and correctness values and uses only its own recorded answers',()=>{
  let s=freshWorld(at),holds={};const apply=(c:WordCommand)=>{const result=applyCommand(s,holds,c,'user',at);s=result.save;holds=result.holds}
  apply({type:'word-start',mode:'reward'})
  for(let i=0;i<30;i++){const c=current(s,'word-skip');apply({...c,reward:999999,correct:true} as WordCommand)}
  expect(s.world!.coins).toBe(300);expect(wordProgress(s).round!.reward).toBe(0)
+})
+it('mixes at most two saved mistakes per stage and auto-removes only a directly entered correct answer',()=>{
+ const s=freshWorld(at),p=wordProgress(s)
+ for(const level of [1,2,3])for(const w of wordBank.filter(w=>w.level===level).slice(0,6))p.mistakes[w.id]={word:w.word,pos:w.pos,meanings:w.meanings,example:w.example,count:4,lastAt:at-1}
+ wordCommand(s,{type:'word-start',mode:'reward'},at,()=>.5)
+ const r=p.round!,saved=structuredClone(p.mistakes)
+ for(const level of [1,2,3])expect(r.questions.filter(q=>q.level===level&&saved[q.wordId])).toHaveLength(2)
+ const ids=r.questions.map(q=>q.wordId);expect(new Set(ids).size).toBe(30)
+ for(let i=0;i<30;i++){
+  const q=r.questions[r.index],was=!!p.mistakes[q.wordId]
+  wordCommand(s,current(s,'word-hint'),at+i*2+1)
+  wordCommand(s,current(s,'word-answer',wordById[q.wordId].acceptedAnswers[0]),at+i*2+2)
+  if(was){expect(p.mistakes[q.wordId]).toBeUndefined();expect(r.feedback).toContain('오답노트에서 복습 완료!')}
+ }
+ expect(p.removals?.filter(x=>x.reason==='correct')).toHaveLength(6)
+ const id=ids[0];p.mistakes[id]={word:wordById[id].word,pos:'명사',meanings:['뜻'],example:'Example.',count:1,lastAt:at}
+ wordCommand(s,{type:'word-delete',ids:[id,id]},at+100);expect(p.mistakes[id]).toBeUndefined();expect(p.previous).toEqual(ids)
+ const old=structuredClone(p.round);expect(()=>wordCommand(s,{type:'word-delete',ids:[]} ,at)).toThrow();expect(p.round).toEqual(old)
+})
+it('re-registers a manually deleted word on a later wrong attempt and reveal/skip never mark it mastered',()=>{
+ const s=fixture(),p=wordProgress(s),r=p.round!,q=r.questions[0],w=wordById[q.wordId]
+ p.mistakes[w.id]={word:w.word,pos:w.pos,meanings:w.meanings,example:w.example,count:2,lastAt:at-1}
+ const history=structuredClone(p.previous);wordCommand(s,{type:'word-delete',ids:[w.id]},at+1);expect(p.mistakes[w.id]).toBeUndefined()
+ wordCommand(s,current(s,'word-reveal'),at+2);expect(p.mistakes[w.id].count).toBe(1)
+ wordCommand(s,current(s,'word-reveal'),at+3);expect(p.mistakes[w.id].count).toBe(1);expect(p.previous).toEqual(history)
+ expect(wordById[w.id]).toBe(w)
 })

@@ -20,7 +20,7 @@ const secret = crypto.randomUUID() // not the user's actual password
 async function reset() {
   at = now
   await db.exec(
-    "reset role; delete from game_adventure_backups; delete from game_upgrade_backups; delete from game_operations; delete from game_members; delete from game_login_limits; update game_worlds set data=null, revision=0, holds='{}', imported_by=null;",
+    "reset role; delete from game_room_backups; delete from game_adventure_backups; delete from game_upgrade_backups; delete from game_operations; delete from game_members; delete from game_login_limits; update game_worlds set data=null, revision=0, holds='{}', imported_by=null;",
   )
 }
 async function call(user: string | null, body: unknown) {
@@ -32,7 +32,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 5 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 6 }),
     }),
   )
 }
@@ -66,6 +66,7 @@ beforeAll(async () => {
     readFileSync('supabase/migrations/202610150002_life_backup.sql', 'utf8'),
   )
   await db.exec(readFileSync('supabase/migrations/202610160001_adventure.sql','utf8'))
+  await db.exec(readFileSync('supabase/migrations/202610160002_room_trade.sql','utf8'))
   repo = {
     async loginSlot() {
       return (await db.query<{ ok: boolean }>('select game_login_slot() as ok'))
@@ -100,7 +101,7 @@ beforeAll(async () => {
         await db.query<{
           result: { status: 'ok' | 'duplicate' | 'conflict'; message: string }
         }>(
-          `select ${data && typeof data === 'object' && 'world' in data && (data as {world?:{adventureVersion?:number}}).world?.adventureVersion ? 'game_commit_adventure' : data && typeof data === 'object' && 'world' in data && (data as { world?: { expansion?: unknown } }).world?.expansion ? 'game_commit_expansion' : 'game_commit'}($1,$2,$3::jsonb,$4,$5::jsonb,$6::jsonb,$7) result`,
+          `select ${data && typeof data === 'object' && 'world' in data && (data as {world?:{roomVersion?:number}}).world?.roomVersion ? 'game_commit_room' : data && typeof data === 'object' && 'world' in data && (data as {world?:{adventureVersion?:number}}).world?.adventureVersion ? 'game_commit_adventure' : data && typeof data === 'object' && 'world' in data && (data as { world?: { expansion?: unknown } }).world?.expansion ? 'game_commit_expansion' : 'game_commit'}($1,$2,$3::jsonb,$4,$5::jsonb,$6::jsonb,$7) result`,
           [
             user,
             operation,
@@ -606,5 +607,46 @@ describe.sequential('special human gifts are atomic and do not replace an existi
   await reset();await login(pc);await command(pc,{type:'initialize',source:'fresh'});await command(pc,{type:'claim-special-friends'})
   const request=new Request('https://project.supabase.co/functions/v1/game',{method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${pc}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:2,command:{type:'refresh'}})})
   expect((await handler(request)).status).toBe(409);expect((await repo.load()).data!.friends).toHaveLength(6)
+ })
+})
+
+describe.sequential('bulk transactions, notebook edits and room backup',()=>{
+ it('concurrent multi-buy and retry debit once, reject forged prices and never allow partial stock grants',async()=>{
+  await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'})
+  const op=crypto.randomUUID(),buy={type:'buy-many',id:'snack',quantity:10,price:0,total:0}
+  await Promise.all([command(pc,buy,op),command(mobile,buy)])
+  await command(pc,buy,op)
+  let row=await repo.load();expect(row.data!.world!.coins).toBe(150);expect(row.data!.world!.inventory.snack).toBe(10);expect(row.data!.world!.trades).toHaveLength(1)
+  at+=1000;const before=JSON.stringify(row.data)
+  expect((await command(mobile,{type:'buy-many',id:'snack',quantity:20})).response.status).toBe(400)
+  expect(JSON.stringify((await repo.load()).data)).toBe(before)
+  for(const quantity of [0,-1,1.5,10001])expect((await command(pc,{type:'buy-many',id:'snack',quantity})).response.status).toBe(400)
+  row=await repo.load();expect(row.data!.world!.coins).toBe(150);expect(row.data!.world!.inventory.snack).toBe(10)
+ })
+ it('checks all sale lines before committing, serializes two devices, keeps the book and preserves furniture',async()=>{
+  await reset();await login(pc);await login(mobile)
+  const source=freshWorld(now);source.world!.inventory={leaf:15,'treasure-diamond':1};source.world!.book.leaf={count:15,firstAt:now,lastAt:now};source.world!.book['treasure-diamond']={count:1,firstAt:now,lastAt:now}
+  await command(pc,{type:'initialize',source:'local',data:source})
+  const invalid=await command(pc,{type:'sell-many',lines:[{id:'leaf',quantity:10},{id:'world-seed',quantity:1}]});expect(invalid.response.status).toBe(400);expect((await repo.load()).data!.world!.inventory.leaf).toBe(15)
+  const sale={type:'sell-many',lines:[{id:'leaf',quantity:10},{id:'treasure-diamond',quantity:1}],total:1e9},op=crypto.randomUUID()
+  await Promise.all([command(pc,sale,op),command(mobile,sale)]);await command(pc,sale,op)
+  const w=(await repo.load()).data!.world!;expect(w.coins).toBe(3400);expect(w.inventory.leaf).toBe(5);expect(w.inventory['treasure-diamond']).toBe(0);expect(w.book).toEqual(source.world!.book);expect(w.trades).toHaveLength(1)
+ })
+ it('preserves an exact pre-room world once, protects the backup, and serializes notebook deletion with a correct answer',async()=>{
+  await reset();await login(pc);await login(mobile)
+  const source=freshWorld(now);delete source.world!.roomVersion
+  source.friends.forEach(f=>{f.x/=Math.sqrt(1.5);f.y/=Math.sqrt(1.5)})
+  // Seed the existing cloud row, exactly as it would have been saved by the previous release.
+  await db.query("update game_worlds set data=$1::jsonb,revision=10 where id='home'",[JSON.stringify(source)])
+  await command(pc,{type:'refresh'});let row=await repo.load()
+  const backups=await db.query<{data:unknown;revision:number}>('select data,revision from game_room_backups')
+  expect(backups.rows).toHaveLength(1);expect(backups.rows[0].data).toEqual(source);expect(Number(backups.rows[0].revision)).toBe(10)
+  await db.exec(readFileSync('supabase/migrations/202610160002_room_trade.sql','utf8'));expect((await repo.load()).data).toEqual(row.data)
+  await db.exec('set role authenticated');await expect(db.query('select * from game_room_backups')).rejects.toThrow();await db.exec('reset role')
+  await command(pc,{type:'word-start',mode:'reward'});row=await repo.load();const r=row.data!.world!.words!.round!,q=r.questions[0],w=wordById[q.wordId]
+  await db.query("update game_worlds set data=jsonb_set(data,'{world,words,mistakes}',$1::jsonb) where id='home'",[JSON.stringify({[q.wordId]:{word:w.word,pos:w.pos,meanings:w.meanings,example:w.example,count:3,lastAt:now}})])
+  const answer={type:'word-answer',mode:'reward',sessionId:r.id,wordId:q.wordId,answer:w.acceptedAnswers[0]}
+  await Promise.all([command(pc,answer),command(mobile,{type:'word-delete',ids:[q.wordId]})]);const final=(await repo.load()).data!.world!
+  expect(final.words!.mistakes[q.wordId]).toBeUndefined();expect(final.words!.round!.questions[0].status).toBe('correct');expect(final.coins).toBe(300);expect(final.words!.previous).toEqual(r.questions.map(q=>q.wordId));expect((await db.query('select * from game_room_backups')).rows).toHaveLength(1)
  })
 })

@@ -1,3 +1,4 @@
+import {roomScale,scaledPoint} from './room/config'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cells } from './navigation'
 import { care, createFriends, decay, findRoute, parseSave, tick, walkable } from './game'
@@ -9,10 +10,10 @@ function seeded() {
 afterEach(() => vi.restoreAllMocks())
 describe('room navigation and autonomous behaviour', () => {
   it('routes around the table and sofa using only walkable points', () => {
-    const route = findRoute({ x: 610, y: 470 }, { x: 850, y: 470 })
+    const route = findRoute(scaledPoint({ x: 610, y: 470 }), scaledPoint({ x: 850, y: 470 }))
     expect(route.length).toBeGreaterThan(6)
     expect(route.every(p=>walkable(p))).toBe(true)
-    expect(route.some(p => p.y < 420 || p.y > 515)).toBe(true)
+    expect(route.some(p => p.y < 420*roomScale || p.y > 515*roomScale)).toBe(true)
     for (const p of route) expect(walkable(p)).toBe(true)
   })
   it('all four friends independently move, pause and meet over five simulated minutes', () => {
@@ -40,6 +41,8 @@ describe('room navigation and autonomous behaviour', () => {
   })
   it('may rest at its randomly chosen current tile, then resumes walking to a new destination', () => {
     const f = createFriends(start)[0]
+    Object.assign(f,cells.find(p=>Math.hypot(p.x-f.x,p.y-f.y)<30)!)
+    const origin={x:f.x,y:f.y}
     f.restingUntil = start
     const currentIndex = cells.findIndex(p => p.x === f.x && p.y === f.y)
     expect(currentIndex).toBeGreaterThanOrEqual(0)
@@ -48,10 +51,10 @@ describe('room navigation and autonomous behaviour', () => {
     let call = 0
     vi.spyOn(Math, 'random').mockImplementation(() => choices[call++ % choices.length])
     for (let i = 1; i <= 100; i++) tick([f], start + i * 100, .1, () => {})
-    expect([f.x, f.y]).toEqual([330, 350])
+    expect([f.x, f.y]).toEqual([origin.x, origin.y])
     vi.mocked(Math.random).mockReturnValue(.99)
     for (let i = 101; i <= 160; i++) tick([f], start + i * 100, .1, () => {})
-    expect(Math.hypot(f.x - 330, f.y - 350)).toBeGreaterThan(10)
+    expect(Math.hypot(f.x - origin.x, f.y - origin.y)).toBeGreaterThan(10)
   })
   it('keeps ordinary friends silent while scheduling their autonomous movement', () => {
     seeded()

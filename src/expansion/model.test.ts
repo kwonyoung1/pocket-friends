@@ -1,3 +1,4 @@
+import {scaledPoint} from '../room/config'
 import { rollTripExtras } from './rolls'
 import { describe, it, expect } from 'vitest'
 import { createFriends, parseSave, care, tick } from '../game'
@@ -256,7 +257,7 @@ describe('exploration, furnishing and new friends', () => {
       lifeCommand(s, { type: 'place', itemId: 'plant', x: 450, y: 390 }, noon),
     ).toContain('통로')
     expect(
-      lifeCommand(s, { type: 'place', itemId: 'plant', x: 700, y: 450 }, noon),
+      lifeCommand(s, { type: 'place', itemId: 'plant', ...scaledPoint({x:700,y:450}) }, noon),
     ).toContain('통로')
     const loaded = parseSave(JSON.stringify(s), noon)
     expect(expansion(loaded).placements).toEqual(expansion(s).placements)

@@ -1,5 +1,6 @@
 import type {Save} from '../game.ts'
 import {world,transact} from '../progression/model.ts'
+import {wordSelection} from './selection.ts'
 import {wordBank,wordById} from './bank.ts'
 import type {Word} from './bank.ts'
 import {newWordProgress,wordCooldownMs,wordRecoveryMs,scores} from './state.ts'
@@ -9,34 +10,43 @@ export function accepts(w:Word,input:string){const n=normalizeAnswer(input);retu
 const random=()=>crypto.getRandomValues(new Uint32Array(1))[0]/4294967296
 function shuffled<T>(list:T[],rng:()=>number){const a=[...list];for(let i=a.length-1;i>0;i--){const j=Math.min(i,Math.floor(rng()*(i+1)));[a[i],a[j]]=[a[j],a[i]]}return a}
 export function wordProgress(s:Save){return world(s).words??=newWordProgress()}
-export function expireWords(s:Save,now:number){const p=wordProgress(s);for(const r of [p.round,p.review])if(r&&r.endedAt===undefined&&now>=r.expiresAt){r.endedAt=now;r.expired=true;r.reward=0}}
+export function expireWords(s:Save,now:number){const p=wordProgress(s);for(const r of [p.round])if(r&&r.endedAt===undefined&&now>=r.expiresAt){r.endedAt=now;r.expired=true;r.reward=0}}
 const view=(w:Word)=>({word:w.word,pos:w.pos,meanings:w.meanings,example:w.example})
-function finish(s:Save,r:WordRound,now:number){if(r.endedAt!==undefined)return;r.endedAt=now;r.index=r.questions.length;r.reward=r.mode==='reward'?scores(r).coins:0;if(r.mode==='reward'&&r.paidAt===undefined){if(r.reward)transact(world(s),r.reward,'영단어 탐험 완료',now);r.paidAt=now}}
+function finish(s:Save,r:WordRound,now:number){if(r.endedAt!==undefined)return;r.endedAt=now;r.index=r.questions.length;r.reward=scores(r).coins;if(r.paidAt===undefined){if(r.reward)transact(world(s),r.reward,'영단어 탐험 완료',now);r.paidAt=now}}
 export function wordCommand(s:Save,c:WordCommand,now:number,rng=random):string{
  const p=wordProgress(s);expireWords(s,now)
+ p.bankVersion=2
+ if(c.type==='word-delete'){
+  if(!Array.isArray(c.ids)||!c.ids.length||c.ids.length>5000||c.ids.some(id=>typeof id!=='string'))throw Error('삭제할 단어를 확인해 주세요.')
+  let count=0
+  for(const id of new Set(c.ids))if(Object.hasOwn(p.mistakes,id)){delete p.mistakes[id];p.removals=[{wordId:id,at:now,reason:'manual' as const},...(p.removals??[])].slice(0,1000);count++}
+  return count?`오답노트에서 ${count}개 단어를 삭제했어요.`:'이미 삭제한 단어예요.'
+ }
+ if(c.mode!=='reward')throw Error('별도 복습 게임은 종료되었어요. 오답 노트를 확인해 주세요.')
  if(c.type==='word-start'){
-  const current=c.mode==='review'?p.review:p.round
-  if(current&&current.endedAt===undefined)return '진행 중인 탐험을 이어가요.'
-  if(c.mode==='reward'&&now<p.nextStartAt)return '다음 보상 탐험까지 기다려 주세요.'
-  let selected:Word[]=[]
-  if(c.mode==='review')selected=shuffled(Object.keys(p.mistakes).map(id=>wordById[id]).filter(Boolean),rng).slice(0,30)
-  else for(const level of [1,2,3] as const){
+  if(p.round&&p.round.endedAt===undefined)return '진행 중인 탐험을 이어가요.'
+  if(now<p.nextStartAt)return '다음 보상 탐험까지 기다려 주세요.'
+  const selected:Word[]=[]
+  for(const level of [1,2,3] as const){
    const pool=wordBank.filter(w=>w.level===level),used=new Set(p.used[level]??[]),chosen:Word[]=[]
+   const mistaken=shuffled(pool.filter(w=>p.mistakes[w.id]),rng).slice(0,Math.floor(10*wordSelection.mistakeRatio))
+   for(const w of mistaken){chosen.push(w);used.add(w.id)}
    while(chosen.length<10){
-    let available=pool.filter(w=>!used.has(w.id)&&!chosen.some(x=>x.id===w.id))
-    if(!available.length){used.clear();chosen.forEach(w=>used.add(w.id));available=pool.filter(w=>!chosen.some(x=>x.id===w.id))}
+    const eligible=pool.filter(w=>!p.mistakes[w.id]&&!chosen.some(x=>x.id===w.id))
+    let available=eligible.filter(w=>!used.has(w.id))
+    if(!available.length){used.clear();chosen.forEach(w=>used.add(w.id));available=eligible}
+    // A pathological all-mistakes pool must not exceed the configured mistake quota.
+    if(!available.length)throw Error('오답 비중을 지킬 새 단어가 부족해요. 오답 노트를 정리해 주세요.')
     const fresh=available.filter(w=>!p.previous.includes(w.id));const w=shuffled(fresh.length?fresh:available,rng)[0]
-    if(!w)throw Error('난이도별 단어가 부족해요.')
     chosen.push(w);used.add(w.id)
    }
-   p.used[level]=[...used];selected.push(...chosen)
+   p.used[level]=[...used];selected.push(...shuffled(chosen,rng))
   }
-  if(!selected.length)return '아직 복습할 오답이 없어요.'
-  const r:WordRound={id:crypto.randomUUID(),mode:c.mode,startedAt:now,expiresAt:now+wordRecoveryMs,index:0,hints:[3,3,3],questions:selected.map(w=>({wordId:w.id,word:w.word,level:w.level,status:'unanswered'}))}
-  if(c.mode==='reward'){p.round=r;p.nextStartAt=now+wordCooldownMs;p.previous=selected.map(w=>w.id)}else p.review=r
-  return c.mode==='reward'?'영단어 탐험을 시작해요!':'보상 없이 오답을 복습해요.'
+  p.round={id:crypto.randomUUID(),mode:'reward',startedAt:now,expiresAt:now+wordRecoveryMs,index:0,hints:[3,3,3],questions:selected.map(w=>({wordId:w.id,word:w.word,level:w.level,status:'unanswered'}))}
+  p.nextStartAt=now+wordCooldownMs;p.previous=selected.map(w=>w.id)
+  return '영단어 탐험을 시작해요!'
  }
- const r=c.mode==='review'?p.review:p.round
+ const r=p.round
  if(!r||r.id!==c.sessionId||r.endedAt!==undefined)return '이미 끝났거나 다른 회차예요.'
  const q=r.questions[r.index]
  if(!q||q.wordId!==c.wordId)return '이미 처리한 문제예요.'
@@ -53,9 +63,11 @@ export function wordCommand(s:Save,c:WordCommand,now:number,rng=random):string{
  if(c.type==='word-answer'&&(!c.answer||!c.answer.trim()))return '한국어 뜻을 입력해 주세요.'
  const correct=c.type==='word-answer'&&accepts(w,c.answer!)
  q.status=correct?'correct':c.type==='word-skip'?'skipped':'incorrect';q.revealed=view(w)
+ const removed=correct&&!!p.mistakes[w.id]
+ if(removed){delete p.mistakes[w.id];p.removals=[{wordId:w.id,at:now,reason:'correct' as const},...(p.removals??[])].slice(0,1000)}
  if(!correct){const prev=p.mistakes[w.id];p.mistakes[w.id]={...view(w),count:(prev?.count??0)+1,lastAt:now}}
- r.feedback=correct?'정답이에요! 잘했어요~':c.type==='word-skip'?'건너뛴 문제를 오답 노트에 담았어요.':'아쉬워요! 정답을 확인하고 다음 문제로 가요.'
+ r.feedback=correct?(removed?'정답이에요! 오답노트에서 복습 완료!':'정답이에요! 잘했어요~'):c.type==='word-skip'?'건너뛴 문제를 오답 노트에 담았어요.':'아쉬워요! 정답을 확인하고 다음 문제로 가요.'
  if(correct||c.type==='word-skip')r.index++
  if(r.questions.every((x:Question)=>x.status!=='unanswered'))finish(s,r,now)
- return r.endedAt!==undefined?`탐험 완료! ${r.reward}코인${r.mode==='review'?' · 복습은 보상이 없어요':''}`:r.feedback
+ return r.endedAt!==undefined?`탐험 완료! ${r.reward}코인${removed?' · 오답노트에서 복습 완료!':''}`:r.feedback
 }

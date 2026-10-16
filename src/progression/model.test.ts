@@ -1,3 +1,4 @@
+import {roomScale} from '../room/config'
 import { describe, expect, it, vi } from 'vitest'
 import { care, createFriends, parseSave, tick } from '../game'
 import type { Save } from '../game'
@@ -15,7 +16,7 @@ describe('growth, personality and v1 migration', () => {
     expect(migrated.version).toBe(2); expect(world(migrated).coins).toBe(300)
     expect(migrated.friends[0].photo).toBe(friends[0].photo); expect(migrated.friends[0].name).toBe('내 친구')
     expect(migrated.friends[0].stats).toEqual(friends[0].stats)
-    expect(migrated.friends[0].x).toBe(friends[0].x)
+    expect(migrated.friends[0].x).toBeCloseTo(friends[0].x*roomScale)
     expect(migrated.memories).toEqual(old.memories)
     transact(world(migrated), -300, '모두 사용', now)
     const again = parseSave(JSON.stringify(migrated), now)

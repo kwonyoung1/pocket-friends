@@ -1,3 +1,5 @@
+import {upgradeRoom} from '../room/migrate.ts'
+import {trade,quantity,tradeLimits} from '../trade/model.ts'
 import {wordCommand,expireWords} from '../words/model.ts'
 import type {WordCommand} from '../words/state.ts'
 import {defaultTaste} from '../adventure/catalog.ts'
@@ -45,8 +47,17 @@ export function validateCommand(value: unknown): GameCommand {
   if ('friendId' in c && !friendIds.includes(String(c.friendId)))
     throw Error('친구를 선택해 주세요.')
   switch (c.type) {
+    case 'buy-many':
+      if(!string(c.id)||!quantity(c.quantity))throw Error('구매 수량은 1~10,000 사이 정수여야 해요.')
+      break
+    case 'sell-many':
+      if(!Array.isArray(c.lines)||!c.lines.length||c.lines.length>tradeLimits.lines||c.lines.some(l=>!l||!string(l.id)||!quantity(l.quantity,tradeLimits.inventory)))throw Error('판매 항목과 수량을 확인해 주세요.')
+      break
+    case 'word-delete':
+      if(!Array.isArray(c.ids)||!c.ids.length||c.ids.length>5000||c.ids.some(id=>!string(id,100)))throw Error('삭제할 단어를 선택해 주세요.')
+      break
     case 'word-start':
-      if(!['reward','review'].includes(String(c.mode)))throw Error('게임 모드를 확인해 주세요.')
+      if(c.mode!=='reward')throw Error('게임 모드를 확인해 주세요.')
       break
     case 'word-answer':
     case 'word-reveal':
@@ -54,7 +65,7 @@ export function validateCommand(value: unknown): GameCommand {
     case 'word-next':
     case 'word-hint':
     case 'word-abandon':
-      if(!['reward','review'].includes(String(c.mode))||!string(c.sessionId,36)||!string(c.wordId,100)||(c.type==='word-answer'&&(typeof c.answer!=='string'||c.answer.length>120)))throw Error('단어 문제 정보를 확인해 주세요.')
+      if(c.mode!=='reward'||!string(c.sessionId,36)||!string(c.wordId,100)||(c.type==='word-answer'&&(typeof c.answer!=='string'||c.answer.length>120)))throw Error('단어 문제 정보를 확인해 주세요.')
       break
     case 'bath':
     case 'medicine':
@@ -148,6 +159,7 @@ export function freshWorld(now: number): Save {
     memories: [],
   }
   world(s, now)
+  upgradeRoom(s)
   return s
 }
 export function importWorld(value: unknown, now: number): Save {
@@ -167,6 +179,7 @@ export function applyCommand(
 ) {
   const save = structuredClone(original),
     holds = structuredClone(oldHolds)
+  upgradeRoom(save)
   for (const f of save.friends) {
     f.stats = decay(f.stats, Math.max(0, now - save.savedAt))
     f.foodTaste??=defaultTaste(f.id)
@@ -186,7 +199,8 @@ export function applyCommand(
   if ('friendId' in c && !f) throw Error('아직 함께 살지 않는 친구예요.')
   let message = returns.join(' · ') || '클라우드와 동기화했어요.'
   switch (c.type) {
-    case 'word-start': case 'word-answer': case 'word-reveal': case 'word-skip': case 'word-next': case 'word-hint': case 'word-abandon':
+    case 'buy-many': case 'sell-many': message=trade(save,c,now);break
+    case 'word-delete': case 'word-start': case 'word-answer': case 'word-reveal': case 'word-skip': case 'word-next': case 'word-hint': case 'word-abandon':
       message=wordCommand(save,c as WordCommand,now);break
     case 'claim-special-friends': message=grantSpecialFriends(save,now)?'남자아이와 여자아이가 새 가족이 되었어요! 특별 친구는 무료예요.':'특별 친구들과 함께하고 있어요.';break
     case 'bath':

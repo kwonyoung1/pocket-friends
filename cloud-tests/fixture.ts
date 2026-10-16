@@ -120,7 +120,7 @@ export const test = base.extend<{
                 : {}),
             }),
           )
-          if (loseNext && request.postDataJSON()?.command?.type === 'buy') {
+          if (loseNext && ['buy','buy-many'].includes(request.postDataJSON()?.command?.type)) {
             loseNext = false
             await route.abort('failed')
             return

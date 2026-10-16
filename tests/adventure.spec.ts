@@ -14,7 +14,7 @@ test('treasure illustrations, sale confirmation, new foods and four-hour manual 
  await expect(page.getByRole('button',{name:'보유 코인 4000'})).toBeVisible()
  await page.getByRole('button',{name:'메뉴 닫기'}).click();await page.clock.runFor(1000)
  await page.getByRole('navigation').getByRole('button',{name:'상점',exact:true}).click()
- await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'구매하기'}).click()
+ await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'구매하기'}).click();await page.getByRole('button',{name:'구매 확정',exact:true}).click()
  await page.getByRole('button',{name:'메뉴 닫기'}).click();await page.getByRole('navigation').getByRole('button',{name:'인벤토리',exact:true}).click()
  await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'모모에게 주기'}).click()
  await page.getByRole('button',{name:'메뉴 닫기'}).click();await page.getByRole('button',{name:'모모 상태 확인'}).click()
