@@ -1,3 +1,4 @@
+import {room,leftPercent,topPercent} from './room/config'
 import { careNeeds, needLabels } from './careNeeds'
 import { sleeping } from './expansion/model'
 import { useCallback, useEffect, useRef } from 'react'
@@ -57,7 +58,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     if (!gesture || gesture.pointerId !== e.pointerId) return
     e.preventDefault()
     const rect = e.currentTarget.closest('.room')!.getBoundingClientRect()
-    moveGesture(f, e.pointerId, { x: e.clientX, y: e.clientY }, { x: (e.clientX - gesture.start.x) / rect.width * 1000, y: (e.clientY - gesture.start.y) / rect.height * 640 }, Date.now())
+    moveGesture(f, e.pointerId, { x: e.clientX, y: e.clientY }, { x: (e.clientX - gesture.start.x) / rect.width * room.width, y: (e.clientY - gesture.start.y) / rect.height * room.height }, Date.now())
   }
   const needs = careNeeds(f)
   const phase = f.interaction?.phase ?? 'idle'
@@ -77,7 +78,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     aria-label={`${f.name} 쓰다듬기 또는 끌어서 이동`} aria-pressed={selected} aria-describedby="interaction-help"
     data-testid={`room-${f.id}`} data-x={f.x.toFixed(1)} data-y={f.y.toFixed(1)} data-moving={f.moving}
     data-phase={phase} data-zone={f.interaction?.zone ?? 'body'} data-affinity={affinity(f)}
-    style={{ left: `${f.x / 10}%`, top: `${f.y / 6.4}%`, zIndex: f.interaction?.gesture ? 1500 : Math.round(f.y), '--reaction-scale': intensity } as CSSProperties}
+    style={{ left: leftPercent(f.x), top: topPercent(f.y), zIndex: f.interaction?.gesture ? 1500 : Math.round(f.y), '--reaction-scale': intensity } as CSSProperties}
     onPointerDown={onDown} onPointerMove={onMove}
     onPointerUp={e => { e.preventDefault(); finish(e.pointerId) }}
     onPointerCancel={e => finish(e.pointerId, true)} onLostPointerCapture={e => finish(e.pointerId, true)}
@@ -87,7 +88,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
       // Pointer taps commit on pointerup; only keyboard/assistive clicks commit here.
       if (e.detail === 0 && !f.interaction?.gesture) { select(); normalPet(f, Date.now()); if (remote) void remote.send({ type: 'care', action: 'pet', friendId: f.id }); changed() }
     }}>
-    {f.bubbleUntil > Date.now() && <span className="speech" role="status" style={f.x < 200 ? { left: 0, transform: 'none' } : f.x > 800 ? { left: 'auto', right: 0, transform: 'none' } : undefined}>{f.bubble}</span>}
+    {f.bubbleUntil > Date.now() && <span className="speech" role="status" style={f.x < 200 ? { left: 0, transform: 'none' } : f.x > room.width-200 ? { left: 'auto', right: 0, transform: 'none' } : undefined}>{f.bubble}</span>}
     <span className="interaction-shadow" aria-hidden="true" />
     <span className="friend-lift" style={phase === 'dragging' ? { transform: `translateY(-16%) rotate(${f.interaction?.tilt ?? 0}deg)` } : undefined}>
       <span className="friend-emotion"><span className="friend-figure" style={{ transform: `scaleX(${f.facing})` }}><Character friend={f} emotion={held || asleep || f.life?.coldAt || f.stats.energy <= 30 || (f.foodReaction?.kind==='disliked'&&f.foodReaction.until>Date.now()) ? 'closed' : happy || recovering || foodHappy ? 'smile' : 'normal'} /></span></span>

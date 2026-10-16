@@ -3,6 +3,7 @@ import { CloudGate } from './cloud/CloudGate'
 import './styles.css'
 import './progression/styles.css'
 import './expansion/styles.css'
+import './room/styles.css'
 import { hydrateStorage } from './storage'
 async function start() {
   await hydrateStorage()

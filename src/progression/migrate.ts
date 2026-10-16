@@ -57,6 +57,9 @@ export function migrateWorld(raw: unknown, now: number): World {
   w.decorationSlots = {}; if (r.decorationSlots) for (const [slot, value] of Object.entries(record(r.decorationSlots))) w.decorationSlots[slot] = text(value)
   if (w.day !== dailyKey(now)) { w.day = dailyKey(now); w.claimedMissions = [] }
   if(r.adventureVersion!==undefined){if(r.adventureVersion!==1)throw Error('지원하지 않는 탐험 업데이트');w.adventureVersion=1}
+  if(r.trades!==undefined)w.trades=list(r.trades,100).map(v=>{const t=record(v);if(!['buy','sell'].includes(String(t.kind)))throw Error('거래 기록이 올바르지 않아요.');return {id:text(t.id),kind:t.kind as 'buy'|'sell',at:number(t.at),total:number(t.total,0,1e12),lines:list(t.lines,100).map(v=>{const l=record(v),id=text(l.id);if(!itemById[id])throw Error('거래 아이템이 올바르지 않아요.');return{id,quantity:number(l.quantity,1,1e7)}})}})
+  if(r.roomVersion===undefined)delete w.roomVersion
+  if(r.roomVersion!==undefined){if(r.roomVersion!==1)throw Error('지원하지 않는 방 버전');w.roomVersion=1}
   w.words=migrateWords(r.words)
   if (r.careRulesVersion !== undefined) { if (r.careRulesVersion !== 1) throw Error('지원하지 않는 돌봄 규칙'); w.careRulesVersion = 1 }
   if(r.specialFriendsVersion!==undefined){if(r.specialFriendsVersion!==1)throw Error('지원하지 않는 특별 친구 저장 형식');w.specialFriendsVersion=1}

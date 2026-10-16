@@ -1,3 +1,6 @@
+import {createPortal} from 'react-dom'
+import type {ReactNode} from 'react'
+import {room,leftPercent,topPercent} from '../room/config'
 import {defaultTaste} from '../adventure/catalog'
 import { normalFriendCount } from '../humans/model'
 import { FurnitureArt } from './FurnitureArt'
@@ -416,8 +419,8 @@ function HamsterActor({ hamster: h, save }: { hamster: Hamster; save: Save }) {
               s.action.includes('따라') && peer
                 ? peer
                 : {
-                    x: 180 + Math.random() * 700,
-                    y: 280 + Math.random() * 260,
+                    x: room.minX + Math.random() * (room.maxX-room.minX),
+                    y: room.minY + Math.random() * (room.maxY-room.minY),
                   }
           s.route = findRoute(
             s,
@@ -457,8 +460,8 @@ function HamsterActor({ hamster: h, save }: { hamster: Hamster; save: Save }) {
       className={`room-hamster ${s.route.length ? 'hamster-walking' : ''} ${s.action === '새근새근' ? 'hamster-sleeping' : ''}`}
       style={
         {
-          left: `${s.x / 10}%`,
-          top: `${s.y / 6.4}%`,
+          left: leftPercent(s.x),
+          top: topPercent(s.y),
           zIndex: Math.round(s.y),
           '--hamster-facing': s.facing,
         } as CSSProperties
@@ -470,6 +473,7 @@ function HamsterActor({ hamster: h, save }: { hamster: Hamster; save: Save }) {
     </span>
   )
 }
+function roomTools(node:ReactNode){const container=document.getElementById('room-placement-tools');return container?createPortal(node,container):node}
 export function RoomExtras({
   save,
   draft,
@@ -519,8 +523,8 @@ export function RoomExtras({
           key={p.id}
           aria-label={`${itemById[p.itemId].name} 이동 또는 회수`}
           style={{
-            left: `${p.x / 10}%`,
-            top: `${p.y / 6.4}%`,
+            left: leftPercent(p.x),
+            top: topPercent(p.y),
             zIndex: editing ? 2000 : Math.round(p.y) - 1,
           }}
           onClick={() => setSelected(p)}
@@ -534,7 +538,7 @@ export function RoomExtras({
         .map((h) => (
           <HamsterActor key={h.id} hamster={h} save={save} />
         ))}
-      {selected && !draft && (
+      {selected && !draft && (roomTools(
         <div className="furniture-controls">
           <strong>{itemById[selected.itemId].name}</strong>
           <button
@@ -557,7 +561,7 @@ export function RoomExtras({
           </button>
           <button onClick={() => setSelected(null)}>닫기</button>
         </div>
-      )}
+      ))}
       {draft && (
         <div
           className="placement-editor"
@@ -568,8 +572,8 @@ export function RoomExtras({
             const r = ev.currentTarget.getBoundingClientRect()
             setDraft({
               ...draft,
-              x: ((ev.clientX - r.left) / r.width) * 1000,
-              y: ((ev.clientY - r.top) / r.height) * 640,
+              x: ((ev.clientX - r.left) / r.width) * room.width,
+              y: ((ev.clientY - r.top) / r.height) * room.height,
             })
           }}
           onPointerMove={(ev) => {
@@ -577,8 +581,8 @@ export function RoomExtras({
             const r = ev.currentTarget.getBoundingClientRect()
             setDraft({
               ...draft,
-              x: ((ev.clientX - r.left) / r.width) * 1000,
-              y: ((ev.clientY - r.top) / r.height) * 640,
+              x: ((ev.clientX - r.left) / r.width) * room.width,
+              y: ((ev.clientY - r.top) / r.height) * room.height,
             })
           }}
           onPointerUp={(ev) => {
@@ -590,11 +594,11 @@ export function RoomExtras({
           <div
             data-item={draft.itemId}
             className="furniture-preview"
-            style={{ left: `${draft.x / 10}%`, top: `${draft.y / 6.4}%` }}
+            style={{ left: leftPercent(draft.x), top: topPercent(draft.y) }}
           >
             <FurnitureArt itemId={draft.itemId} />
           </div>
-          <div className="furniture-controls">
+          {roomTools(<div className="furniture-controls">
             <span>바닥을 톡 누르거나 끌어서 위치 선택</span>
             <button
               disabled={busy}
@@ -606,7 +610,7 @@ export function RoomExtras({
               여기에 놓기
             </button>
             <button onClick={() => setDraft(null)}>취소</button>
-          </div>
+          </div>)}
         </div>
       )}
     </>

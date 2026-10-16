@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test'
 import {wordById} from '../src/words/bank'
 const at=Date.parse('2026-10-16T03:00:00Z')
-test('word expedition completes all 30 questions, scores each once, restores progress and keeps cooldown and review rewards separate',async({page})=>{
+test('word expedition completes all 30 questions, scores each once, restores progress and removes notebook entries without changing cooldown or rewards',async({page})=>{
  test.setTimeout(120000)
  await page.clock.install({time:new Date(at)});await page.clock.pauseAt(new Date(at+1000));await page.goto('/')
  await page.getByRole('navigation').getByRole('button',{name:'영단어 탐험',exact:true}).click()
@@ -29,9 +29,12 @@ test('word expedition completes all 30 questions, scores each once, restores pro
  expect((await raw()).world.coins).toBe(570)
  await page.getByRole('button',{name:'오답 노트 (3)',exact:true}).click();await expect(page.locator('.wrong-notes article')).toHaveCount(3)
  const before=(await raw()).world.words.nextStartAt
- await page.getByRole('button',{name:'오답 복습',exact:true}).click()
- for(let i=0;i<3;i++){await expect(page.locator('.word-stage')).toContainText(`${i+1} / 3문제`);const id=await play.getAttribute('data-word-id');await page.getByLabel('한국어 뜻',{exact:true}).fill(wordById[id!].acceptedAnswers[0]);await page.getByRole('button',{name:'정답 확인',exact:true}).click()}
- await expect(page.getByTestId('word-reward')).toHaveText('0코인');expect((await raw()).world.coins).toBe(570);expect((await raw()).world.words.nextStartAt).toBe(before)
+ await expect(page.getByRole('button',{name:'오답 복습',exact:true})).toHaveCount(0)
+ await page.getByRole('button',{name:'전체 선택',exact:true}).click();await page.getByRole('button',{name:'선택한 단어 삭제',exact:true}).click()
+ await page.getByRole('button',{name:'삭제 취소',exact:true}).click();await expect(page.locator('.wrong-notes article')).toHaveCount(3)
+ await page.getByRole('button',{name:'선택한 단어 삭제',exact:true}).click();await expect(page.getByRole('button',{name:'확인하고 삭제',exact:true})).toBeDisabled()
+ await page.getByLabel('전체 오답 단어 삭제를 확인했습니다').check();await page.getByRole('button',{name:'확인하고 삭제',exact:true}).click();await expect(page.locator('.wrong-notes article')).toHaveCount(0)
+ expect((await raw()).world.coins).toBe(570);expect((await raw()).world.words.nextStartAt).toBe(before)
  expect(await page.evaluate(()=>document.body.scrollWidth>innerWidth)).toBe(false)
  await page.screenshot({path:`/tmp/pocket-word-${test.info().project.name}.png`,fullPage:true})
 })

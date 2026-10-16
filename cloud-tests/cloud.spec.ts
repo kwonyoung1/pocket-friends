@@ -56,7 +56,7 @@ test('two devices share purchases; a committed response lost on the network retr
   const second = await phone.newPage(); await enter(second, backend.secret)
   await second.getByRole('button', { name: '이 클라우드 월드 사용하기' }).click()
   await menu(page, '상점'); backend.loseNextBuyResponse()
-  await page.getByTestId('item-snack').getByRole('button', { name: '구매하기' }).click()
+  await page.getByTestId('item-snack').getByRole('button', { name: '구매하기' }).click();await page.getByRole('button',{name:'구매 확정',exact:true}).click()
   await expect(page.getByRole('alert')).toContainText('동기화에 실패')
   expect(backend.row().data!.world!.coins).toBe(285)
   await page.getByRole('button', { name: '같은 작업 다시 시도' }).click()
@@ -70,7 +70,7 @@ test('two devices share purchases; a committed response lost on the network retr
 test('reload recovers an unacknowledged purchase through the gate without spending twice', async ({ page, backend }) => {
   await fresh(page, backend.secret)
   await menu(page, '상점'); backend.loseNextBuyResponse()
-  await page.getByTestId('item-snack').getByRole('button', { name: '구매하기' }).click()
+  await page.getByTestId('item-snack').getByRole('button', { name: '구매하기' }).click();await page.getByRole('button',{name:'구매 확정',exact:true}).click()
   await expect(page.getByRole('alert')).toContainText('동기화에 실패')
   expect(backend.row().data!.world!.coins).toBe(285)
   const pending = await page.evaluate(() => JSON.parse(sessionStorage.getItem('pocket-friends-cloud-pending')!))
@@ -146,7 +146,7 @@ test('storage failure blocks a new command before spending any cloud coins', asy
     Storage.prototype.setItem = function(key: string, value: string) { if (key === 'pocket-friends-cloud-pending') throw Error('full'); original.call(this, key, value) }
   })
   await menu(page, '상점')
-  await page.getByTestId('item-snack').getByRole('button', { name: '구매하기' }).click()
+  await page.getByTestId('item-snack').getByRole('button', { name: '구매하기' }).click();await page.getByRole('button',{name:'구매 확정',exact:true}).click()
   await expect(page.getByRole('alert')).toContainText('요청을 보내지 않았어요')
   expect(backend.row().data!.world!.coins).toBe(300)
   expect(backend.row().data!.world!.inventory.snack).toBeUndefined()
@@ -257,7 +257,7 @@ test('new favorite food and four-hour manual rest synchronize without changing t
  const source=freshWorld(Date.parse('2026-10-15T03:00:00Z'));source.world!.coins=1000;source.friends[0].stats.hunger=0;source.friends[0].stats.happiness=0;source.friends[0].stats.energy=20
  const raw=JSON.stringify(source);await page.addInitScript(raw=>localStorage.setItem('pocket-friends-v1',raw),raw)
  await enter(page,backend.secret);await page.getByRole('button',{name:'이 기기 데이터를 기준으로 가져오기'}).click();await page.getByRole('button',{name:'확인하고 공유 월드 만들기'}).click();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
- await menu(page,'상점');await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'구매하기'}).click();await expect(page.getByRole('button',{name:'보유 코인 940'})).toBeVisible();await page.getByRole('button',{name:'메뉴 닫기'}).click()
+ await menu(page,'상점');await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'구매하기'}).click();await page.getByRole('button',{name:'구매 확정',exact:true}).click();await expect(page.getByRole('button',{name:'보유 코인 940'})).toBeVisible();await page.getByRole('button',{name:'메뉴 닫기'}).click()
  await menu(page,'인벤토리');await page.getByTestId('item-strawberry-milk').getByRole('button',{name:'모모에게 주기'}).click();await expect.poll(()=>backend.row().data!.world!.inventory['strawberry-milk']).toBe(0);await page.getByRole('button',{name:'메뉴 닫기'}).click()
  await page.getByRole('button',{name:'모모 상태 확인'}).click();await page.getByRole('complementary').getByRole('button',{name:/쉬게 하기/}).click();await expect(page.getByTestId('rest-status')).toContainText('4시간 0분')
  await expect(page.getByTestId('room-momo')).toHaveClass(/furniture-relax/)
@@ -265,4 +265,24 @@ test('new favorite food and four-hour manual rest synchronize without changing t
  const stamp=backend.row().data!.friends[0].lastRestRewardAt
  const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
  try{const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await second.getByRole('button',{name:'모모 상태 확인'}).click();await expect(second.getByTestId('rest-status')).toContainText('4시간 0분');await second.getByRole('complementary').getByRole('button',{name:/쉬게 하기/}).click();await expect(second.locator('.cloud-status')).not.toContainText('처리 중');expect(backend.row().data!.friends[0].lastRestRewardAt).toBe(stamp);expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw)}finally{await phone.close()}
+})
+
+test('bulk purchases and sales synchronize and a failed notebook deletion stays visible until its single retry commits',async({page,backend,browser})=>{
+ test.setTimeout(90000)
+ const source=freshWorld(Date.parse('2026-10-15T03:00:00Z'));source.world!.coins=2000;source.world!.inventory={leaf:15,'treasure-diamond':1}
+ source.world!.words={version:1,nextStartAt:0,used:{},previous:[],mistakes:{'word-issue':{word:'issue',pos:'명사·동사',meanings:['문제','쟁점','발행하다','발행'],example:'We discussed the issue.',count:3,lastAt:source.savedAt}}}
+ const raw=JSON.stringify(source);await page.addInitScript(raw=>localStorage.setItem('pocket-friends-v1',raw),raw)
+ await enter(page,backend.secret);await page.getByRole('button',{name:'이 기기 데이터를 기준으로 가져오기'}).click();await page.getByRole('button',{name:'확인하고 공유 월드 만들기'}).click();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
+ await menu(page,'상점');await page.getByTestId('item-snack').getByRole('button',{name:'구매하기'}).click();await page.getByLabel('구매 수량',{exact:true}).fill('10');await page.getByRole('button',{name:'구매 확정',exact:true}).click();await expect(page.getByRole('button',{name:'보유 코인 1850'})).toBeVisible();await page.getByRole('button',{name:'메뉴 닫기'}).click()
+ const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
+ try{
+  const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(second,'인벤토리');await expect(second.getByTestId('item-snack')).toContainText('보유 10개')
+  await second.getByRole('button',{name:'일괄 판매',exact:true}).click();const list=second.locator('.bulk-sale-list');await list.getByRole('checkbox',{name:/행운의 나뭇잎/}).check();await second.getByLabel('행운의 나뭇잎 판매 수량',{exact:true}).fill('10');await list.getByRole('checkbox',{name:/다이아몬드/}).check();await second.getByRole('button',{name:'선택한 아이템 판매',exact:true}).click();await second.getByRole('button',{name:'확인하고 일괄 판매',exact:true}).click();await expect(second.getByRole('button',{name:'보유 코인 4950'})).toBeVisible();expect(backend.row().data!.world!.inventory.leaf).toBe(5)
+  await menu(page,'영단어 탐험');await page.getByRole('button',{name:'오답 노트 (1)',exact:true}).click()
+  await page.route('**/functions/v1/game',async route=>{if(route.request().postDataJSON()?.command?.type==='word-delete')await route.abort('failed');else await route.fallback()})
+  await page.getByRole('button',{name:'issue 삭제',exact:true}).click();await page.getByRole('button',{name:'확인하고 삭제',exact:true}).click();await expect(page.getByRole('alert')).toContainText('동기화에 실패');await expect(page.locator('.wrong-notes article')).toHaveCount(1);expect(backend.row().data!.world!.words!.mistakes['word-issue']).toBeTruthy()
+  await page.unroute('**/functions/v1/game');await page.getByRole('button',{name:'같은 작업 다시 시도',exact:true}).click();await expect.poll(()=>Object.keys(backend.row().data!.world!.words!.mistakes).length).toBe(0)
+  await second.getByRole('button',{name:'메뉴 닫기'}).click();await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await menu(second,'영단어 탐험');await second.getByRole('button',{name:'오답 노트 (0)',exact:true}).click();await expect(second.locator('.wrong-notes article')).toHaveCount(0)
+  expect(backend.row().data!.world!.coins).toBe(4950);expect(backend.row().data!.world!.trades).toHaveLength(2);expect(backend.row().data!.world!.words!.removals).toHaveLength(1);expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw)
+ }finally{await phone.close()}
 })

@@ -1,3 +1,5 @@
+import {room,leftPercent,topPercent} from './room/config'
+import {upgradeRoom} from './room/migrate'
 import {defaultTaste} from './adventure/catalog'
 import { specialIds } from './humans/config'
 import { grantSpecialFriends } from './humans/model'
@@ -29,7 +31,7 @@ function load() {
   } catch { return { data: fresh(), warning: '저장 데이터를 읽지 못했어요. 브라우저의 저장 공간 설정을 확인해 주세요.' } }
   return { data: fresh(), warning: storageWarning }
 }
-function fresh(): Save { const save: Save = { version: 2, savedAt: Date.now(), friends: createFriends(), memories: [] }; world(save); return save }
+function fresh(): Save { const save: Save = { version: 2, savedAt: Date.now(), friends: createFriends(), memories: [] }; world(save); upgradeRoom(save); return save }
 const statInfo: { key: keyof Stats; name: string; color: string; icon: typeof Heart }[] = [
   { key: 'hunger', name: '포만감', color: '#d8a473', icon: Utensils },
   { key: 'happiness', name: '행복도', color: '#df9d9e', icon: Sun },
@@ -53,7 +55,7 @@ function mood(f: Friend) {
 type Crop = { src: string; target: string; ratio: number; zoom: number; x: number; y: number }
 const cropBounds = (crop: Crop, zoom = crop.zoom) => ({ x: Math.floor((Math.max(1, crop.ratio) * zoom - 1) * 50), y: Math.floor((Math.max(1, 1 / crop.ratio) * zoom - 1) * 50) })
 function App({ cloud }: { cloud?: CloudGame }) {
-  const [initial] = useState(() => cloud?.row.data ? { data: structuredClone(cloud.row.data), warning: '' } : load())
+  const [initial] = useState(() => {if(!cloud?.row.data)return load();const data=structuredClone(cloud.row.data);upgradeRoom(data);return{data,warning:''}})
   const claimedSpecial=useRef(false)
   const cloudRef = useRef(cloud); cloudRef.current = cloud
   const model = useRef(initial.data)
@@ -75,10 +77,11 @@ function App({ cloud }: { cloud?: CloudGame }) {
   const [crop, setCrop] = useState<Crop | null>(null)
   const [imageBusy, setImageBusy] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const roomCamera=useRef<HTMLDivElement>(null)
   const uploadTarget = useRef('momo')
   const audio = useRef<AudioContext | null>(null)
   const friends = model.current.friends
-  if(!cloud) {world(model.current).adventureVersion=1; for(const f of friends)f.foodTaste??=defaultTaste(f.id)}
+  if(!cloud) {upgradeRoom(model.current);world(model.current).adventureVersion=1; for(const f of friends)f.foodTaste??=defaultTaste(f.id)}
   const friend = friends.find(f => f.id === selected)!
   const notify = useCallback((message: string) => setNotice(message), [])
   const persist = useCallback(() => {
@@ -101,6 +104,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
   useEffect(() => {
     if (!cloud?.row.data) return
     const snapshot = structuredClone(cloud.row.data)
+    upgradeRoom(snapshot)
     // Keep the same friend objects so captured pointers and local motion survive sync.
     for (const old of model.current.friends) {
       const server = snapshot.friends.find(f => f.id === old.id)
@@ -252,11 +256,13 @@ function App({ cloud }: { cloud?: CloudGame }) {
       <nav className="adventure-nav" aria-label="성장과 모험 메뉴">{menus.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} onClick={() => { setMenu(id); }}><Icon size={17} /><span>{label}</span>{id === 'inventory' && <small>{Object.values(world(model.current).inventory).reduce((s, n) => s + n, 0)}</small>}</button>)}<button className="life-nav-button" onClick={()=>setLifeOpen(true)}>생활·입양</button></nav>
       <div className="game-layout">
         <section className="room-panel" aria-label="친구들이 생활하는 방"><div className="room-toolbar"><div><span className="live-dot" /><strong>우리의 거실</strong><span className="room-caption">작은 발걸음으로 채워지는 공간</span></div><span className="friend-count"><PawPrint size={14} /> {friends.length}명의 친구</span></div>
-          <div className="room" data-night={(Date.now()/3600000+9)%24>=20||(Date.now()/3600000+9)%24<6}><RoomArt /><RoomExtras save={model.current} draft={draft} setDraft={setDraft} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/><div className="room-label"><Sun size={13} /> 햇살 가득한 오후</div>
-            {friends.filter(f => { const j = world(model.current).jobs.find(j => j.id === f.growth?.awayJobId); return j && Date.now() - j.startedAt < 1800 }).map(f => <div key={`leaving-${f.id}`} className="room-friend departing-friend" style={{ left: `${f.x / 10}%`, top: `${f.y / 6.4}%`, zIndex: Math.round(f.y) }} aria-label={`${f.name} 탐험 출발`}><span className="speech" role="status">다녀올게~! 오늘은 어떤 보물을 찾을까?</span><span className="friend-figure"><Character friend={f} /></span><span className="friend-name">{f.name} · 외출</span></div>)}
+          <div className="room-viewport" ref={roomCamera} role="region" aria-label="확장된 방 카메라" tabIndex={0}><div className="room" data-world-width={room.width} data-world-height={room.height} data-night={(Date.now()/3600000+9)%24>=20||(Date.now()/3600000+9)%24<6}><RoomArt /><RoomExtras save={model.current} draft={draft} setDraft={setDraft} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/><div className="room-label"><Sun size={13} /> 햇살 가득한 오후</div>
+            {friends.filter(f => { const j = world(model.current).jobs.find(j => j.id === f.growth?.awayJobId); return j && Date.now() - j.startedAt < 1800 }).map(f => <div key={`leaving-${f.id}`} className="room-friend departing-friend" style={{ left: leftPercent(f.x), top: topPercent(f.y), zIndex: Math.round(f.y) }} aria-label={`${f.name} 탐험 출발`}><span className="speech" role="status">다녀올게~! 오늘은 어떤 보물을 찾을까?</span><span className="friend-figure"><Character friend={f} /></span><span className="friend-name">{f.name} · 외출</span></div>)}
             {friends.filter(f => !f.growth?.awayJobId).map(f => <InteractiveFriend key={f.id} friend={f} selected={selected === f.id} select={() => {setSelected(f.id);setCareOpen(true)}} changed={persist} bonded={bonded} remote={cloud ? { busy: cloud.busy, send: cloud.send } : undefined} />)}
-          </div>
-          <div className="room-footer" id="interaction-help"><span><Sparkles size={15} /> 톡 쓰다듬기 · 2초 꾹 교감 · 끌어서 이동</span><span className="room-footer-note">각자의 속도로, 함께 자라는 중</span></div>
+          </div></div>
+          {draft&&<div className="camera-controls" role="group" aria-label="가구 배치 카메라 이동">{[{label:'왼쪽',x:-180,y:0,text:'← 왼쪽'},{label:'위',x:0,y:-140,text:'↑ 위'},{label:'아래',x:0,y:140,text:'↓ 아래'},{label:'오른쪽',x:180,y:0,text:'오른쪽 →'}].map(d=><button key={d.label} aria-label={`배치 카메라 ${d.label} 보기`} onClick={()=>roomCamera.current?.scrollBy({left:d.x,top:d.y,behavior:'instant'})}>{d.text}</button>)}</div>}
+          <div id="room-placement-tools"/>
+          <div className="room-footer" id="interaction-help"><span><Sparkles size={15} /> 톡 쓰다듬기 · 2초 꾹 교감 · 끌어서 이동</span><span className="room-footer-note">방 안을 밀어 넓은 공간 둘러보기</span></div>
         </section>
         <aside className={`care-panel ${careOpen?'':'mobile-collapsed'}`} aria-label={`${friend.name} 돌보기`}><button className="mobile-care-summary" onClick={()=>setCareOpen(v=>!v)}>{friend.name} 상태·돌보기 {careOpen?'접기 ▴':'펼치기 ▾'}</button><div className="panel-heading"><span>MY LITTLE FRIEND</span><span className="small-heart"><Heart size={15} /></span></div>
           <div className="selected-profile"><div className="profile-portrait" style={{ background: `${friend.color}35` }}><Character friend={friend} mini /><span className="profile-sparkle">✧</span></div><div><div className="profile-title"><h2>{friend.name}</h2><span>Lv.{growth(friend).level}</span></div><p>{friend.description}</p><span className="mood"><span />{mood(friend)}</span></div></div>

@@ -1,3 +1,4 @@
+import {scaledPoint} from '../room/config.ts'
 import { createFriends } from '../game.ts'
 import type { Friend, Save } from '../game.ts'
 import { growth, world } from '../progression/model.ts'
@@ -9,6 +10,7 @@ export function makeSpecialFriend(id: string, now: number): Friend {
   const f: Friend = {
     ...createFriends(now)[0],
     ...d,
+    ...scaledPoint(d),
     stats: {
       hunger: 78,
       happiness: 85,

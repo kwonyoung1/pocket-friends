@@ -1,3 +1,4 @@
+import {room} from '../room/config.ts'
 import type { Life, Expansion } from './model.ts'
 import { itemById } from '../progression/config.ts'
 import { adoptionCatalog, tripEvents } from './config.ts'
@@ -58,7 +59,7 @@ export function migrateExpansion(raw: unknown): Expansion | undefined {
         itemId = text(p.itemId)
       if (itemById[itemId]?.category !== 'decor')
         throw Error('알 수 없는 가구예요.')
-      return { id: text(p.id), itemId, x: num(p.x, 1000), y: num(p.y, 640) }
+      return { id: text(p.id), itemId, x: num(p.x, room.width), y: num(p.y, room.height) }
     }),
     hamsters: arr(r.hamsters).map((v) => {
       const h = obj(v)
@@ -69,8 +70,8 @@ export function migrateExpansion(raw: unknown): Expansion | undefined {
         foundAt: num(h.foundAt),
         regionId: text(h.regionId),
         deployed: h.deployed,
-        x: num(h.x, 1000),
-        y: num(h.y, 640),
+        x: num(h.x, room.width),
+        y: num(h.y, room.height),
       }
     }),
     adoptions: arr(r.adoptions, 4).map((v) => {

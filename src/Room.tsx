@@ -1,5 +1,6 @@
+import {room,roomScale} from './room/config'
 export function RoomArt() {
-  return <svg className="room-art" viewBox="0 0 1000 640" preserveAspectRatio="none" aria-hidden="true">
+  return <svg className="room-art" viewBox={`0 0 ${room.width} ${room.height}`} preserveAspectRatio="none" aria-hidden="true">
     <defs>
       <pattern id="floor" width="170" height="76" patternUnits="userSpaceOnUse"><rect width="170" height="76" fill="#f3e2ca" /><path d="M0 75h170M0 0v76M85 0v0" stroke="#e7cfaf" strokeWidth="2" /><path d="M15 12h50m28 37h54M23 63h22" stroke="#ecd6b8" strokeWidth="2" strokeLinecap="round" /></pattern>
       <pattern id="wall" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#f5eee2" /><circle cx="12" cy="12" r="1" fill="#ddd6c5" /></pattern>
@@ -7,7 +8,7 @@ export function RoomArt() {
       <linearGradient id="glass" x2="0" y2="1"><stop stopColor="#c5ded5" /><stop offset="1" stopColor="#e2ece0" /></linearGradient>
       <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="5" floodColor="#88613e" floodOpacity=".11" /></filter>
     </defs>
-    <rect width="1000" height="640" fill="url(#floor)" /><path d="M0 0h1000v194H0Z" fill="url(#wall)" />
+    <g transform={`scale(${roomScale})`}><rect width="1000" height="640" fill="url(#floor)" /><path d="M0 0h1000v194H0Z" fill="url(#wall)" />
     <path d="M0 184h1000v15H0Z" fill="#d5bfa4" /><path d="M0 184h1000" stroke="#fff9ee" strokeWidth="5" />
     <path d="m405 170 176-4 244 458H456Z" fill="url(#sunbeam)" />
     <g filter="url(#shadow)"><rect x="387" y="23" width="208" height="146" rx="6" fill="#dfc6a4" /><rect x="397" y="32" width="188" height="126" rx="2" fill="url(#glass)" /><path d="M400 119q35-30 68-5 28-36 58-13 25-10 59 10v47H400Z" fill="#b9cdb5" /><path d="M398 91h187m-94-59v126" stroke="#fff8eb" strokeWidth="7" /><path d="M380 165h221" stroke="#d1b48e" strokeWidth="12" strokeLinecap="round" /><path d="M377 26q-9 72 7 112l26-7-8-105m191 0q9 72-7 112l-26-7 8-105" fill="#dfc3b2" /><path d="M382 33q0 62 8 91m6-91q-1 58 2 88m188-88q0 62-8 91" fill="none" stroke="#cfb29f" strokeWidth="2" /></g>
@@ -21,5 +22,6 @@ export function RoomArt() {
     <g transform="translate(910 534) rotate(10)"><ellipse rx="40" ry="17" fill="#e7cab3" /><ellipse cy="-6" rx="40" ry="17" fill="#f1d9c5" /><path d="m-18-9 11 6m14-6 11 6" stroke="#dfbea3" strokeWidth="2" /></g>
     <path d="m355 567 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1Z" fill="#dfbc89" opacity=".65" />
     <g fill="#fff9df" opacity=".8"><path d="m604 235 2 7 7 2-7 2-2 7-2-7-7-2 7-2Z" /><circle cx="560" cy="282" r="3" /><circle cx="639" cy="316" r="2" /></g>
+    </g>
   </svg>
 }

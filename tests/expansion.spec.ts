@@ -117,6 +117,9 @@ test('four adoptees join the original family, can be touched independently and p
   await expect(page.locator('.room-friend')).toHaveCount(10)
   for (const id of ['lulu', 'toto', 'byeol', 'mungchi']) {
     const actor = page.getByTestId(`room-${id}`)
+    // A visible adoption toast has an interactive close button; dismiss it before tapping the actor underneath.
+    const toast=page.getByRole('button',{name:'알림 닫기',exact:true})
+    if(await toast.isVisible())await toast.click()
     await actor.scrollIntoViewIfNeeded()
     const b = await actor.locator('.friend-figure').boundingBox()
 
@@ -246,6 +249,7 @@ test('medicine can be stored before illness and consumes once only on a sick fri
     .getByTestId('item-medicine')
     .getByRole('button', { name: '구매하기' })
     .click()
+  await page.getByRole('button',{name:'구매 확정',exact:true}).click()
   expect((await data(page)).world.coins).toBe(200)
   await page.getByRole('button', { name: '메뉴 닫기' }).click()
   await menu(page, '인벤토리')

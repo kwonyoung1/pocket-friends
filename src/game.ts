@@ -1,3 +1,5 @@
+import {roomScale} from './room/config.ts'
+import {upgradeRoom} from './room/migrate.ts'
 import { defaultTaste, restCooldownMs } from './adventure/catalog.ts'
 import { careAlertMs, careNeeds, careSpeed, isSpecialCharacter, needLine, specialAmbient } from './careNeeds.ts'
 import { specialIds, humanLine } from './humans/config.ts'
@@ -10,7 +12,7 @@ import { growth, dominant } from './progression/model.ts'
 import type { Growth, World } from './progression/model.ts'
 import { growthBalance } from './progression/config.ts'
 import { migrateProgress } from './progression/migrate.ts'
-import { cells, findRoute, walkable } from './navigation.ts'
+import { cells, findRoute } from './navigation.ts'
 import { advanceInteraction, controlled, normalPet, speak } from './interaction.ts'
 import type { Interaction } from './interaction.ts'
 import { interactionBalance } from './balance.ts'
@@ -43,7 +45,7 @@ const definitions: [string, string, Kind, string, string, number, number][] = [
 ]
 export function createFriends(now = Date.now()): Friend[] {
   return definitions.map(([id, name, kind, color, description, x, y]) => ({
-    id, name, kind, color, description, x, y, stats: { hunger: 78, happiness: 85, energy: 90, hygiene: 82, affection: 20 },
+    id, name, kind, color, description, x:x*roomScale, y:y*roomScale, stats: { hunger: 78, happiness: 85, energy: 90, hygiene: 82, affection: 20 },
     facing: 1, route: [], restingUntil: now + between(500, 2500), nextSpeech: now + between(20000, 50000),
     bubble: '', bubbleUntil: 0, socialAfter: now + 12000, careAfter: 0, moving: false,
   }))
@@ -161,10 +163,12 @@ export function parseSave(raw: string, now = Date.now()): Save {
     if (typeof old.lastPetLine === 'string') f.lastPetLine = old.lastPetLine.slice(0, 200)
     f.stats = decay(Object.fromEntries(Object.entries(old.stats).filter(([k]) => k in f.stats).map(([k, v]) => [k, clamp(v)])) as Stats, now - saved.savedAt)
     if (typeof old.photo === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(old.photo) && old.photo.length < 400000 && ['momo', 'bibi'].includes(f.id)) f.photo = old.photo
-    if (Number.isFinite(old.x) && Number.isFinite(old.y) && walkable(old)) { f.x = old.x; f.y = old.y }
+    if (Number.isFinite(old.x) && Number.isFinite(old.y)) { f.x = old.x; f.y = old.y }
   }
   const memories = Array.isArray(saved.memories) ? saved.memories.filter(m => m && typeof m.text === 'string' && typeof m.id === 'string' && Number.isFinite(m.at)).slice(0, 20) : []
   const result = migrateProgress({ version: 2, savedAt: now, friends: base, memories }, saved.friends, saved.world, now)
+  if(!saved.world?.roomVersion)delete result.world!.roomVersion
+  upgradeRoom(result)
   settleLife(result,now)
   return result
 }

@@ -1,3 +1,4 @@
+import {roomScale,scaledPoint} from '../room/config.ts'
 import { normalFriendCount } from '../humans/model.ts'
 import type { Friend, Save, Point } from '../game.ts'
 import { createFriends } from '../game.ts'
@@ -159,41 +160,41 @@ export function settleLife(s: Save, now = Date.now()) {
   }
 }
 export function furnitureObstacle(p: Placement): Obstacle {
-  const size = furnitureSizes[p.itemId] ?? { w: 60, h: 40 }
+  const base = furnitureSizes[p.itemId] ?? { w: 60, h: 40 },size={w:base.w*roomScale,h:base.h*roomScale}
   return { x: p.x - size.w / 2, y: p.y - size.h * 0.6, ...size }
 }
 export function furnitureObstacles(s: Save) {
   return s.world?.expansion?.placements.map(furnitureObstacle) ?? []
 }
-function validLayout(s: Save, itemId: string, p: Point, exclude?: string) {
+export function validLayout(s: Save, itemId: string, p: Point, exclude?: string) {
   const placed = expansion(s).placements.filter((x) => x.id !== exclude),
     o = furnitureObstacle({ id: '', itemId, ...p })
   if (
     !Number.isFinite(p.x) ||
     !Number.isFinite(p.y) ||
-    p.x < 165 ||
-    p.x > 910 ||
-    p.y < 275 ||
-    p.y > 530
+    p.x < 165*roomScale ||
+    p.x > 910*roomScale ||
+    p.y < 275*roomScale ||
+    p.y > 530*roomScale
   )
     return false
   if (
     [...obstacles, ...placed.map(furnitureObstacle)].some(
       (x) =>
-        o.x < x.x + x.w + 15 &&
-        o.x + o.w + 15 > x.x &&
-        o.y < x.y + x.h + 15 &&
-        o.y + o.h + 15 > x.y,
+        o.x < x.x + x.w + 15*roomScale &&
+        o.x + o.w + 15*roomScale > x.x &&
+        o.y < x.y + x.h + 15*roomScale &&
+        o.y + o.h + 15*roomScale > x.y,
     )
   )
     return false
   const extra = [...placed.map(furnitureObstacle), o],
     floor = cells.filter((c) => walkable(c, extra))
-  if (floor.length < 65) return false
+  if (floor.length < 90) return false
   // Every remaining grid cell must remain reachable: no sealed-off walking pockets.
   const visited = new Set<string>(),
     queue = [floor[0]],
-    key = (p: Point) => `${p.x},${p.y}`
+    key = (p: Point) => `${p.x.toFixed(4)},${p.y.toFixed(4)}`
   for (let i = 0; i < queue.length; i++) {
     const c = queue[i]
     if (visited.has(key(c))) continue
@@ -227,7 +228,7 @@ export function makeAdoptee(id: string, now: number): Friend {
   const f = {
     ...createFriends(now)[0],
     ...d,
-    ...spawn,
+    ...scaledPoint(spawn),
     stats: {
       hunger: 78,
       happiness: 85,

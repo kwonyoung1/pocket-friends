@@ -15,7 +15,7 @@ export type Growth = {
 }
 export type Expedition = { id: string; friendId: string; regionId: string; startedAt: number; endsAt: number; energyCost: number; result: { coins: number; xp: number; items: string[]; cold?: boolean; hamster?: boolean; eventId?: string }; claimedAt?: number }
 export type World = {
-  adventureVersion?: 1; words?: import('../words/state.ts').WordProgress; careRulesVersion?: 1; specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
+  roomVersion?: 1; trades?: import('../trade/model.ts').TradeRecord[]; adventureVersion?: 1; words?: import('../words/state.ts').WordProgress; careRulesVersion?: 1; specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
   jobs: Expedition[]; book: Record<string, { firstAt: number; lastAt: number; count: number }>; legendaries: { id: string; itemId: string; friendId: string; at: number; first?: boolean }[]
   notices: { id: string; itemId: string; friendId: string; at: number; first?: boolean }[]; day: string; attendanceDays: string[]; claimedMissions: string[]; achievements: string[]
   buyAfter: number; useAfter: number; decorationSlots: Record<string, string>
@@ -61,7 +61,7 @@ export function rewardAction(f: Friend, action: Exclude<Action, 'explore'>, now 
   return true
 }
 export function newWorld(now: number): World {
-  return { starterGranted: true, coins: B.startCoins, inventory: {}, ledger: [{ id: 'starter', delta: B.startCoins, balance: B.startCoins, reason: '처음 만난 선물', at: now }], jobs: [], book: {}, legendaries: [], notices: [], day: dailyKey(now), attendanceDays: [], claimedMissions: [], achievements: [], buyAfter: 0, useAfter: 0, decorationSlots: {} }
+  return { roomVersion:1,starterGranted: true, coins: B.startCoins, inventory: {}, ledger: [{ id: 'starter', delta: B.startCoins, balance: B.startCoins, reason: '처음 만난 선물', at: now }], jobs: [], book: {}, legendaries: [], notices: [], day: dailyKey(now), attendanceDays: [], claimedMissions: [], achievements: [], buyAfter: 0, useAfter: 0, decorationSlots: {} }
 }
 export function world(save: Save, now = Date.now()): World { save.version = 2; save.friends.forEach(f => growth(f, now)); return save.world ??= newWorld(now) }
 export function rollover(save: Save, now: number) { const w = world(save, now), day = dailyKey(now); if (w.day !== day) { w.day = day; w.claimedMissions = [] } return w }
