@@ -33,7 +33,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 7 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 8 }),
     }),
   )
 }
@@ -689,5 +689,30 @@ describe.sequential('Sichuan authoritative shared sessions and verified ranking'
   // An active exploration that expires on a later request still settles its last clear.
   await command(pc,{type:'sichuan-start',mode:'adventure'});data=(await repo.load()).data!;r=data.world!.sichuan!.adventure!;r.completed=3;r.stage=4;r.stageEndsAt=at+1000
   await db.query("update game_worlds set data=$1::jsonb where id='home'",[JSON.stringify(data)]);at+=1000;await command(mobile,{type:'refresh'});expect((await repo.load()).data!.world!.coins).toBe(600)
+ })
+})
+
+describe.sequential('four baths and one competition shuffle with durable concurrent operations',()=>{
+ it('two devices race for the fourth bath, retry once, retain photos and stop at four until the server day changes',async()=>{
+  await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'})
+  let data=(await repo.load()).data!;data.friends[0].photo='data:image/png;base64,AAAA'
+  const {life}=await import('../expansion/model');life(data.friends[0],now).bathCount=3
+  await db.query("update game_worlds set data=$1::jsonb where id='home'",[JSON.stringify(data)])
+  const bath={type:'bath',friendId:'momo',now:now+86400000},op=crypto.randomUUID()
+  await Promise.all([command(pc,bath,op),command(mobile,bath)]);await command(pc,bath,op)
+  data=(await repo.load()).data!;expect(data.friends[0].life!.bathCount).toBe(4);expect(data.friends[0].life!.bath!.endsAt).toBe(now+1800000);expect(data.friends[0].photo).toBe('data:image/png;base64,AAAA')
+  at+=1800000;await command(pc,{type:'refresh'});const response=await command(mobile,bath)
+  expect(response.body.message).toBe('오늘은 충분히 씻었어요! 내일 다시 씻겨 주세요 🛁');data=(await repo.load()).data!;expect(data.friends[0].life!.bathCount).toBe(4);expect(data.world!.coins).toBe(300)
+  at=Date.parse('2026-10-15T15:00:00Z');await command(mobile,{type:'refresh'});expect((await repo.load()).data!.friends[0].life!.bathCount).toBe(0)
+ })
+ it('server enforces competition manual quota across retries and rejects old writers without modifying ranking',async()=>{
+  await reset();await login(pc);await command(pc,{type:'initialize',source:'fresh'});await command(pc,{type:'sichuan-start',mode:'competition',nickname:'영이'})
+  let data=(await repo.load()).data!,r=data.world!.sichuan!.competitions[pc];expect(r.manual).toBe(1)
+  const c={type:'sichuan-shuffle',mode:'competition',sessionId:r.id,turn:r.turn},op=crypto.randomUUID()
+  await Promise.all([command(pc,c,op),command(pc,c,op)]);await command(pc,c,op)
+  data=(await repo.load()).data!;r=data.world!.sichuan!.competitions[pc];expect(r.manual).toBe(0)
+  at+=1000;expect((await command(pc,{...c,turn:r.turn})).response.status).toBe(400)
+  const stale=new Request('https://project.supabase.co/functions/v1/game',{method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${pc}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:7,command:{type:'refresh'}})})
+  expect((await handler(stale)).status).toBe(409);expect((await repo.load()).data!.world!.sichuan!.bests).toEqual([])
  })
 })

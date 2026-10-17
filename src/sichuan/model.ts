@@ -1,9 +1,9 @@
 import type {Save} from '../game.ts'
 import {world,transact} from '../progression/model.ts'
 import {createBoard,pair,path,reshuffle,rules,stages,random} from './board.ts'
-import {newSichuan,ranking} from './state.ts'
+import {newSichuan,ranking,upgradeCompetition} from './state.ts'
 import type {Round,SichuanCommand,SichuanState} from './state.ts'
-export const progress=(s:Save)=>world(s).sichuan??=newSichuan()
+export const progress=(s:Save)=>{const p=world(s).sichuan??=newSichuan();upgradeCompetition(p);return p}
 function settle(s:Save,r:Round,now:number){
  if(r.status==='settled')return
  r.status='settled';r.endedAt=now;r.reward=r.completed?stages[r.completed-1].reward:0
@@ -12,7 +12,7 @@ function settle(s:Save,r:Round,now:number){
 export function expireSichuan(s:Save,now:number){const r=world(s).sichuan?.adventure;if(r?.status==='playing'&&now>=r.stageEndsAt)settle(s,r,now)}
 function makeRound(mode:Round['mode'],owner:string,nickname:string,now:number,rng:()=>number):Round{
  const stage=mode==='competition'?3:1
- return{id:crypto.randomUUID(),mode,owner,nickname,stage,completed:0,board:createBoard(stage,rng),startedAt:now,stageEndsAt:mode==='adventure'?now+stages[0].seconds*1000:0,turn:0,hints:rules.hints,manual:rules.manualShuffles,hintsUsed:0,autoShuffles:0,status:'playing'}
+ return{id:crypto.randomUUID(),mode,owner,nickname,stage,completed:0,board:createBoard(stage,rng),startedAt:now,stageEndsAt:mode==='adventure'?now+stages[0].seconds*1000:0,turn:0,hints:rules.hints,manual:mode==='competition'?rules.competitionShuffles:rules.manualShuffles,manualLimit:mode==='competition'?1:3,hintsUsed:0,autoShuffles:0,status:'playing'}
 }
 function record(p:SichuanState,r:Round,now:number){
  r.elapsedMs=Math.max(0,now-r.startedAt);r.endedAt=now;r.status='settled'
@@ -63,6 +63,7 @@ export function sichuanCommand(s:Save,c:SichuanCommand,user:string,now:number,rn
   r.board=reshuffle(r.board,rng);r.manual--;r.shuffledAt=now;delete r.hint;message='패를 섞었어요!'
  }else if(c.type==='sichuan-match'){
   if(!Number.isInteger(c.a)||!Number.isInteger(c.b)||!path(r.board,c.a!,c.b!))throw Error('같은 패를 두 번 이하로 꺾어 연결해 주세요.')
+  r.lastMatch={a:c.a!,b:c.b!,at:now,turn:r.turn+1}
   r.board.tiles[c.a!]=0;r.board.tiles[c.b!]=0;delete r.hint
   if(!r.board.tiles.some(Boolean)){
    if(c.mode==='competition'){record(p,r,now);message=r.top?'축하해요! TOP 5에 올랐어요!':'경쟁모드를 완료했어요!'}

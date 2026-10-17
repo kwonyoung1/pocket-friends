@@ -73,7 +73,7 @@ test('owned food, favorites, rename and a real-time bath survive reload without 
   await page.getByLabel('새 이름').fill('우리 모모')
   await page.getByRole('button', { name: '이름 저장' }).click()
   await expect(page.getByRole('button', { name: '이름 저장' })).toBeDisabled()
-  await page.getByRole('button', { name: '목욕 시작' }).click()
+  await page.getByRole('dialog', {name:'생활과 새 식구'}).getByRole('button', { name: '씻기 (0/4)', exact:true }).click()
   await expect(page.getByRole('dialog')).toContainText('끝나는 시간')
   await closeLife(page)
   await expect(page.getByTestId('room-momo')).toHaveClass(/life-bath/)

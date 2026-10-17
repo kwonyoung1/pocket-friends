@@ -25,14 +25,14 @@ test('only fixed special IDs speak ambiently after renaming, while quiet friends
  await page.getByRole('button',{name:'영이 상태 확인'}).click()
  await expect(page.getByRole('complementary').getByText('✦ 특별 친구')).toBeVisible()
 })
-test('low stats show food, bath and fatigue care overlays without overflowing mobile',async({page})=>{
+test('low stats show one priority emotion while the status panel lists all needs without overflowing mobile',async({page})=>{
  const s=fixture();s.friends[0].stats.hunger=5;s.friends[0].stats.hygiene=10;s.friends[0].stats.energy=20
  await seed(page,s)
  const actor=page.getByTestId('room-momo')
  await expect(actor.getByRole('img',{name:'음식이 필요해요'})).toBeVisible()
- await expect(actor.getByRole('img',{name:'목욕이 필요해요'})).toBeVisible()
- await expect(actor.getByRole('img',{name:'휴식이 필요해요'})).toBeVisible()
- await expect(actor.locator('.care-dust i')).toHaveCount(5)
+ await expect(actor.getByRole('img',{name:'목욕이 필요해요'})).toHaveCount(0)
+ await expect(actor.getByRole('img',{name:'휴식이 필요해요'})).toHaveCount(0)
+ await expect(actor.locator('.care-dust i')).toHaveCount(0)
  await expect(actor.locator('[data-expression=closed]')).toHaveCount(1)
  await expect(actor.locator('.speech')).toContainText(/밥|배|꼬르륵/)
  await page.getByRole('button',{name:'모모 상태 확인'}).click()

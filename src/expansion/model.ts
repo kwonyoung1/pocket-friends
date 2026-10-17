@@ -252,7 +252,7 @@ export function lifeCommand(s: Save, c: LifeCommand, now = Date.now()): string {
     if (f!.growth?.awayJobId || busyLife(f!, now) || f!.interaction?.gesture)
       return '탐험·수면·목욕·교감 중에는 목욕을 시작할 수 없어요.'
     if (l.bathCount >= B.bathsPerDay)
-      return '오늘 목욕은 두 번 모두 했어요. 한국 시간 자정에 다시 만나요.'
+      return '오늘은 충분히 씻었어요! 내일 다시 씻겨 주세요 🛁'
     l.bathCount++
     l.bath = { startedAt: now, endsAt: now + B.bathMs }
     f!.route = []
@@ -418,4 +418,12 @@ export function furnitureDestination(f: Friend, s: Save, now: number) {
         furnitureActivities[p.itemId] ?? '꽃과 예쁜 장식 구경'
     }
   }
+}
+
+// Read-only projection: crossing midnight changes the displayed daily quota,
+// while an existing 30-minute bath continues to its original deadline.
+export function bathStatus(f:Friend,now:number){
+ const used=f.life?.bathDay===dailyKey(now)?f.life.bathCount:0
+ const remaining=Math.max(0,(f.life?.bath?.endsAt??0)-now)
+ return {used,remaining,full:used>=B.bathsPerDay,label:`씻기 (${used}/${B.bathsPerDay})`,time:`${Math.floor(Math.ceil(remaining/1000)/60)}분 ${String(Math.ceil(remaining/1000)%60).padStart(2,'0')}초`}
 }

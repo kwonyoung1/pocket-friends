@@ -7,11 +7,11 @@ export const isSpecialCharacter = (f: Pick<Friend, 'id'>) => f.id === 'special-b
 export const needLabels: Record<Need, string> = { hunger: '음식이 필요해요', hygiene: '목욕이 필요해요', energy: '휴식이 필요해요', cold: '감기약이 필요해요' }
 export function careNeeds(f: Friend): Need[] {
   const needs = (['hunger', 'hygiene', 'energy'] as const).filter(k => f.stats[k] <= 30)
-  return [...needs.sort((a, b) => f.stats[a] - f.stats[b]), ...(f.life?.coldAt ? ['cold' as const] : [])]
+  return [...(f.life?.coldAt!==undefined ? ['cold' as const] : []), ...needs]
 }
 const lines: Record<Need, string[]> = {
-  hunger: ['배고파~', '꼬르륵...', '맛있는 거 없을까?', '밥 먹고 싶어!'],
-  hygiene: ['씻고 싶어~', '몸이 찝찝해...', '목욕할 시간이야!', '깨끗해지고 싶다~'],
+  hunger: ['꼬르륵... 배고파!', '맛있는 거 없을까?', '밥 먹고 싶어~'],
+  hygiene: ['나 씻고 싶어~', '뽀득뽀득 씻을래!', '조금 꼬질꼬질해졌어...'],
   energy: ['졸려...', '조금 쉬고 싶어~', '오늘은 피곤하네.', '잠깐 누워 있을까?'],
   cold: ['에취… 따뜻하게 쉬고 싶어~', '훌쩍… 감기약이 필요해~'],
 }
