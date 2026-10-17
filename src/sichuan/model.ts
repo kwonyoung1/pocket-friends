@@ -1,9 +1,10 @@
+import {kstDateKey as dailyKey} from '../kst.ts'
 import type {Save} from '../game.ts'
 import {world,transact} from '../progression/model.ts'
 import {createBoard,pair,path,reshuffle,rules,stages,random} from './board.ts'
-import {newSichuan,ranking,upgradeCompetition} from './state.ts'
+import {newSichuan,ranking,upgradeCompetition,upgradeDaily} from './state.ts'
 import type {Round,SichuanCommand,SichuanState} from './state.ts'
-export const progress=(s:Save)=>{const p=world(s).sichuan??=newSichuan();upgradeCompetition(p);return p}
+export const progress=(s:Save)=>{const p=world(s).sichuan??=newSichuan();upgradeCompetition(p);upgradeDaily(p);return p}
 function settle(s:Save,r:Round,now:number){
  if(r.status==='settled')return
  r.status='settled';r.endedAt=now;r.reward=r.completed?stages[r.completed-1].reward:0
@@ -16,11 +17,14 @@ function makeRound(mode:Round['mode'],owner:string,nickname:string,now:number,rn
 }
 function record(p:SichuanState,r:Round,now:number){
  r.elapsedMs=Math.max(0,now-r.startedAt);r.endedAt=now;r.status='settled'
+ const entry={playerId:r.owner,nickname:r.nickname,elapsedMs:r.elapsedMs,at:now,sessionId:r.id}
+ // Keep historical all-time bests intact while storing one best per KST day and player.
  const previous=p.bests.find(x=>x.playerId===r.owner)
- if(previous&&previous.elapsedMs<=r.elapsedMs)return
- p.bests=p.bests.filter(x=>x.playerId!==r.owner)
- p.bests.push({playerId:r.owner,nickname:r.nickname,elapsedMs:r.elapsedMs,at:now,sessionId:r.id})
- r.top=ranking(p).some(x=>x.sessionId===r.id)
+ if(!previous||previous.elapsedMs>r.elapsedMs){p.bests=p.bests.filter(x=>x.playerId!==r.owner);p.bests.push({...entry})}
+ upgradeDaily(p)
+ const today=dailyKey(now),daily=p.dailyBests!.find(x=>x.playerId===r.owner&&dailyKey(x.at)===today)
+ if(!daily||daily.elapsedMs>r.elapsedMs){p.dailyBests=p.dailyBests!.filter(x=>x.playerId!==r.owner||dailyKey(x.at)!==today);p.dailyBests.push(entry)}
+ r.top=ranking(p,now).some(x=>x.sessionId===r.id)
 }
 export function sichuanCommand(s:Save,c:SichuanCommand,user:string,now:number,rng=random):string{
  const p=progress(s),before=p.adventure?.status

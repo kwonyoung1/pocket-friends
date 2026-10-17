@@ -80,14 +80,14 @@ it('unlimited 8x8 competition is independent of cooldown, validates nickname and
  for(let i=0;i<5;i++){const id=r.id;sichuanCommand(s,{type:'sichuan-start',mode:'competition',nickname:'새이름'},'pc',at+i,rng());r=progress(s).competitions.pc;expect(r.id).not.toBe(id);expect(r.board.tiles.filter(Boolean)).toHaveLength(64)}
  for(const name of ['a','a'.repeat(13),'ab\nc'])expect(()=>sichuanCommand(s,{type:'sichuan-start',mode:'competition',nickname:name},'other',at)).toThrow()
  expect(formatTime(123456)).toBe('02:03.45')
- const ordered={version:1 as const,nextStartAt:0,competitions:{},bests:[{playerId:'a',nickname:'먼저',elapsedMs:100,at:1,sessionId:'zzz'},{playerId:'b',nickname:'나중',elapsedMs:100,at:1,sessionId:'aaa'}]};expect(ranking(ordered).map(x=>x.playerId)).toEqual(['a','b'])
+ const ordered={version:1 as const,nextStartAt:0,competitions:{},bests:[{playerId:'a',nickname:'먼저',elapsedMs:100,at:1,sessionId:'zzz'},{playerId:'b',nickname:'나중',elapsedMs:100,at:1,sessionId:'aaa'}]};expect(ranking(ordered,1).map(x=>x.playerId)).toEqual(['a','b'])
 })
 it('ranks one best per authenticated player, ties by first finish, slower runs never replace a best',()=>{
  const s=fixture();for(let i=0;i<7;i++){
   const user=`player${i}`;sichuanCommand(s,{type:'sichuan-start',mode:'competition',nickname:`친구${i}`},user,now+i,rng())
   const r=progress(s).competitions[user];r.board={width:2,height:1,tiles:[1,1]};sichuanCommand(s,command(r,'sichuan-match',{a:0,b:1}),user,now+i+5000)
  }
- const p=progress(s);expect(ranking(p).map(r=>r.playerId)).toEqual(['player0','player1','player2','player3','player4'])
+ const p=progress(s);expect(ranking(p,now).map(r=>r.playerId)).toEqual(['player0','player1','player2','player3','player4'])
  sichuanCommand(s,{type:'sichuan-start',mode:'competition',nickname:'바뀐이름'},'player0',now+10000,rng());const r=p.competitions.player0;r.board={width:2,height:1,tiles:[1,1]}
  sichuanCommand(s,command(r,'sichuan-match',{a:0,b:1}),'player0',now+16000);expect(p.bests).toHaveLength(7);expect(p.bests.find(r=>r.playerId==='player0')!.nickname).toBe('친구0')
 })

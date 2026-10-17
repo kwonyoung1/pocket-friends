@@ -5,7 +5,7 @@ import {upgradeRoom} from '../room/migrate.ts'
 import {trade,quantity,tradeLimits} from '../trade/model.ts'
 import {wordCommand,expireWords} from '../words/model.ts'
 import type {WordCommand} from '../words/state.ts'
-import {defaultTaste} from '../adventure/catalog.ts'
+import {resolveTaste} from '../adventure/catalog.ts'
 import { settleCareAlerts } from '../careNeeds.ts'
 import { specialIds } from '../humans/config.ts'
 import { grantSpecialFriends } from '../humans/model.ts'
@@ -189,10 +189,11 @@ export function applyCommand(
     holds = structuredClone(oldHolds)
   upgradeRoom(save)
   world(save,now).careEffectsVersion=1
+  world(save,now).recoveryLearningVersion=1
   if(save.world?.sichuan)sichuanProgress(save)
   for (const f of save.friends) {
     f.stats = decay(f.stats, Math.max(0, now - save.savedAt))
-    f.foodTaste??=defaultTaste(f.id)
+    f.foodTaste=resolveTaste(f.id,f.foodTaste)
     delete f.interaction
   }
   for (const id of Object.keys(holds))

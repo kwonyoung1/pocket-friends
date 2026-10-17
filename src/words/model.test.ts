@@ -10,10 +10,10 @@ const at=Date.parse('2026-10-16T03:00:00Z')
 function fixture(){const s=freshWorld(at);wordCommand(s,{type:'word-start',mode:'reward'},at,()=>.5);return s}
 function current(s:ReturnType<typeof fixture>,type:Exclude<WordCommand['type'],'word-start'|'word-delete'>,answer?:string):Extract<WordCommand,{sessionId:string}>{const r=wordProgress(s).round!;return{type,mode:'reward',sessionId:r.id,wordId:r.questions[r.index].wordId,answer}}
 function solve(s:ReturnType<typeof fixture>,miss=0){const base=wordProgress(s).round!.startedAt;for(let i=0;i<30;i++){const q=wordProgress(s).round!.questions[wordProgress(s).round!.index];wordCommand(s,current(s,i<miss?'word-skip':'word-answer',wordById[q.wordId].acceptedAnswers[0]),base+i+1)}}
-it('ships exactly 390 unique reviewed entries, 130 per level, with complete examples and safe exact Korean variants',()=>{
- expect(wordBankInfo.total).toBe(wordBank.length);expect(wordBankInfo.addedPerLevel).toBe(100)
- expect(wordBank).toHaveLength(390);expect(new Set(wordBank.map(w=>w.word.toLowerCase())).size).toBe(390)
- for(const level of [1,2,3])expect(wordBank.filter(w=>w.level===level)).toHaveLength(130)
+it('ships exactly 690 unique authored entries, 230 per level, with complete examples and safe exact Korean variants',()=>{
+ expect(wordBankInfo.total).toBe(wordBank.length);expect(wordBankInfo.addedPerLevel).toBe(200)
+ expect(wordBank).toHaveLength(690);expect(new Set(wordBank.map(w=>w.word.toLowerCase())).size).toBe(690)
+ for(const level of [1,2,3])expect(wordBank.filter(w=>w.level===level)).toHaveLength(230)
  for(const w of wordBank){expect(w.example.toLowerCase()).toContain(w.word==='begin'?'begin':w.word==='emphasize'?'emphasized':w.word==='establish'?'established':w.word==='sleep'?'sleep':w.word);expect(w.pos.length).toBeGreaterThan(0);expect(w.hint).toMatch(/[ㄱ-ㅎ]/);expect(w.meanings.length).toBeGreaterThan(0)}
  const run=wordById['word-run'];for(const a of [' 달리다! ','뛰다','운영하다','작동하다'])expect(accepts(run,a)).toBe(true)
  expect(accepts(wordById['word-discover'],'발견 해요.')).toBe(true)
@@ -22,15 +22,15 @@ it('ships exactly 390 unique reviewed entries, 130 per level, with complete exam
 })
 it('has three ten-question stages without duplicates, exhausts unseen pools first and avoids the previous round',()=>{
  const s=fixture(),seen=new Set<string>();let previous:string[]=[]
- for(let game=0;game<14;game++){
+ for(let game=0;game<24;game++){
   if(game)wordCommand(s,{type:'word-start',mode:'reward'},at+game*wordCooldownMs,()=>.5)
   const r=wordProgress(s).round!,ids=r.questions.map(q=>q.wordId)
   expect(new Set(ids).size).toBe(30);expect(ids.some(id=>previous.includes(id))).toBe(false)
   r.questions.forEach((q,i)=>expect(q.level).toBe(Math.floor(i/10)+1))
-  if(game<13)ids.forEach(id=>{expect(seen.has(id)).toBe(false);seen.add(id)})
+  if(game<23)ids.forEach(id=>{expect(seen.has(id)).toBe(false);seen.add(id)})
   previous=ids;solve(s)
  }
- expect(seen.size).toBe(390)
+ expect(seen.size).toBe(690)
 })
 it('grades once across answer, reveal, skip and next actions, ignores stale question IDs and blank input',()=>{
  const s=fixture(),r=wordProgress(s).round!,q=r.questions[0],base=current(s,'word-answer','')

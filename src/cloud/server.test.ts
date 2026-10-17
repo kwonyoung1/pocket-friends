@@ -33,7 +33,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 8 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 9 }),
     }),
   )
 }
@@ -714,5 +714,33 @@ describe.sequential('four baths and one competition shuffle with durable concurr
   at+=1000;expect((await command(pc,{...c,turn:r.turn})).response.status).toBe(400)
   const stale=new Request('https://project.supabase.co/functions/v1/game',{method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${pc}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:7,command:{type:'refresh'}})})
   expect((await handler(stale)).status).toBe(409);expect((await repo.load()).data!.world!.sichuan!.bests).toEqual([])
+ })
+})
+
+describe.sequential('daily ranking and recovery foods on durable shared storage',()=>{
+ it('settles food use once under concurrent retries and rejects version-eight writers',async()=>{
+  await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'})
+  let data=(await repo.load()).data!;data.world!.coins=5000;data.friends[0].stats.energy=10;data.friends[0].stats.hunger=10;data.friends[0].foodTaste={like:'banana-smoothie',dislike:'bread'};data.friends[0].photo='data:image/png;base64,AAAA'
+  await db.query("update game_worlds set data=$1::jsonb where id='home'",[JSON.stringify(data)])
+  const purchase={type:'buy-many',id:'banana-smoothie',quantity:3},buyOp=crypto.randomUUID()
+  await Promise.all([command(pc,purchase,buyOp),command(pc,purchase,buyOp)])
+  const use={type:'use',id:'banana-smoothie',friendId:'momo'},useOp=crypto.randomUUID()
+  await Promise.all([command(pc,use,useOp),command(pc,use,useOp)]);await command(pc,use,useOp)
+  data=(await repo.load()).data!;expect(data.world!.coins).toBe(4460);expect(data.world!.inventory['banana-smoothie']).toBe(2);expect(data.friends[0].stats.energy).toBe(48);expect(data.friends[0].stats.hunger).toBe(40);expect(data.friends[0].photo).toBe('data:image/png;base64,AAAA')
+  const before=await repo.load();const stale=new Request('https://project.supabase.co/functions/v1/game',{method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${mobile}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:8,command:{type:'refresh'}})})
+  expect((await handler(stale)).status).toBe(409);expect(await repo.load()).toEqual(before)
+ })
+ it('uses server completion date across midnight, preserves yesterday and ignores forged client clocks',async()=>{
+  await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'})
+  const midnight=Date.parse('2026-10-15T15:00:00Z');at=midnight-2000
+  await command(pc,{type:'sichuan-start',mode:'competition',nickname:'서버친구',now:midnight+86400000})
+  let data=(await repo.load()).data!,r=data.world!.sichuan!.competitions[pc]
+  r.board.tiles=r.board.tiles.map((_,i)=>i<2?1:0);data.world!.sichuan!.bests=[{playerId:pc,nickname:'어제친구',elapsedMs:500,at:midnight-10000,sessionId:'yesterday'}];data.world!.sichuan!.dailyBests=structuredClone(data.world!.sichuan!.bests)
+  await db.query("update game_worlds set data=$1::jsonb where id='home'",[JSON.stringify(data)])
+  at=midnight+1000;const c={type:'sichuan-match',mode:'competition',sessionId:r.id,turn:r.turn,a:0,b:1,now:midnight-1000},op=crypto.randomUUID()
+  await command(pc,c,op);await command(pc,c,op);await command(mobile,{type:'refresh',now:midnight-86400000})
+  data=(await repo.load()).data!;const {ranking}=await import('../sichuan/state')
+  expect(data.world!.sichuan!.dailyBests).toHaveLength(2);expect(ranking(data.world!.sichuan!,at)[0]).toMatchObject({nickname:'서버친구',elapsedMs:3000,at:midnight+1000});expect(data.world!.sichuan!.bests[0].nickname).toBe('어제친구')
+  expect(data.world!.coins).toBe(300);expect(ranking(data.world!.sichuan!,midnight+86400000)).toEqual([])
  })
 })

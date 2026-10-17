@@ -1,3 +1,4 @@
+import {recoveryRows} from './recoveryRows.ts'
 import {additionalRows} from './additional.ts'
 // Original, manually reviewed starter set. Approximate learner levels, not an official school list.
 // Meanings, answer variants and example sentences were authored for this project; no scraped dictionary.
@@ -97,7 +98,7 @@ const rows = [
 `nevertheless|부사|그럼에도 불구하고,그렇지만|It was raining; nevertheless, we went outside.`,
 ]
 const initials='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'
-const entries=rows.map((row,i)=>({row,level:Math.floor(i/30)+1})).concat(additionalRows.flatMap((group,i)=>group.map(row=>({row,level:i+1}))))
+const entries=rows.map((row,i)=>({row,level:Math.floor(i/30)+1})).concat([...additionalRows.map((group,i)=>group.map(row=>({row,level:i+1}))),...recoveryRows.map((group,i)=>group.map(row=>({row,level:i+1})))].flat())
 export const wordBank: Word[] = entries.map(({row,level})=>{
  const [word,pos,answers,example]=row.split('|'),acceptedAnswers=answers.split(',')
  return {id:`word-${word.toLowerCase()}`,word,pos,meanings:acceptedAnswers,acceptedAnswers,example,level:level as 1|2|3,hint:[...acceptedAnswers[0]].filter(c=>c!==' ').slice(0,2).map(c=>{const n=c.charCodeAt(0)-0xac00;return n>=0&&n<11172?initials[Math.floor(n/588)]:c}).join('')}

@@ -5,6 +5,8 @@ import type { CloudRepository } from '../src/cloud/server'
 import type { ServerWorld } from '../src/cloud/protocol'
 export const test = base.extend<{
   backend: {
+    setTime: (at:number) => void
+    seedRanking: () => void
     secret: string
     attach: (context: BrowserContext) => Promise<void>
     row: () => ServerWorld
@@ -12,9 +14,10 @@ export const test = base.extend<{
   }
 }>({
   backend: async ({ context }, use) => {
+    let timeOffset=0
     const clockStarted = Date.now(),
       epoch = Date.parse('2026-10-15T03:00:00Z'),
-      now = () => epoch + Date.now() - clockStarted
+      now = () => epoch + Date.now() - clockStarted + timeOffset
     const secret = crypto.randomUUID(),
       members = new Set<string>()
     let row: ServerWorld = {
@@ -139,6 +142,8 @@ export const test = base.extend<{
     await attach(context)
     await use({
       secret,
+      setTime: (at:number) => {timeOffset=at-(epoch+Date.now()-clockStarted)},
+      seedRanking: () => {if(!row.data)throw Error('Initialize test world first');row.data.world!.sichuan={version:1,nextStartAt:0,competitions:{},bests:[{playerId:'test-player',nickname:'오늘친구',elapsedMs:1234,at:now(),sessionId:'test-record'}]};row.revision++},
       attach,
       row: () => structuredClone(row),
       loseNextBuyResponse: () => {

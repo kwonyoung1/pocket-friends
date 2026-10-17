@@ -130,7 +130,7 @@ export function createGameHandler(options: {
         )
       )
         return reply({ error: '올바른 작업 번호가 필요해요.' }, 400)
-      if (![2,3,4,5,6,7,8].includes(body.clientVersion) && (await db.load()).data?.world?.expansion)
+      if (![2,3,4,5,6,7,8,9].includes(body.clientVersion) && (await db.load()).data?.world?.expansion)
         return reply(
           {
             error: '게임이 업데이트되었어요. 새로고침 후 다시 시도해 주세요.',
@@ -138,12 +138,13 @@ export function createGameHandler(options: {
           },
           409,
         )
-      if(![3,4,5,6,7,8].includes(body.clientVersion)&&(await db.load()).data?.world?.specialFriendsVersion)return reply({error:'새 특별 친구가 왔어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
-      if (![4,5,6,7,8].includes(body.clientVersion) && (await db.load()).data?.world?.careRulesVersion) return reply({ error: '돌봄 규칙이 업데이트되었어요. 새로고침해 주세요.', rejected: true }, 409)
-      if(![5,6,7,8].includes(body.clientVersion)&&(await db.load()).data?.world?.adventureVersion)return reply({error:'새 탐험과 영단어 게임이 업데이트되었어요. 새로고침해 주세요.',rejected:true},409)
-      if(![6,7,8].includes(body.clientVersion)&&(await db.load()).data?.world?.roomVersion)return reply({error:'방과 거래 기능이 업데이트되었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
-      if(![7,8].includes(body.clientVersion)&&(await db.load()).data?.world?.sichuan)return reply({error:'사천성이 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
-      if(body.clientVersion!==8&&(await db.load()).data?.world?.careEffectsVersion)return reply({error:'돌봄과 사천성 규칙이 바뀌었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
+      if(![3,4,5,6,7,8,9].includes(body.clientVersion)&&(await db.load()).data?.world?.specialFriendsVersion)return reply({error:'새 특별 친구가 왔어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
+      if (![4,5,6,7,8,9].includes(body.clientVersion) && (await db.load()).data?.world?.careRulesVersion) return reply({ error: '돌봄 규칙이 업데이트되었어요. 새로고침해 주세요.', rejected: true }, 409)
+      if(![5,6,7,8,9].includes(body.clientVersion)&&(await db.load()).data?.world?.adventureVersion)return reply({error:'새 탐험과 영단어 게임이 업데이트되었어요. 새로고침해 주세요.',rejected:true},409)
+      if(![6,7,8,9].includes(body.clientVersion)&&(await db.load()).data?.world?.roomVersion)return reply({error:'방과 거래 기능이 업데이트되었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
+      if(![7,8,9].includes(body.clientVersion)&&(await db.load()).data?.world?.sichuan)return reply({error:'사천성이 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
+      if(![8,9].includes(body.clientVersion)&&(await db.load()).data?.world?.careEffectsVersion)return reply({error:'돌봄과 사천성 규칙이 바뀌었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
+      if(body.clientVersion!==9&&(await db.load()).data?.world?.recoveryLearningVersion)return reply({error:'음식과 일일 랭킹이 업데이트되었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
       // Receipt lookup happens before evaluating a consumed hold or an already-imported world.
       const receipt = await db.commit(
         user,

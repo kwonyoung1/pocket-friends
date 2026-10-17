@@ -1,7 +1,7 @@
 import {settleEmotions,migrateEmotion} from './emotions/model.ts'
 import {roomScale} from './room/config.ts'
 import {upgradeRoom} from './room/migrate.ts'
-import { defaultTaste, restCooldownMs } from './adventure/catalog.ts'
+import { defaultTaste, resolveTaste, restCooldownMs } from './adventure/catalog.ts'
 import { careAlertMs, careNeeds, careSpeed, isSpecialCharacter, needLine, specialAmbient } from './careNeeds.ts'
 import { specialIds, humanLine } from './humans/config.ts'
 import { makeSpecialFriend } from './humans/model.ts'
@@ -154,7 +154,7 @@ export function parseSave(raw: string, now = Date.now()): Save {
     if (!old?.stats || !Object.keys(f.stats).every(k => typeof old.stats[k as keyof Stats] === 'number' && Number.isFinite(old.stats[k as keyof Stats]))) throw Error('손상된 상태 데이터')
     if (typeof old.name === 'string' && old.name.trim()) f.name = old.name.slice(0, 30)
     if (old.facing === -1) f.facing = -1
-    f.foodTaste = old.foodTaste && typeof old.foodTaste.like==='string' && typeof old.foodTaste.dislike==='string' && old.foodTaste.like!=='snack' && old.foodTaste.dislike!=='snack' && old.foodTaste.like!==old.foodTaste.dislike ? {...old.foodTaste} : defaultTaste(f.id)
+    f.foodTaste = resolveTaste(f.id, old.foodTaste && typeof old.foodTaste.like==='string' && typeof old.foodTaste.dislike==='string' && old.foodTaste.like!=='snack' && old.foodTaste.dislike!=='snack' && old.foodTaste.like!==old.foodTaste.dislike ? {...old.foodTaste} : defaultTaste(f.id))
     if(Number.isFinite(old.lastRestRewardAt)) f.lastRestRewardAt=old.lastRestRewardAt
     if (Number.isFinite(old.careAfter)) f.careAfter = old.careAfter
     if (Number.isFinite(old.nextSpeech)) f.nextSpeech = old.nextSpeech

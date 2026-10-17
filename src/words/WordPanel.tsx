@@ -17,7 +17,7 @@ export function WordPanel({save,command,busy,changed,notify,now}:{save:Save;comm
  async function run(c:WordCommand){if(blocked||sending.current)return;sending.current=true;setWorking(true);setError('');try{if(command)await command(c);else if(import.meta.env.DEV){const {wordCommand}=await import('./model');notify(wordCommand(save,c,Date.now()));changed()}}catch{setError('연결을 확인하고 같은 작업을 다시 시도해 주세요.')}finally{sending.current=false;setWorking(false)}}
  const current=(type:Exclude<WordCommand['type'],'word-start'|'word-delete'>,extra?:{answer:string})=>{if(!r||!q)return;void run({type,mode:'reward',sessionId:r.id,wordId:q.wordId,...extra})}
  return <section className="word-expedition" aria-label="영단어 탐험 게임">
-  <div className="word-intro"><span>📚</span><div><h3>단어 하나, 작은 모험 하나.</h3><p>등록 단어 {wordBankInfo.total}개 · 난이도별 {30+wordBankInfo.addedPerLevel}개<br/>신규 {wordBankInfo.addedPerLevel}개씩 추가 · 공식 교육과정 목록은 아니에요.</p></div></div>
+  <div className="word-intro"><span>📚</span><div><h3>단어 하나, 작은 모험 하나.</h3><p>등록 단어 {wordBankInfo.total}개 · 난이도별 {30+wordBankInfo.addedPerLevel}개<br/>목표 5,000개 중 {wordBankInfo.total}개 · 공식 교육과정 목록은 아니에요.</p></div></div>
   <div className="word-tabs"><button onClick={()=>setMode('reward')} aria-pressed={mode==='reward'}>보상 탐험</button><button onClick={()=>setMode('notebook')} aria-pressed={mode==='notebook'}>오답 노트 ({Object.keys(p.mistakes).length})</button></div>
   {mode==='notebook'?<Notebook progress={p} run={run} blocked={blocked}/>:<>
   <p className="word-cooldown" data-testid="word-cooldown">{at<p.nextStartAt?`다음 보상 탐험: ${left(p.nextStartAt-at)} 후`:'보상 탐험 시작 가능!'}</p>
