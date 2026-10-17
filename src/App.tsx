@@ -1,3 +1,4 @@
+import {SichuanPanel} from './sichuan/Panel'
 import {room,leftPercent,topPercent} from './room/config'
 import {upgradeRoom} from './room/migrate'
 import {defaultTaste} from './adventure/catalog'
@@ -64,6 +65,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
   const [, render] = useState(0)
   const [selected, setSelected] = useState('momo')
   const [notice, setNotice] = useState(initial.warning)
+  const [sichuanOpen,setSichuanOpen]=useState(false)
   const [lifeOpen,setLifeOpen]=useState(false)
   const [careOpen,setCareOpen]=useState(false)
   const [draft,setDraft]=useState<Draft|null>(null)
@@ -253,7 +255,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
     <main id="home">
       <section className="intro"><div><div className="eyebrow"><span /> LITTLE FRIENDS, LITTLE HAPPINESS</div><h1>오늘도 함께라서, <span>포근한 하루.</span></h1><p>작은 친구들의 일상에 당신의 다정함을 더해 주세요.</p></div><div className="today"><Sun size={29} strokeWidth={1.4} /><div><strong>{new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })}</strong><span>우리 집은 언제나 맑음</span></div></div></section>
       {storageError && <div className="storage-warning" role="alert">일부 저장소에 저장하지 못했어요. 저장 공간과 사이트 권한을 확인하고, 아래 ‘추억 보관’으로 데이터를 백업해 주세요.</div>}
-      <nav className="adventure-nav" aria-label="성장과 모험 메뉴">{menus.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} onClick={() => { setMenu(id); }}><Icon size={17} /><span>{label}</span>{id === 'inventory' && <small>{Object.values(world(model.current).inventory).reduce((s, n) => s + n, 0)}</small>}</button>)}<button className="life-nav-button" onClick={()=>setLifeOpen(true)}>생활·입양</button></nav>
+      <nav className="adventure-nav" aria-label="성장과 모험 메뉴">{menus.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} onClick={() => { setMenu(id); }}><Icon size={17} /><span>{label}</span>{id === 'inventory' && <small>{Object.values(world(model.current).inventory).reduce((s, n) => s + n, 0)}</small>}</button>)}<button onClick={()=>setSichuanOpen(true)}>사천성</button><button className="life-nav-button" onClick={()=>setLifeOpen(true)}>생활·입양</button></nav>
       <div className="game-layout">
         <section className="room-panel" aria-label="친구들이 생활하는 방"><div className="room-toolbar"><div><span className="live-dot" /><strong>우리의 거실</strong><span className="room-caption">작은 발걸음으로 채워지는 공간</span></div><span className="friend-count"><PawPrint size={14} /> {friends.length}명의 친구</span></div>
           <div className="room-viewport" ref={roomCamera} role="region" aria-label="확장된 방 카메라" tabIndex={0}><div className="room" data-world-width={room.width} data-world-height={room.height} data-night={(Date.now()/3600000+9)%24>=20||(Date.now()/3600000+9)%24<6}><RoomArt /><RoomExtras save={model.current} draft={draft} setDraft={setDraft} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/><div className="room-label"><Sun size={13} /> 햇살 가득한 오후</div>
@@ -288,6 +290,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
     <input className="sr-only" ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" aria-label="캐릭터 사진 선택" onChange={chooseFile} />
     <input className="sr-only" ref={restoreRef} type="file" accept="application/json,.json" aria-label="게임 백업 선택" onChange={chooseBackup} />
     {notice && <div className="toast" role="status"><Heart size={16} />{notice}<button aria-label="알림 닫기" onClick={() => setNotice('')}><X size={14} /></button></div>}
+    {sichuanOpen&&<SichuanPanel save={model.current} cloud={cloud} changed={persist} close={()=>setSichuanOpen(false)}/>}
     {menu && <GameMenu now={cloud?.now} onPlace={itemId=>{setDraft({itemId,x:530,y:390});setMenu(null);document.querySelector('.room')?.scrollIntoView({block:'center',behavior:'smooth'})}} key={menu} save={model.current} tab={menu} close={() => setMenu(null)} selected={selected} select={setSelected} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy} />}
     {restore && <div className="modal-backdrop restore-backdrop"><div className="photo-modal" role="dialog" aria-modal="true" aria-label="백업 복원 확인"><h2>이 추억으로 돌아갈까요?</h2><p>친구 {restore.friends.length}명 · {world(restore).coins}코인<br />현재 게임을 별도로 백업한 다음 이 파일로 바꿔요.</p><button className="primary-button" disabled={restoring} onClick={confirmRestore}>{restoring ? '백업하고 복원하는 중…' : '현재 게임 백업 후 복원'}</button><button className="restore-cancel" disabled={restoring} onClick={() => setRestore(null)}>취소</button></div></div>}
     {lifeOpen&&<LifePanel key={friend.id} save={model.current} friend={friend} close={()=>setLifeOpen(false)} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/>}

@@ -286,3 +286,34 @@ test('bulk purchases and sales synchronize and a failed notebook deletion stays 
   expect(backend.row().data!.world!.coins).toBe(4950);expect(backend.row().data!.world!.trades).toHaveLength(2);expect(backend.row().data!.world!.words!.removals).toHaveLength(1);expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw)
  }finally{await phone.close()}
 })
+
+test('Sichuan exploration board and hints sync between devices, competition stays independent, old browser data stays intact',async({page,backend,browser})=>{
+ const original=JSON.stringify(freshWorld(Date.now()));await page.addInitScript(raw=>localStorage.setItem('pocket-friends-v1',raw),original)
+ await fresh(page,backend.secret);await menu(page,'사천성');await page.getByRole('button',{name:'사천성 탐험 시작'}).click()
+ await expect(page.locator('.sichuan-board button')).toHaveCount(18);await expect(page.getByRole('button',{name:'힌트 (3/3)'})).toBeEnabled()
+ const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone);const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(second,'사천성')
+ await expect(second.locator('.sichuan-board button')).toHaveCount(18)
+ expect(await second.locator('.sichuan-board button').evaluateAll(ns=>ns.map(n=>n.getAttribute('data-tile')))).toEqual(backend.row().data!.world!.sichuan!.adventure!.board.tiles.map(String))
+ await second.getByRole('button',{name:'힌트 (3/3)'}).click();await expect(second.locator('.sichuan-board .hint')).toHaveCount(2)
+ await page.getByRole('button',{name:'사천성 닫기'}).click();await page.getByRole('button',{name:'새로 동기화',exact:true}).click();await menu(page,'사천성');await expect(page.locator('.sichuan-board .hint')).toHaveCount(2)
+ await second.getByRole('button',{name:'경쟁모드',exact:true}).click();await second.getByRole('button',{name:'경쟁 시작',exact:true}).click();await expect(second.locator('.sichuan-board button')).toHaveCount(64)
+ await page.getByRole('button',{name:'그만하기',exact:true}).click();await page.getByRole('button',{name:'종료 확정'}).click();await expect(page.getByTestId('sichuan-reward')).toContainText('0코인');await expect(page.getByRole('button',{name:'사천성 탐험 시작'})).toBeDisabled()
+ await second.getByRole('button',{name:'새 보드로 다시 시작'}).click();await second.getByRole('button',{name:'종료 확정'}).click();await expect(second.locator('.sichuan-board button')).toHaveCount(64)
+ await page.reload();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(page,'사천성');await expect(page.getByRole('button',{name:'사천성 탐험 시작'})).toBeDisabled()
+ expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(original);expect(backend.row().data!.world!.coins).toBe(300);await phone.close()
+})
+
+test('Sichuan competition verifies every move on the server and shares one frozen TOP 5 record',async({page,backend})=>{
+ test.setTimeout(90000)
+ const {pair}=await import('../src/sichuan/board')
+ await fresh(page,backend.secret);await menu(page,'사천성');await page.getByRole('button',{name:'경쟁모드',exact:true}).click();await page.getByLabel('사천성 닉네임').fill('정원친구');await page.getByRole('button',{name:'경쟁 시작',exact:true}).click()
+ for(let i=0;i<32;i++){
+  const r=Object.values(backend.row().data!.world!.sichuan!.competitions)[0],found=pair(r.board)!
+  const a=page.locator(`.sichuan-board button[data-index="${found[0]}"]`),b=page.locator(`.sichuan-board button[data-index="${found[1]}"]`)
+  await expect(a).toBeEnabled();await a.click();await b.click()
+  await expect.poll(()=>Object.values(backend.row().data!.world!.sichuan!.competitions)[0].board.tiles.filter(Boolean).length).toBe(64-(i+1)*2)
+ }
+ await expect(page.getByText('🎉 경쟁모드 완료!')).toBeVisible();const records=backend.row().data!.world!.sichuan!.bests
+ expect(records).toHaveLength(1);expect(records[0].nickname).toBe('정원친구');expect(records[0].elapsedMs).toBeGreaterThan(0);expect(backend.row().data!.world!.coins).toBe(300)
+ await page.reload();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(page,'사천성');await expect(page.getByRole('region',{name:'사천성 TOP 5'})).toContainText('정원친구');expect(backend.row().data!.world!.sichuan!.bests).toEqual(records)
+})

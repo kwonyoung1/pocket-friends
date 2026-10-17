@@ -19,6 +19,7 @@ export class CloudClient {
   private serverAt = 0
   private receivedAt = 0
   now = () => this.serverAt + (performance.now() - this.receivedAt)
+  playerId = ''
   readonly sdk: SupabaseClient
   constructor(private url: string, private key: string) {
     this.sdk = createClient(url, key, { auth: { storageKey: 'pocket-friends-cloud-auth', persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
@@ -32,10 +33,11 @@ export class CloudClient {
   private accept(row: WorldRow) { if (!this.state.row || row.revision >= this.state.row.revision) this.update({ row }) }
   private async request(body: unknown): Promise<{ row: WorldRow; message?: string }> {
     const { data: { session } } = await this.sdk.auth.getSession()
+    if(session)this.playerId=session.user.id
     if (!session) { this.update({ phase: 'login' }); throw Error('다시 로그인해 주세요.') }
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000)
     try {
-      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 6 }), signal: controller.signal })
+      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 7 }), signal: controller.signal })
       const result = await response.json()
       if (Number.isFinite(result.serverTime)) { this.serverAt = result.serverTime; this.receivedAt = performance.now() }
       if (!response.ok) {

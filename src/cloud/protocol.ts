@@ -1,6 +1,7 @@
 import type { LifeCommand } from '../expansion/model.ts'
 import type { Save } from '../game.ts'
 export type GameCommand =
+  | import('../sichuan/state.ts').SichuanCommand
   | import('../words/state.ts').WordCommand
   | import('../trade/model.ts').TradeCommand
   | LifeCommand
@@ -28,6 +29,7 @@ export type Holds = Record<
 export type ServerWorld = WorldRow & { holds: Holds }
 export type CommandResult = { row: WorldRow; message: string }
 export type CloudGame = {
+  playerId?: string
   now: () => number
   row: WorldRow
   busy: boolean
