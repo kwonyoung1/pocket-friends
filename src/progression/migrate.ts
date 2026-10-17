@@ -1,3 +1,4 @@
+import {migrateSichuan} from '../sichuan/state.ts'
 import { migrateWords } from '../words/state.ts'
 import { specialIds } from '../humans/config.ts'
 import { migrateExpansion, migrateLife } from '../expansion/migrate.ts'
@@ -61,6 +62,7 @@ export function migrateWorld(raw: unknown, now: number): World {
   if(r.roomVersion===undefined)delete w.roomVersion
   if(r.roomVersion!==undefined){if(r.roomVersion!==1)throw Error('지원하지 않는 방 버전');w.roomVersion=1}
   w.words=migrateWords(r.words)
+  w.sichuan=migrateSichuan(r.sichuan)
   if (r.careRulesVersion !== undefined) { if (r.careRulesVersion !== 1) throw Error('지원하지 않는 돌봄 규칙'); w.careRulesVersion = 1 }
   if(r.specialFriendsVersion!==undefined){if(r.specialFriendsVersion!==1)throw Error('지원하지 않는 특별 친구 저장 형식');w.specialFriendsVersion=1}
   w.expansion=migrateExpansion(r.expansion)

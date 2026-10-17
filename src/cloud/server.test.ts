@@ -1,3 +1,4 @@
+import {pair} from '../sichuan/board'
 import { beforeAll, afterAll, describe, it, expect } from 'vitest'
 import { PGlite } from '@electric-sql/pglite'
 import { readFileSync } from 'node:fs'
@@ -32,7 +33,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 6 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 7 }),
     }),
   )
 }
@@ -648,5 +649,45 @@ describe.sequential('bulk transactions, notebook edits and room backup',()=>{
   const answer={type:'word-answer',mode:'reward',sessionId:r.id,wordId:q.wordId,answer:w.acceptedAnswers[0]}
   await Promise.all([command(pc,answer),command(mobile,{type:'word-delete',ids:[q.wordId]})]);const final=(await repo.load()).data!.world!
   expect(final.words!.mistakes[q.wordId]).toBeUndefined();expect(final.words!.round!.questions[0].status).toBe('correct');expect(final.coins).toBe(300);expect(final.words!.previous).toEqual(r.questions.map(q=>q.wordId));expect((await db.query('select * from game_room_backups')).rows).toHaveLength(1)
+ })
+})
+
+
+describe.sequential('Sichuan authoritative shared sessions and verified ranking',()=>{
+ it('serializes matches across devices, retries exactly once, and preserves the old world',async()=>{
+  await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'})
+  const old=(await repo.load()).data!
+  await command(pc,{type:'sichuan-start',mode:'adventure',startedAt:now+999999999})
+  let row=await repo.load(),r=row.data!.world!.sichuan!.adventure!
+  expect(r.startedAt).toBe(now);expect(row.data!.world!.sichuan!.nextStartAt).toBe(now+3600000)
+  expect((await command(mobile,{type:'sichuan-start',mode:'adventure'})).response.status).toBe(400)
+  const found=pair(r.board)!,c={type:'sichuan-match',mode:'adventure',sessionId:r.id,turn:r.turn,a:found[0],b:found[1]},op=crypto.randomUUID()
+  await Promise.all([command(pc,c,op),command(mobile,c)]);await command(pc,c,op)
+  row=await repo.load();r=row.data!.world!.sichuan!.adventure!;expect(r.board.tiles.filter(Boolean)).toHaveLength(16);expect(r.turn).toBe(1)
+  expect(row.data!.world!.coins).toBe(old.world!.coins);expect(row.data!.world!.inventory).toEqual(old.world!.inventory);expect(row.data!.friends.map(f=>f.id)).toEqual(old.friends.map(f=>f.id))
+  const stale=new Request('https://project.supabase.co/functions/v1/game',{method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${pc}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:6,command:{type:'refresh'}})})
+  expect((await handler(stale)).status).toBe(409)
+ })
+ it('settles a completed stage exactly once under two devices, timeouts and operation retries',async()=>{
+  await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'});await command(pc,{type:'sichuan-start',mode:'adventure'})
+  let data=(await repo.load()).data!,r=data.world!.sichuan!.adventure!
+  r.board.tiles=r.board.tiles.map((_,i)=>i<2?1:0)
+  await db.query("update game_worlds set data=$1::jsonb where id='home'",[JSON.stringify(data)])
+  await command(pc,{type:'sichuan-match',mode:'adventure',sessionId:r.id,turn:0,a:0,b:1});r=(await repo.load()).data!.world!.sichuan!.adventure!
+  const stop={type:'sichuan-stop',mode:'adventure',sessionId:r.id,turn:r.turn},op=crypto.randomUUID()
+  await Promise.all([command(pc,stop,op),command(mobile,stop)]);await command(pc,stop,op);at+=86400000;await command(mobile,{type:'refresh'})
+  data=(await repo.load()).data!;expect(data.world!.coins).toBe(360);expect(data.world!.ledger.filter(x=>x.reason==='사천성 탐험 정산')).toHaveLength(1)
+ })
+ it('accepts only server-validated finishes for the authenticated competitor, ignores supplied times, keeps one personal best',async()=>{
+  await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'});await command(pc,{type:'sichuan-start',mode:'competition',nickname:'영이'})
+  let data=(await repo.load()).data!,r=data.world!.sichuan!.competitions[pc]
+  expect((await command(mobile,{type:'sichuan-match',mode:'competition',sessionId:r.id,turn:0,a:0,b:1,elapsedMs:1})).response.status).toBe(400)
+  r.board.tiles=r.board.tiles.map((_,i)=>i<2?1:0);await db.query("update game_worlds set data=$1::jsonb where id='home'",[JSON.stringify(data)])
+  at=now+5432;const c={type:'sichuan-match',mode:'competition',sessionId:r.id,turn:0,a:0,b:1,elapsedMs:1,playerId:mobile},op=crypto.randomUUID()
+  await command(pc,c,op);await command(pc,c,op);data=(await repo.load()).data!;expect(data.world!.sichuan!.bests).toHaveLength(1);expect(data.world!.sichuan!.bests[0]).toMatchObject({playerId:pc,elapsedMs:5432});expect(data.world!.coins).toBe(300)
+  at+=100000;await command(pc,{type:'refresh'});expect((await repo.load()).data!.world!.sichuan!.bests[0].elapsedMs).toBe(5432)
+  // An active exploration that expires on a later request still settles its last clear.
+  await command(pc,{type:'sichuan-start',mode:'adventure'});data=(await repo.load()).data!;r=data.world!.sichuan!.adventure!;r.completed=3;r.stage=4;r.stageEndsAt=at+1000
+  await db.query("update game_worlds set data=$1::jsonb where id='home'",[JSON.stringify(data)]);at+=1000;await command(mobile,{type:'refresh'});expect((await repo.load()).data!.world!.coins).toBe(600)
  })
 })

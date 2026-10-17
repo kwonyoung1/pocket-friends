@@ -5,7 +5,9 @@ React 19 + TypeScript + Vite를 사용합니다. 개발 서버의 로컬 모드�
 
 [업데이트 PC 화면](docs/screenshots/life-expansion-desktop.png) · [업데이트 모바일 화면](docs/screenshots/life-expansion-mobile.png)
 
-**최신 업데이트: [다중 구매·일괄 판매·오답 노트·방 면적 1.5배 배포 안내](docs/WIDE_UPDATE.md). 기존90개에 난이도별100개씩 추가하여 단어는390개입니다. 추가 SQL 한 개 적용 후 서버 → 화면 순서로 배포합니다. [검증 보고서](docs/WIDE_VERIFICATION.md)**
+**최신 업데이트: [사천성 탐험·경쟁·자동 섞기 배포 안내](docs/SICHUAN_UPDATE.md). 기존 데이터를 유지하며 새 SQL은 없습니다. 서버를 기능 브랜치로 먼저 배포하고 PR을 병합하세요. [검증 보고서](docs/SICHUAN_VERIFICATION.md)**
+
+**이전 업데이트: [다중 구매·일괄 판매·오답 노트·방 면적 1.5배 배포 안내](docs/WIDE_UPDATE.md). 기존90개에 난이도별100개씩 추가하여 단어는390개입니다. 추가 SQL 한 개 적용 후 서버 → 화면 순서로 배포합니다. [검증 보고서](docs/WIDE_VERIFICATION.md)**
 
 ![포켓프렌즈 PC 게임 화면](docs/screenshots/desktop.png)
 

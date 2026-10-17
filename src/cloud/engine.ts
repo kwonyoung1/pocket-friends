@@ -1,3 +1,5 @@
+import {sichuanCommand,expireSichuan} from '../sichuan/model.ts'
+import type {SichuanCommand} from '../sichuan/state.ts'
 import {upgradeRoom} from '../room/migrate.ts'
 import {trade,quantity,tradeLimits} from '../trade/model.ts'
 import {wordCommand,expireWords} from '../words/model.ts'
@@ -47,6 +49,9 @@ export function validateCommand(value: unknown): GameCommand {
   if ('friendId' in c && !friendIds.includes(String(c.friendId)))
     throw Error('친구를 선택해 주세요.')
   switch (c.type) {
+    case 'sichuan-start': case 'sichuan-match': case 'sichuan-hint': case 'sichuan-shuffle': case 'sichuan-next': case 'sichuan-stop':
+      if(!['adventure','competition'].includes(String(c.mode))||(c.type==='sichuan-start'?(c.nickname!==undefined&&(typeof c.nickname!=='string'||c.nickname.length>48)):(!string(c.sessionId,36)||!Number.isSafeInteger(c.turn)||Number(c.turn)<0))||(c.type==='sichuan-match'&&(!Number.isInteger(c.a)||!Number.isInteger(c.b)||Number(c.a)<0||Number(c.b)<0||Number(c.a)>119||Number(c.b)>119)))throw Error('사천성 조작 정보를 확인해 주세요.')
+      break
     case 'buy-many':
       if(!string(c.id)||!quantity(c.quantity))throw Error('구매 수량은 1~10,000 사이 정수여야 해요.')
       break
@@ -168,6 +173,8 @@ export function importWorld(value: unknown, now: number): Save {
   // Migration is a one-time, explicitly selected trust boundary; never merge economies.
   const s = parseSave(raw, now)
   s.savedAt = now
+  // Imported local records cannot seed a public ranking or claim server rewards.
+  if(s.world)delete s.world.sichuan
   return s
 }
 export function applyCommand(
@@ -188,6 +195,7 @@ export function applyCommand(
   for (const id of Object.keys(holds))
     if (now - holds[id].at > 60000) delete holds[id]
   expireWords(save,now)
+  expireSichuan(save,now)
   settleLife(save, now)
   attachNavigation(save)
   const returns = completeExpeditions(save, now)
@@ -199,6 +207,7 @@ export function applyCommand(
   if ('friendId' in c && !f) throw Error('아직 함께 살지 않는 친구예요.')
   let message = returns.join(' · ') || '클라우드와 동기화했어요.'
   switch (c.type) {
+    case 'sichuan-start': case 'sichuan-match': case 'sichuan-hint': case 'sichuan-shuffle': case 'sichuan-next': case 'sichuan-stop': message=sichuanCommand(save,c as SichuanCommand,user,now);break
     case 'buy-many': case 'sell-many': message=trade(save,c,now);break
     case 'word-delete': case 'word-start': case 'word-answer': case 'word-reveal': case 'word-skip': case 'word-next': case 'word-hint': case 'word-abandon':
       message=wordCommand(save,c as WordCommand,now);break
