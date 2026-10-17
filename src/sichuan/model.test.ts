@@ -95,10 +95,10 @@ it.each(['adventure','competition'] as const)('auto shuffles deadlocks after rem
  const s=fixture(mode),r=mode==='adventure'?progress(s).adventure!:progress(s).competitions.pc
  r.board={width:4,height:5,tiles:[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1,5,5,0,0]};r.hint=[16,17]
  const msg=sichuanCommand(s,command(r,'sichuan-match',{a:16,b:17}),'pc',now+1,()=>0)
- expect(msg).toContain('자동으로');expect(r.autoShuffles).toBe(1);expect(r.manual).toBe(3);expect(r.hint).toBeUndefined();expect(pair(r.board)).not.toBeNull()
+ expect(msg).toContain('자동으로');expect(r.autoShuffles).toBe(1);expect(r.manual).toBe(mode==='competition'?1:3);expect(r.hint).toBeUndefined();expect(pair(r.board)).not.toBeNull()
  expect(()=>sichuanCommand(s,command(r,'sichuan-hint'),'pc',now+400)).toThrow(/섞고/)
  sichuanCommand(s,command(r,'sichuan-hint'),'pc',now+501);expect(path(r.board,...r.hint!)).not.toBeNull();expect(r.hints).toBe(2)
- sichuanCommand(s,command(r,'sichuan-shuffle'),'pc',now+502,rng());expect(r.manual).toBe(2);expect(pair(r.board)).not.toBeNull();expect(r.hint).toBeUndefined()
+ sichuanCommand(s,command(r,'sichuan-shuffle'),'pc',now+502,rng());expect(r.manual).toBe(mode==='competition'?0:2);expect(pair(r.board)).not.toBeNull();expect(r.hint).toBeUndefined()
 })
 it('server rejects forged moves, stale turns and cross-user competition actions without mutating original state',()=>{
  const s=fixture('competition'),r=progress(s).competitions.pc,before=JSON.stringify(s)

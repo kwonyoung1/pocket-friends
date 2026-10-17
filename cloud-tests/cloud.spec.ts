@@ -317,3 +317,25 @@ test('Sichuan competition verifies every move on the server and shares one froze
  expect(records).toHaveLength(1);expect(records[0].nickname).toBe('정원친구');expect(records[0].elapsedMs).toBeGreaterThan(0);expect(backend.row().data!.world!.coins).toBe(300)
  await page.reload();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(page,'사천성');await expect(page.getByRole('region',{name:'사천성 TOP 5'})).toContainText('정원친구');expect(backend.row().data!.world!.sichuan!.bests).toEqual(records)
 })
+
+test('fourth bath and its cooldown sync across authenticated devices while preserving the original photo and wallet',async({page,backend,browser})=>{
+ const s=freshWorld(Date.parse('2026-10-15T03:00:00Z')),{life}=await import('../src/expansion/model');life(s.friends[0],s.savedAt).bathCount=3;s.world!.coins=777
+ s.friends[0].photo=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=20;c.height=20;return c.toDataURL('image/png')})
+ const raw=JSON.stringify(s);await page.addInitScript(raw=>localStorage.setItem('pocket-friends-v1',raw),raw)
+ await enter(page,backend.secret);await page.getByRole('button',{name:'이 기기 데이터를 기준으로 가져오기'}).click();await page.getByRole('button',{name:'확인하고 공유 월드 만들기'}).click();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
+ await page.getByRole('button',{name:'생활·입양'}).click();const panel=page.getByRole('dialog',{name:'생활과 새 식구'});await panel.getByRole('button',{name:'씻기 (3/4)',exact:true}).click();await expect(panel.getByRole('button',{name:'씻기 (4/4)',exact:true})).toBeDisabled()
+ const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone);const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await second.getByRole('button',{name:'생활·입양'}).click()
+ await expect(second.getByRole('dialog').getByRole('button',{name:'씻기 (4/4)',exact:true})).toBeDisabled();await expect(second.getByRole('dialog')).toContainText('오늘은 충분히 씻었어요! 내일 다시 씻겨 주세요 🛁')
+ expect(backend.row().data!.friends[0].life!.bathCount).toBe(4);expect(backend.row().data!.friends[0].photo).toBe(s.friends[0].photo);expect(backend.row().data!.world!.coins).toBe(777)
+ expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw);await phone.close()
+})
+
+test('one manual competition shuffle persists through reload and a verified match has a real transient path',async({page,backend})=>{
+ await fresh(page,backend.secret);await menu(page,'사천성');await page.getByRole('button',{name:'경쟁모드',exact:true}).click();await page.getByRole('button',{name:'경쟁 시작',exact:true}).click();await page.getByRole('button',{name:'섞기 (1/1)'}).click()
+ await expect(page.getByRole('button',{name:'섞기 (0/1)'})).toBeDisabled();await page.reload();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(page,'사천성');await page.getByRole('button',{name:'경쟁모드',exact:true}).click();await expect(page.getByRole('button',{name:'섞기 (0/1)'})).toBeDisabled()
+ const {pair,path}=await import('../src/sichuan/board'),r=Object.values(backend.row().data!.world!.sichuan!.competitions)[0],found=pair(r.board)!
+ await page.locator(`.sichuan-board button[data-index="${found[0]}"]`).click();await page.locator(`.sichuan-board button[data-index="${found[1]}"]`).click()
+ await expect(page.getByTestId('match-overlay')).toBeVisible();expect(JSON.parse((await page.getByTestId('match-overlay').getAttribute('data-grid-path'))!)).toEqual(path(r.board,...found))
+ await expect.poll(()=>Object.values(backend.row().data!.world!.sichuan!.competitions)[0].board.tiles.filter(Boolean).length).toBe(62)
+ await expect(page.getByTestId('match-overlay')).toHaveCount(0);expect(backend.row().data!.world!.coins).toBe(300);expect(backend.row().data!.world!.sichuan!.bests).toEqual([])
+})

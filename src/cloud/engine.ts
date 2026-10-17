@@ -1,4 +1,5 @@
-import {sichuanCommand,expireSichuan} from '../sichuan/model.ts'
+import {settleEmotions} from '../emotions/model.ts'
+import {sichuanCommand,expireSichuan,progress as sichuanProgress} from '../sichuan/model.ts'
 import type {SichuanCommand} from '../sichuan/state.ts'
 import {upgradeRoom} from '../room/migrate.ts'
 import {trade,quantity,tradeLimits} from '../trade/model.ts'
@@ -187,6 +188,8 @@ export function applyCommand(
   const save = structuredClone(original),
     holds = structuredClone(oldHolds)
   upgradeRoom(save)
+  world(save,now).careEffectsVersion=1
+  if(save.world?.sichuan)sichuanProgress(save)
   for (const f of save.friends) {
     f.stats = decay(f.stats, Math.max(0, now - save.savedAt))
     f.foodTaste??=defaultTaste(f.id)
@@ -326,6 +329,7 @@ export function applyCommand(
     p.moving = false
   }
   settleCareAlerts(save.friends, now)
+  settleEmotions(save.friends,now)
   world(save, now).adventureVersion = 1
   world(save, now).careRulesVersion = 1
   save.savedAt = now

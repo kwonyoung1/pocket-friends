@@ -31,7 +31,7 @@ test('exploration restores the board, timer and cooldown, hints highlight legal 
 })
 test('a cleared stage can continue then timeout or stop with its last reward paid once',async({page})=>{
  const s=freshWorld(epoch);sichuanCommand(s,{type:'sichuan-start',mode:'adventure'},'local-player',epoch);s.world!.sichuan!.adventure!.board.tiles=s.world!.sichuan!.adventure!.board.tiles.map((_,i)=>i<2?1:0)
- await seed(page,s);await tap(page,0);await tap(page,1);await expect(page.getByRole('button',{name:'보상 받고 멈추기'})).toBeVisible()
+ await seed(page,s);await tap(page,0);await tap(page,1);await page.clock.runFor(500);await expect(page.getByRole('button',{name:'보상 받고 멈추기'})).toBeVisible()
  await page.getByRole('button',{name:'다음 단계 도전하기'}).click();await expect(page.locator('.sichuan-board button')).toHaveCount(36);await expect(page.getByLabel('남은 시간')).toHaveText('02:00.00')
  await page.getByRole('button',{name:'그만하기',exact:true}).click();await expect(page.getByRole('alertdialog')).toContainText('60코인');await page.getByRole('button',{name:'계속하기',exact:true}).click();expect((await snapshot(page)).world.coins).toBe(300)
  await page.clock.fastForward(120001);await expect(page.getByTestId('sichuan-reward')).toContainText('60코인');expect((await snapshot(page)).world.coins).toBe(360)
@@ -41,10 +41,10 @@ test('competition plays an entire random 8x8 board, freezes time, displays one b
  await seed(page);await page.getByRole('button',{name:'경쟁모드',exact:true}).click();await page.getByLabel('사천성 닉네임').fill('찬미');await page.getByRole('button',{name:'경쟁 시작',exact:true}).click()
  const first=await board(page)
  for(let i=0;i<32;i++){
-  const b=await board(page),found=pair(b);expect(found).not.toBeNull();await tap(page,found![0]);await tap(page,found![1]);await page.clock.runFor(600);if(i<31)expect((await board(page)).tiles.filter(Boolean)).toHaveLength(64-(i+1)*2)
+  const b=await board(page),found=pair(b);expect(found).not.toBeNull();await tap(page,found![0]);await tap(page,found![1]);await page.clock.runFor(600);if(i<31&&await page.getByTestId('sichuan-board').evaluate(el=>el.classList.contains('shuffling')))await page.clock.runFor(500);if(i<31)expect((await board(page)).tiles.filter(Boolean)).toHaveLength(64-(i+1)*2)
  }
  await expect(page.getByText('🎉 경쟁모드 완료!')).toBeVisible();const saved=await snapshot(page),record=saved.world.sichuan.bests[0]
- expect(saved.world.coins).toBe(300);expect(record.nickname).toBe('찬미');expect(record.elapsedMs).toBeGreaterThanOrEqual(31*600);expect(record.elapsedMs).toBeLessThan(32*600)
+ expect(saved.world.coins).toBe(300);expect(record.nickname).toBe('찬미');expect(record.elapsedMs).toBeGreaterThanOrEqual(31*600);expect(record.elapsedMs).toBeLessThan(32*1100)
  await page.clock.runFor(10000);expect((await snapshot(page)).world.sichuan.bests[0].elapsedMs).toBe(record.elapsedMs)
  await page.getByRole('button',{name:'경쟁 시작',exact:true}).click();expect((await board(page)).tiles).not.toEqual(first.tiles)
  await page.screenshot({path:`/tmp/pocket-sichuan-${test.info().project.name}.png`,fullPage:true})
@@ -54,7 +54,7 @@ test('automatic deadlock shuffle blocks input, preserves manual count and clears
  const r=s.world!.sichuan!.adventure!;r.board={width:4,height:5,tiles:[1,2,3,4,3,4,1,2,2,1,4,3,4,3,2,1,5,5,0,0]};r.hint=[16,17]
  await seed(page,s);await tap(page,16);await tap(page,17);await expect(page.getByRole('dialog',{name:'사천성 미니게임'}).getByText('연결할 수 있는 패가 없어 자동으로 섞었어요!',{exact:true})).toBeVisible()
  await expect(page.getByRole('button',{name:'섞기 (3/3)'})).toBeDisabled();await expect(page.locator('.sichuan-board .hint')).toHaveCount(0)
- await page.clock.runFor(600);await expect(page.getByRole('button',{name:'섞기 (3/3)'})).toBeEnabled();expect(pair(await board(page))).not.toBeNull()
+ await page.clock.runFor(1000);await expect(page.getByRole('button',{name:'섞기 (3/3)'})).toBeEnabled();expect(pair(await board(page))).not.toBeNull()
 })
 test('largest 12x10 board fits portrait and landscape and maintains readable nonoverlapping tiles',async({page})=>{
  const s=freshWorld(epoch);sichuanCommand(s,{type:'sichuan-start',mode:'adventure'},'local-player',epoch)

@@ -88,19 +88,14 @@ describe('life and data preservation', () => {
     settleLife(copy, noon + B.bathMs + 2)
     expect(copy.friends[0].stats.happiness).toBe(after)
   })
-  it('limits baths to two starts per KST day and accounts for a crossing-midnight bath on its start day', () => {
+  it('limits baths to four starts per KST day and accounts for a crossing-midnight bath on its start day', () => {
     const s = game()
-    lifeCommand(s, { type: 'bath', friendId: 'momo' }, noon)
-    settleLife(s, noon + B.bathMs)
-    lifeCommand(s, { type: 'bath', friendId: 'momo' }, noon + B.bathMs + 1)
-    settleLife(s, noon + 2 * B.bathMs + 1)
-    expect(
-      lifeCommand(
-        s,
-        { type: 'bath', friendId: 'momo' },
-        noon + 2 * B.bathMs + 2,
-      ),
-    ).toContain('두 번')
+    for(let i=0;i<4;i++){
+      expect(lifeCommand(s,{type:'bath',friendId:'momo'},noon+i*(B.bathMs+1))).toContain('30분')
+      expect(life(s.friends[0]).bathCount).toBe(i+1)
+      settleLife(s,noon+(i+1)*(B.bathMs+1))
+    }
+    expect(lifeCommand(s,{type:'bath',friendId:'momo'},noon+4*(B.bathMs+1))).toBe('오늘은 충분히 씻었어요! 내일 다시 씻겨 주세요 🛁')
     const t = Date.parse('2026-10-15T14:10:00Z'),
       s2 = game(t)
     lifeCommand(s2, { type: 'bath', friendId: 'bibi' }, t + 25 * 60000) // 23:35 to 00:05, bedtime 00:20

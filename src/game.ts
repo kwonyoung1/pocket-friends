@@ -1,3 +1,4 @@
+import {settleEmotions,migrateEmotion} from './emotions/model.ts'
 import {roomScale} from './room/config.ts'
 import {upgradeRoom} from './room/migrate.ts'
 import { defaultTaste, restCooldownMs } from './adventure/catalog.ts'
@@ -22,6 +23,7 @@ export type Kind = 'cat' | 'bunny' | 'bear' | 'fox' | 'dog' | 'boy' | 'girl'
 export type Stats = { hunger: number; happiness: number; energy: number; hygiene: number; affection: number }
 export type Point = { x: number; y: number }
 export type Friend = {
+  stateEmotion?:import('./emotions/model.ts').EmotionState;
   foodTaste?: {like:string;dislike:string}; foodReaction?: {kind:'liked'|'disliked'|'normal';until:number}; lastRestRewardAt?: number;
   eatingUntil?: number; recoveryUntil?: number; life?: Life; navObstacles?: Obstacle[]; furnitureUntil?: number; furnitureActivity?: string; remoteAuthoritative?: boolean; remoteHoldId?: string;
   growth?: Growth; id: string; name: string; kind: Kind; color: string; description: string; photo?: string; stats: Stats
@@ -57,6 +59,7 @@ export function decay(stats: Stats, milliseconds: number): Stats {
 }
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 export function tick(friends: Friend[], now: number, dt: number, onMeeting: (text: string) => void, onBond: (friend: Friend) => void = () => {}, visualOnly = false) {
+  if(!visualOnly)settleEmotions(friends,now)
   for (const f of friends) {
     if (!visualOnly) f.stats = decay(f.stats, dt * 1000)
     if (f.growth?.awayJobId || busyLife(f,now)) { f.moving = false; continue }
@@ -159,6 +162,7 @@ export function parseSave(raw: string, now = Date.now()): Save {
     if (Number.isFinite(old.lastPetRewardAt) && old.lastPetRewardAt! >= 0) f.lastPetRewardAt = old.lastPetRewardAt
     if (old.careAlertAfter && typeof old.careAlertAfter === 'object') { f.careAlertAfter = {}; for (const k of ['hunger', 'hygiene', 'energy', 'cold'] as const) if (Number.isFinite(old.careAlertAfter[k])) f.careAlertAfter[k] = old.careAlertAfter[k] }
     if (old.careNotice && typeof old.careNotice.text === 'string' && Number.isFinite(old.careNotice.until)) f.careNotice = {text: old.careNotice.text.slice(0, 200), until: old.careNotice.until, ...(['hunger','hygiene','energy','cold'].includes(old.careNotice.need ?? '') ? {need: old.careNotice.need} : {})}
+    f.stateEmotion=migrateEmotion(old.stateEmotion)
     if (typeof old.lastCareLine === 'string') f.lastCareLine = old.lastCareLine.slice(0, 200)
     if (typeof old.lastPetLine === 'string') f.lastPetLine = old.lastPetLine.slice(0, 200)
     f.stats = decay(Object.fromEntries(Object.entries(old.stats).filter(([k]) => k in f.stats).map(([k, v]) => [k, clamp(v)])) as Stats, now - saved.savedAt)

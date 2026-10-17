@@ -7,7 +7,7 @@ import { grantSpecialFriends } from './humans/model'
 import { itemById } from './progression/config'
 import { LifePanel, RoomExtras, DiscoveryNotice } from './expansion/UI'
 import type { Draft } from './expansion/UI'
-import { settleLife, attachNavigation, furnitureDestination } from './expansion/model'
+import { settleLife, attachNavigation, furnitureDestination, bathStatus } from './expansion/model'
 import type { CloudGame } from './cloud/protocol'
 import { careNeeds, needLabels, isSpecialCharacter } from './careNeeds'
 import { normalPet, petRewardLabel } from './interaction'
@@ -42,7 +42,7 @@ const statInfo: { key: keyof Stats; name: string; color: string; icon: typeof He
 const careInfo: { action: Care; label: string; hint: string; icon: typeof Heart }[] = [
   { action: 'feed', label: '먹이 주기', hint: '보유한 음식 고르기', icon: Utensils },
   { action: 'pet', label: '쓰다듬기', hint: `행복 +${interactionBalance.normal.happiness} · 친밀 +${interactionBalance.normal.affection}`, icon: Heart },
-  { action: 'wash', label: '씻겨 주기', hint: '30분 · 하루 두 번', icon: Bath },
+  { action: 'wash', label: '씻겨 주기', hint: '30분 · 하루 네 번', icon: Bath },
   { action: 'rest', label: '쉬게 하기', hint: '체력 +20', icon: Moon },
 ]
 const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -85,6 +85,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
   const friends = model.current.friends
   if(!cloud) {upgradeRoom(model.current);world(model.current).adventureVersion=1; for(const f of friends)f.foodTaste??=defaultTaste(f.id)}
   const friend = friends.find(f => f.id === selected)!
+  const bath=bathStatus(friend,cloud?.now()??Date.now())
   const notify = useCallback((message: string) => setNotice(message), [])
   const persist = useCallback(() => {
     if (cloudRef.current) return // Local saves are never overwritten with cloud state.
@@ -277,7 +278,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
           {growth(friend).awayJobId && <div className="away-notice">🧭 탐험 중 · 귀환하면 다시 돌볼 수 있어요.</div>}
           <div className="affection"><div><Heart size={14} /><span>우리의 친밀도</span><strong>{Math.round(friend.stats.affection)}<small> / 100</small></strong></div><div className="affection-track"><span style={{ width: `${friend.stats.affection}%` }} /></div><p>{friend.stats.affection < 40 ? '조금씩 서로를 알아가는 중이에요' : friend.stats.affection < 75 ? '당신의 손길이 익숙해졌어요 ♡' : '누구보다 소중한 단짝이 되었어요 ♡'}</p></div>
           <div className="stats">{statInfo.map(({ key, name, color, icon: Icon }) => <div className="stat" key={key}><div><span><Icon size={14} />{name}</span><strong>{Math.round(friend.stats[key])}<small> / 100</small></strong></div><div className="stat-track" role="progressbar" aria-label={name} aria-valuenow={Math.round(friend.stats[key])} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${clamp(friend.stats[key])}%`, background: color }} /></div></div>)}</div>
-          <div className="care-title">다정한 마음을 전해요 <Heart size={12} /></div><div className="care-actions">{careInfo.map(({ action, label, hint, icon: Icon }) => <button key={action} disabled={!!growth(friend).awayJobId || !!cloud?.busy} onClick={() => doCare(action)} className={`care-button ${action}`}><Icon size={21} strokeWidth={1.6} /><strong>{label}</strong><small>{hint}</small></button>)}</div><p className="care-note">교감 보상은 친구마다 6시간에 한 번 · {interactionBalance.bondMs / 1000}초 꾹 누르면 특별 교감</p>
+          <div className="care-title">다정한 마음을 전해요 <Heart size={12} /></div><div className="care-actions">{careInfo.map(({ action, label, hint, icon: Icon }) => <button key={action} disabled={!!growth(friend).awayJobId || !!cloud?.busy || (action==='wash'&&(bath.full||bath.remaining>0))} onClick={() => doCare(action)} className={`care-button ${action}`}><Icon size={21} strokeWidth={1.6} /><strong>{action==='wash'?bath.label:label}</strong><small>{action==='wash'&&bath.remaining>0?`남은 시간 ${bath.time}`:action==='wash'&&bath.full?'오늘은 충분히 씻었어요!':hint}</small></button>)}</div>{bath.full&&<p className="care-note" role="status">오늘은 충분히 씻었어요! 내일 다시 씻겨 주세요 🛁</p>}<p className="care-note">교감 보상은 친구마다 6시간에 한 번 · {interactionBalance.bondMs / 1000}초 꾹 누르면 특별 교감</p>
         </aside>
       </div>
       {world(model.current).jobs.some(j => j.claimedAt === undefined) && <div className="away-strip">{world(model.current).jobs.filter(j => j.claimedAt === undefined).map(j => <button key={j.id} onClick={() => { setSelected(j.friendId); setMenu('explore') }}>🧭 {friends.find(f => f.id === j.friendId)?.name}의 탐험 · {remaining(j.endsAt)} <ChevronRight size={13} /></button>)}</div>}
@@ -293,7 +294,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
     {sichuanOpen&&<SichuanPanel save={model.current} cloud={cloud} changed={persist} close={()=>setSichuanOpen(false)}/>}
     {menu && <GameMenu now={cloud?.now} onPlace={itemId=>{setDraft({itemId,x:530,y:390});setMenu(null);document.querySelector('.room')?.scrollIntoView({block:'center',behavior:'smooth'})}} key={menu} save={model.current} tab={menu} close={() => setMenu(null)} selected={selected} select={setSelected} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy} />}
     {restore && <div className="modal-backdrop restore-backdrop"><div className="photo-modal" role="dialog" aria-modal="true" aria-label="백업 복원 확인"><h2>이 추억으로 돌아갈까요?</h2><p>친구 {restore.friends.length}명 · {world(restore).coins}코인<br />현재 게임을 별도로 백업한 다음 이 파일로 바꿔요.</p><button className="primary-button" disabled={restoring} onClick={confirmRestore}>{restoring ? '백업하고 복원하는 중…' : '현재 게임 백업 후 복원'}</button><button className="restore-cancel" disabled={restoring} onClick={() => setRestore(null)}>취소</button></div></div>}
-    {lifeOpen&&<LifePanel key={friend.id} save={model.current} friend={friend} close={()=>setLifeOpen(false)} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/>}
+    {lifeOpen&&<LifePanel key={friend.id} save={model.current} friend={friend} now={cloud?.now} close={()=>setLifeOpen(false)} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/>}
     {!lifeOpen&&!menu&&<DiscoveryNotice save={model.current} changed={persist} command={cloud?.send}/>}
     <LegendaryNotice sound={sound} save={model.current} changed={persist} command={cloud?.send} />
     {crop && <PhotoDialog shared={!!cloud} crop={crop} setCrop={setCrop} busy={imageBusy} save={savePhoto} />}

@@ -17,7 +17,7 @@ import {
   regionWeights,
   tripEvents,
 } from './config'
-import { expansion, life, lifeCommand, sleepLabel, sleeping } from './model'
+import { expansion, life, lifeCommand, sleepLabel, sleeping, bathStatus } from './model'
 import type { LifeCommand, Placement, Hamster } from './model'
 import { Character } from '../Character'
 import { findRoute, validPosition } from '../navigation'
@@ -38,6 +38,7 @@ export function LifePanel({
   notify,
   command,
   busy,
+  now,
 }: {
   save: Save
   friend: Friend
@@ -46,7 +47,9 @@ export function LifePanel({
   notify: (s: string) => void
   command?: (c: GameCommand) => Promise<void>
   busy?: boolean
+  now?:()=>number
 }) {
+  const at=now?.()??Date.now(),bath=bathStatus(f,at)
   const [, refresh] = useState(0)
   const [name, setName] = useState(f.name),
     l = life(f),
@@ -63,6 +66,7 @@ export function LifePanel({
     changed()
     refresh((n) => n + 1)
   }
+  useEffect(()=>{const timer=setInterval(()=>refresh(n=>n+1),1000);return()=>clearInterval(timer)},[])
   useEffect(() => {
     const old = document.activeElement as HTMLElement
     dialog.current?.focus()
@@ -144,7 +148,7 @@ export function LifePanel({
                     ? '🧭 탐험 중'
                     : l.bath
                       ? '🫧 목욕 중'
-                      : sleeping(f)
+                      : sleeping(f,at)
                         ? '🌙 새근새근 수면 중'
                         : '☀️ 함께 놀 준비가 됐어요'}
                 </p>
@@ -152,25 +156,26 @@ export function LifePanel({
             </div>
             <section className="life-card">
               <h3>🫧 따뜻한 목욕</h3>
-              <p>하루 두 번 · 한 번에 30분 · 한국 시간 자정 초기화</p>
+              <p>하루 네 번 · 한 번에 30분 · 한국 시간 자정 초기화</p>
               <p>
                 {l.bath
-                  ? `끝나는 시간: ${date(l.bath.endsAt)} · 남은 시간 ${Math.max(0, Math.ceil((l.bath.endsAt - Date.now()) / 60000))}분`
-                  : `오늘 시작 ${l.bathCount} / ${B.bathsPerDay}회`}
+                  ? `끝나는 시간: ${date(l.bath.endsAt)} · 남은 시간 ${bath.time}`
+                  : `오늘 시작 ${bath.used} / ${B.bathsPerDay}회`}
               </p>
               <button
                 className="small-primary"
                 disabled={
                   busy ||
                   !!l.bath ||
-                  sleeping(f) ||
+                  sleeping(f,at) ||
                   !!f.growth?.awayJobId ||
-                  l.bathCount >= B.bathsPerDay
+                  bath.full
                 }
                 onClick={() => run({ type: 'bath', friendId: f.id })}
               >
-                목욕 시작
+                {bath.label}
               </button>
+              {bath.full&&<p role="status">오늘은 충분히 씻었어요! 내일 다시 씻겨 주세요 🛁</p>}
             </section>
             <section className="life-card">
               <h3>💌 이름 지어 주기</h3>

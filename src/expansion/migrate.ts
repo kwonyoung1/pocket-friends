@@ -27,13 +27,14 @@ export function migrateLife(raw: unknown): Life | undefined {
   const r = obj(raw),
     l: Life = {
       bathDay: text(r.bathDay, 10),
-      bathCount: num(r.bathCount, 2),
+      bathCount: num(r.bathCount, 4),
       names: arr(r.names).map((v) => {
         const x = obj(v)
         return { name: text(x.name, 100), at: num(x.at) }
       }),
       lastSettledAt: num(r.lastSettledAt),
     }
+  if(!Number.isInteger(l.bathCount))throw Error('목욕 횟수가 올바르지 않아요.')
   if (r.lastRenameAt !== undefined) l.lastRenameAt = num(r.lastRenameAt)
   if (r.coldAt !== undefined) l.coldAt = num(r.coldAt)
   if (r.bath !== undefined) {

@@ -2,7 +2,7 @@ import {foodPreferences} from '../adventure/catalog.ts'
 import type { Rarity, Item } from '../progression/config.ts'
 export const lifeBalance = {
   bathMs: 30 * 60000,
-  bathsPerDay: 2,
+  bathsPerDay: 4,
   renameMs: 168 * 3600000,
   medicinePrice: 100,
   coldChance: 0.1,

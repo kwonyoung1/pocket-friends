@@ -5,7 +5,7 @@ export const stages = [
   {width:12,height:10,seconds:300,reward:800},
 ] as const
 export const icons = ['🍓','🍊','🍋','🍇','🍒','🍑','🥝','🍎','🌸','🌻','🍀','🍄','🐱','🐶','🐰','🐼','⭐','🌙','💎','🦋']
-export const rules = {cooldown:3600000,hints:3,manualShuffles:3,shuffleMs:500}
+export const rules = {cooldown:3600000,hints:3,manualShuffles:3,competitionShuffles:1,shuffleMs:500,matchMs:450,comboMs:3000}
 export type Point = {x:number;y:number}
 // Padded empty border permits outside paths. Direction is part of the search state:
 // visiting a cell from another direction can allow a different two-turn continuation.
