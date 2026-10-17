@@ -5,7 +5,9 @@ React 19 + TypeScript + Vite를 사용합니다. 개발 서버의 로컬 모드�
 
 [업데이트 PC 화면](docs/screenshots/life-expansion-desktop.png) · [업데이트 모바일 화면](docs/screenshots/life-expansion-mobile.png)
 
-**최신 업데이트: [씻기 4회·사천성 연결/제거 효과·경쟁 섞기 1회·상태 이모션](docs/CARE_EFFECTS_UPDATE.md). 기존 데이터와 랭킹을 유지하며 새 SQL은 없습니다. [클릭별 상세 배포 안내](docs/CARE_EFFECTS_UPDATE.md#6-배포-방법-이-순서대로-눌러-주세요) · [검증 결과](docs/CARE_EFFECTS_VERIFICATION.md)**
+**최신 업데이트: [체력 회복 음식 3종·두 친구 공통 취향·한국 시간 시계·일일 TOP 5](docs/RECOVERY_DAILY_UPDATE.md). 단어는 690개(5,000개 목표 미완료), 자연 회복 변경은 기준 선택 대기입니다. 기존 저장을 유지하며 추가 SQL은 없습니다. [클릭별 배포 순서](docs/RECOVERY_DAILY_UPDATE.md#초보자용-적용-순서) · [검증 결과](docs/RECOVERY_DAILY_VERIFICATION.md)**
+
+**이전 업데이트: [씻기 4회·사천성 연결/제거 효과·경쟁 섞기 1회·상태 이모션](docs/CARE_EFFECTS_UPDATE.md). 기존 데이터와 랭킹을 유지하며 새 SQL은 없습니다. [클릭별 상세 배포 안내](docs/CARE_EFFECTS_UPDATE.md#6-배포-방법-이-순서대로-눌러-주세요) · [검증 결과](docs/CARE_EFFECTS_VERIFICATION.md)**
 
 **이전 업데이트: [사천성 탐험·경쟁·자동 섞기 배포 안내](docs/SICHUAN_UPDATE.md). 기존 데이터를 유지하며 새 SQL은 없습니다. 서버를 기능 브랜치로 먼저 배포하고 PR을 병합하세요. [검증 보고서](docs/SICHUAN_VERIFICATION.md)**
 

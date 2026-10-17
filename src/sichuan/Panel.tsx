@@ -1,11 +1,12 @@
+import {kstDateKey as dailyKey} from '../kst'
 import {MatchOverlay} from './MatchOverlay'
 import {makeEffect,nextCombo,comboLabel} from './effects'
 import type {MatchEffect,Combo} from './effects'
-import {useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState,useMemo} from 'react'
 import type {Save} from '../game'
 import type {CloudGame,GameCommand} from '../cloud/protocol'
 import {formatTime,icons,rules,stages} from './board'
-import {newSichuan,ranking,manualRemaining} from './state'
+import {newSichuan,ranking,rankingReset,manualRemaining} from './state'
 import type {Mode,SichuanCommand} from './state'
 import './styles.css'
 export function SichuanPanel({save,cloud,changed,close}:{save:Save;cloud?:CloudGame;changed:()=>void;close:()=>void}){
@@ -14,6 +15,7 @@ export function SichuanPanel({save,cloud,changed,close}:{save:Save;cloud?:CloudG
  const effectRef=useRef<MatchEffect|null>(null),pendingMatch=useRef<MatchEffect|null>(null),comboRef=useRef<Combo>({count:0,at:0}),frame=useRef<HTMLDivElement>(null)
  const sending=useRef(false),expiration=useRef(''),pointer=useRef(false)
  const p=save.world?.sichuan??newSichuan(),user=cloud?.playerId??'local-player',r=mode==='adventure'?p.adventure:p.competitions[user],now=cloud?.now()??Date.now()
+ const day=dailyKey(now),today=useMemo(()=>ranking(p,now),[p.dailyBests,p.bests,day])
  const shuffleAt=r?.shuffledAt===undefined?undefined:r.shuffledAt+(r.autoAt===r.shuffledAt&&r.lastMatch?.at===r.autoAt?rules.matchMs:0)
  const shuffling=shuffleAt!==undefined&&now>=shuffleAt&&now-shuffleAt<rules.shuffleMs,expired=!!r&&r.mode==='adventure'&&r.status==='playing'&&now>=r.stageEndsAt
  const blocked=working||cloud?.busy||shuffling||expired||!!effect
@@ -61,7 +63,7 @@ export function SichuanPanel({save,cloud,changed,close}:{save:Save;cloud?:CloudG
    {confirm&&<div role="alertdialog" aria-label="사천성 종료 확인" className="sichuan-confirm"><p>{mode==='adventure'?`중간 종료할까요? 마지막 완료 단계의 ${r.completed?stages[r.completed-1].reward:0}코인을 한 번 정산해요.`:'지금 기록을 포기할까요? 완료하지 않은 기록은 랭킹에 올라가지 않아요.'}</p><button disabled={working||cloud?.busy||!!effect} onClick={()=>{if(restart)void run({type:'sichuan-start',mode:'competition',nickname:r.nickname});else current('sichuan-stop');setConfirm(false)}}>종료 확정</button><button onClick={()=>setConfirm(false)}>계속하기</button></div>}
   </>}
   {error&&<p role="alert">{error}</p>}
-  <section className="sichuan-ranking" aria-label="사천성 TOP 5"><h3>🏆 경쟁모드 TOP 5</h3><p>{cloud?'인증된 플레이어별 최고 기록 · 서버에서 연결과 시간을 검증해요.':'이 브라우저의 연습 기록이에요. 공용 랭킹에는 등록하지 않아요.'}</p>{!p.bests.length?<p>첫 번째 기록의 주인공이 되어 보세요!</p>:<ol>{ranking(p).map(x=><li key={x.playerId}><span>{x.nickname}</span><strong>{formatTime(x.elapsedMs)}</strong><time dateTime={new Date(x.at).toISOString()}>{new Date(x.at).toLocaleDateString('ko-KR')}</time></li>)}</ol>}<p>동일 기록은 먼저 달성한 순서예요. 닉네임을 바꿔도 같은 인증 계정의 기록은 하나만 표시해요.</p></section>
+  <section className="sichuan-ranking" aria-label="사천성 TOP 5"><h3>🏆 오늘의 TOP 5</h3><p data-testid="ranking-day">{day} · 한국 시간 기준</p><p data-testid="ranking-reset">다음 랭킹 초기화까지 {rankingReset(now)} (매일 자정)</p><p>{cloud?'인증된 플레이어별 최고 기록 · 서버에서 연결과 시간을 검증해요.':'이 브라우저의 연습 기록이에요. 공용 랭킹에는 등록하지 않아요.'}</p>{!today.length?<p>첫 번째 기록의 주인공이 되어 보세요!</p>:<ol>{today.map((x,i)=><li key={x.playerId}><span>{i+1}위 · {x.nickname}</span><strong>{formatTime(x.elapsedMs)}</strong><time dateTime={new Date(x.at).toISOString()}>{new Date(x.at).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'})}</time></li>)}</ol>}<p>동일 기록은 먼저 달성한 순서예요. 닉네임을 바꿔도 같은 인증 계정의 오늘 최고 기록 하나만 표시해요. 이전 날짜 기록도 보존돼요.</p></section>
   <p className="sichuan-tip">창을 닫아도 진행 시간은 흘러요. 탐험은 기기 간 이어 할 수 있어요. 수동 섞기는 탐험 단계마다 3회, 경쟁 한 판마다 1회예요. 자동 섞기는 차감하지 않아요.</p>
  </section></div>
 }

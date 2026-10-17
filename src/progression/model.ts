@@ -1,4 +1,4 @@
-import { defaultTaste, furnitureChance } from '../adventure/catalog.ts'
+import { resolveTaste, furnitureChance } from '../adventure/catalog.ts'
 import { humanLine } from '../humans/config.ts'
 import { rollTripExtras } from '../expansion/rolls.ts'
 import { busyLife, expansion, life, lifeCommand } from '../expansion/model.ts'
@@ -15,7 +15,7 @@ export type Growth = {
 }
 export type Expedition = { id: string; friendId: string; regionId: string; startedAt: number; endsAt: number; energyCost: number; result: { coins: number; xp: number; items: string[]; cold?: boolean; hamster?: boolean; eventId?: string }; claimedAt?: number }
 export type World = {
-  careEffectsVersion?:1; sichuan?: import('../sichuan/state.ts').SichuanState; roomVersion?: 1; trades?: import('../trade/model.ts').TradeRecord[]; adventureVersion?: 1; words?: import('../words/state.ts').WordProgress; careRulesVersion?: 1; specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
+  recoveryLearningVersion?:1; careEffectsVersion?:1; sichuan?: import('../sichuan/state.ts').SichuanState; roomVersion?: 1; trades?: import('../trade/model.ts').TradeRecord[]; adventureVersion?: 1; words?: import('../words/state.ts').WordProgress; careRulesVersion?: 1; specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
   jobs: Expedition[]; book: Record<string, { firstAt: number; lastAt: number; count: number }>; legendaries: { id: string; itemId: string; friendId: string; at: number; first?: boolean }[]
   notices: { id: string; itemId: string; friendId: string; at: number; first?: boolean }[]; day: string; attendanceDays: string[]; claimedMissions: string[]; achievements: string[]
   buyAfter: number; useAfter: number; decorationSlots: Record<string, string>
@@ -103,7 +103,7 @@ export function useItem(save: Save, itemId: string, friendId: string, now = Date
   if (item.category === 'treasure') return '사용하지 않는 수집용 보물이에요.'
   if (now < w.useAfter || now < (growth(f).rewardAfter[item.category === 'food' ? 'feed' : 'play'] ?? 0)) return '친구가 즐기는 중이에요. 잠깐 기다려 주세요.'
   if (item.consumable) w.inventory[itemId]--
-  for (const [key, amount] of Object.entries(item.effects)) { const stat = key as keyof Friend['stats']; const taste=f.foodTaste??=defaultTaste(f.id); const factor=item.category==='food'&&itemId!=='snack'&&(stat==='hunger'||stat==='happiness')&&amount>0?(taste.like===itemId?1.5:taste.dislike===itemId?.8:1):1; f.stats[stat] = Math.max(0, Math.min(100, f.stats[stat] + Math.round(amount*factor))) }
+  for (const [key, amount] of Object.entries(item.effects)) { const stat = key as keyof Friend['stats']; const taste=f.foodTaste=resolveTaste(f.id,f.foodTaste); const factor=item.category==='food'&&itemId!=='snack'&&(stat==='hunger'||stat==='happiness'||stat==='energy')&&amount>0?(taste.like===itemId?1.5:taste.dislike===itemId?.8:1):1; f.stats[stat] = Math.max(0, Math.min(100, f.stats[stat] + Math.round(amount*factor))) }
   w.useAfter = now + B.itemUseCooldownMs
   rewardAction(f, item.category === 'food' ? 'feed' : 'play', now)
   const favorite=item.category==='food'&&itemId!=='snack'&&f.foodTaste?.like===itemId

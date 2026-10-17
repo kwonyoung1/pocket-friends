@@ -1,13 +1,16 @@
+import {kstDateKey as dailyKey,untilKstMidnight} from '../kst.ts'
 import type {Board} from './board.ts'
 export type Mode='adventure'|'competition'
 export type Round={id:string;mode:Mode;owner:string;nickname:string;stage:number;completed:number;board:Board;startedAt:number;stageEndsAt:number;turn:number;hints:number;manual:number;manualLimit?:1|3;lastMatch?:{a:number;b:number;at:number;turn:number};hint?:[number,number];hintsUsed:number;autoShuffles:number;shuffledAt?:number;autoAt?:number;status:'playing'|'cleared'|'settled';endedAt?:number;elapsedMs?:number;reward?:number;paidAt?:number;top?:boolean}
 export type RecordEntry={playerId:string;nickname:string;elapsedMs:number;at:number;sessionId:string}
-export type SichuanState={version:1;nextStartAt:number;adventure?:Round;competitions:Record<string,Round>;bests:RecordEntry[]}
+export type SichuanState={version:1;nextStartAt:number;adventure?:Round;competitions:Record<string,Round>;bests:RecordEntry[];dailyBests?:RecordEntry[]}
 export type SichuanCommand={type:'sichuan-start';mode:Mode;nickname?:string}|{type:'sichuan-match'|'sichuan-hint'|'sichuan-shuffle'|'sichuan-next'|'sichuan-stop';mode:Mode;sessionId:string;turn:number;a?:number;b?:number}
 export function newSichuan():SichuanState{return{version:1,nextStartAt:0,competitions:{},bests:[]}}
 export function manualRemaining(r:Round){return r.mode==='competition'&&r.manualLimit===undefined?Math.max(0,r.manual-2):r.manual}
 export function upgradeCompetition(p:SichuanState){for(const r of Object.values(p.competitions))if(r.manualLimit===undefined){r.manual=manualRemaining(r);r.manualLimit=1}}
-export function ranking(p:SichuanState){return [...p.bests].sort((a,b)=>a.elapsedMs-b.elapsedMs||a.at-b.at).slice(0,5)}
+export function upgradeDaily(p:SichuanState){p.dailyBests??=structuredClone(p.bests)}
+export function rankingReset(now:number){const seconds=Math.ceil(untilKstMidnight(now)/1000);return `${String(Math.floor(seconds/3600)).padStart(2,'0')}:${String(Math.floor(seconds/60)%60).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`}
+export function ranking(p:SichuanState,now=Date.now()){return [...(p.dailyBests??p.bests)].filter(r=>dailyKey(r.at)===dailyKey(now)).sort((a,b)=>a.elapsedMs-b.elapsedMs||a.at-b.at).slice(0,5)}
 // Validate instead of resetting malformed saves. The original storage backup remains available.
 export function migrateSichuan(raw:unknown):SichuanState|undefined{
  if(raw===undefined)return undefined
@@ -23,6 +26,8 @@ export function migrateSichuan(raw:unknown):SichuanState|undefined{
   if([...counts.values()].some(n=>n%2))throw Error('사천성 패의 짝이 맞지 않아요.')
  }
  if(p.bests.some(r=>!text(r.playerId)||!text(r.nickname)||!text(r.sessionId)||!num(r.elapsedMs)||!num(r.at))||new Set(p.bests.map(r=>r.playerId)).size!==p.bests.length)throw Error('사천성 랭킹 기록을 확인해 주세요.')
+ if(p.dailyBests!==undefined){if(!Array.isArray(p.dailyBests)||p.dailyBests.some(r=>!text(r.playerId)||!text(r.nickname)||!text(r.sessionId)||!num(r.elapsedMs)||!num(r.at))||new Set(p.dailyBests.map(r=>`${dailyKey(r.at)}:${r.playerId}`)).size!==p.dailyBests.length)throw Error('일일 랭킹 기록을 확인해 주세요.')}
  upgradeCompetition(p)
+ upgradeDaily(p)
  return p
 }

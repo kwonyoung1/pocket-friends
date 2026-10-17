@@ -339,3 +339,22 @@ test('one manual competition shuffle persists through reload and a verified matc
  await expect.poll(()=>Object.values(backend.row().data!.world!.sichuan!.competitions)[0].board.tiles.filter(Boolean).length).toBe(62)
  await expect(page.getByTestId('match-overlay')).toHaveCount(0);expect(backend.row().data!.world!.coins).toBe(300);expect(backend.row().data!.world!.sichuan!.bests).toEqual([])
 })
+
+test('server-synced clock and daily ranking ignore the browser clock while preserving yesterday records',async({page,backend,browser})=>{
+ await fresh(page,backend.secret)
+ backend.setTime(Date.parse('2026-10-15T14:59:30Z'));backend.seedRanking()
+ await page.getByRole('button',{name:'새로 동기화',exact:true}).click();await menu(page,'사천성');await expect(page.getByRole('region',{name:'사천성 TOP 5'})).toContainText('오늘친구')
+ const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
+ try{
+  const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
+  await second.evaluate(()=>{Date.now=()=>Date.parse('2038-01-01T00:00:00Z')})
+  backend.setTime(Date.parse('2026-10-15T15:00:05Z'));await second.getByRole('button',{name:'새로 동기화',exact:true}).click()
+  await expect(second.getByRole('timer',{name:'한국 시간 시계'})).toContainText('2026년 10월 16일 금요일')
+  await menu(second,'사천성');await expect(second.getByTestId('ranking-day')).toContainText('2026-10-16');await expect(second.getByRole('region',{name:'사천성 TOP 5'})).not.toContainText('오늘친구')
+  // A read is deliberately non-mutating. A real game command persists the additive migration.
+  await second.getByRole('button',{name:'경쟁모드',exact:true}).click();await second.getByRole('button',{name:'경쟁 시작',exact:true}).click();await expect(second.getByTestId('sichuan-board')).toBeVisible()
+  await expect.poll(()=>backend.row().data!.world!.sichuan!.dailyBests?.length).toBe(1)
+  expect(backend.row().data!.world!.sichuan!.bests[0].nickname).toBe('오늘친구')
+  expect(new Date(Object.values(backend.row().data!.world!.sichuan!.competitions)[0].startedAt).getUTCFullYear()).toBe(2026)
+ }finally{await phone.close()}
+})

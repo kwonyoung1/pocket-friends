@@ -62,6 +62,7 @@ export function migrateWorld(raw: unknown, now: number): World {
   if(r.roomVersion===undefined)delete w.roomVersion
   if(r.roomVersion!==undefined){if(r.roomVersion!==1)throw Error('지원하지 않는 방 버전');w.roomVersion=1}
   if(r.careEffectsVersion!==undefined){if(r.careEffectsVersion!==1)throw Error('지원하지 않는 상태 효과 버전');w.careEffectsVersion=1}
+  if(r.recoveryLearningVersion!==undefined){if(r.recoveryLearningVersion!==1)throw Error('지원하지 않는 회복·학습 버전');w.recoveryLearningVersion=1}
   w.words=migrateWords(r.words)
   w.sichuan=migrateSichuan(r.sichuan)
   if (r.careRulesVersion !== undefined) { if (r.careRulesVersion !== 1) throw Error('지원하지 않는 돌봄 규칙'); w.careRulesVersion = 1 }
