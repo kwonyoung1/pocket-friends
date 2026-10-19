@@ -30,7 +30,7 @@ export function migrateGrowth(raw: unknown, id: string, now: number): Growth {
   return g
 }
 export function migrateWorld(raw: unknown, now: number): World {
-  if (raw === undefined) return newWorld(now)
+  if (raw === undefined) {const w=newWorld(now);delete w.statusBalanceVersion;delete w.statusBalanceSince;return w}
   const r = record(raw), w = newWorld(now)
   // The presence of a valid economy means the initial grant has already been accounted for.
   w.coins = number(r.coins, 0, 1e12); w.starterGranted = true
@@ -63,6 +63,8 @@ export function migrateWorld(raw: unknown, now: number): World {
   if(r.roomVersion!==undefined){if(r.roomVersion!==1)throw Error('지원하지 않는 방 버전');w.roomVersion=1}
   if(r.careEffectsVersion!==undefined){if(r.careEffectsVersion!==1)throw Error('지원하지 않는 상태 효과 버전');w.careEffectsVersion=1}
   if(r.recoveryLearningVersion!==undefined){if(r.recoveryLearningVersion!==1)throw Error('지원하지 않는 회복·학습 버전');w.recoveryLearningVersion=1}
+  if(r.statusBalanceVersion===undefined){delete w.statusBalanceVersion;delete w.statusBalanceSince}
+  else{if(r.statusBalanceVersion!==1)throw Error('지원하지 않는 상태 밸런스 버전');w.statusBalanceVersion=1;w.statusBalanceSince=number(r.statusBalanceSince)}
   w.words=migrateWords(r.words)
   w.sichuan=migrateSichuan(r.sichuan)
   if (r.careRulesVersion !== undefined) { if (r.careRulesVersion !== 1) throw Error('지원하지 않는 돌봄 규칙'); w.careRulesVersion = 1 }

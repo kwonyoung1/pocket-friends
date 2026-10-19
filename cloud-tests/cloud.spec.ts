@@ -358,3 +358,27 @@ test('server-synced clock and daily ranking ignore the browser clock while prese
   expect(new Date(Object.values(backend.row().data!.world!.sichuan!.competitions)[0].startedAt).getUTCFullYear()).toBe(2026)
  }finally{await phone.close()}
 })
+
+test('natural status balance syncs one elapsed interval to two devices after browser clocks change and on reload',async({page,backend,browser})=>{
+ const epoch=Date.parse('2026-10-15T03:00:00Z'),s=freshWorld(epoch)
+ for(const f of s.friends)f.stats={hunger:100,hygiene:100,happiness:100,energy:40,affection:47}
+ s.world!.coins=777;s.world!.inventory={snack:7}
+ const raw=JSON.stringify(s);await page.addInitScript(raw=>localStorage.setItem('pocket-friends-v1',raw),raw)
+ await page.clock.install({time:new Date(epoch)})
+ await enter(page,backend.secret);await page.getByRole('button',{name:'이 기기 데이터를 기준으로 가져오기'}).click();await page.getByRole('button',{name:'확인하고 공유 월드 만들기'}).click();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await expect(page.getByRole('button',{name:'새로 동기화',exact:true})).toBeEnabled()
+ const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
+ try{
+  const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await expect(second.getByRole('button',{name:'새로 동기화',exact:true})).toBeEnabled()
+  backend.setTime(epoch+15*60000)
+  // Heartbeats must follow performance.now rather than the forged wall clock.
+  await page.evaluate(()=>{Date.now=()=>Date.parse('2000-01-01T00:00:00Z')})
+  await page.clock.runFor(31000)
+  await expect.poll(()=>backend.row().data!.friends[0].stats.energy).toBeGreaterThanOrEqual(42)
+  expect(backend.row().data!.friends[0].stats.energy).toBeCloseTo(42,1)
+  await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await second.getByRole('button',{name:'모모 상태 확인'}).click();await page.getByRole('button',{name:'모모 상태 확인'}).click()
+  await expect(page.getByRole('progressbar',{name:'체력',exact:true})).toHaveAttribute('aria-valuenow','42');await expect(second.getByRole('progressbar',{name:'체력',exact:true})).toHaveAttribute('aria-valuenow','42')
+  await second.reload();await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await expect(second.getByRole('button',{name:'새로 동기화',exact:true})).toBeEnabled()
+  expect(backend.row().data!.friends[0].stats.energy).toBeCloseTo(42,1);expect(backend.row().data!.world!.coins).toBe(777);expect(backend.row().data!.world!.inventory.snack).toBe(7)
+  expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw)
+ }finally{await phone.close()}
+})

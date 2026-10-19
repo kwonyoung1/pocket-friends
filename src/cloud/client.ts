@@ -37,7 +37,7 @@ export class CloudClient {
     if (!session) { this.update({ phase: 'login' }); throw Error('다시 로그인해 주세요.') }
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000)
     try {
-      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 9 }), signal: controller.signal })
+      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 10 }), signal: controller.signal })
       const result = await response.json()
       if (Number.isFinite(result.serverTime)) { this.serverAt = result.serverTime; this.receivedAt = performance.now() }
       if (!response.ok) {
@@ -66,14 +66,16 @@ export class CloudClient {
     } catch (e) { this.update({ error: (e as Error).message }) }
     finally { this.update({ busy: false }) }
   }
+  private resume = () => {if(!document.hidden&&this.state.phase==='ready'&&this.state.row?.data&&!this.pending.length&&!this.state.busy)void this.send({type:'refresh'})}
   private watch() {
     if (this.timer) return
     this.channel = this.sdk.channel('shared-home').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_worlds', filter: 'id=eq.home' }, () => { void this.read() }).subscribe(status => this.update({ realtime: status === 'SUBSCRIBED' }))
-    this.heartbeat = Date.now()
+    this.heartbeat = performance.now()
+    document.addEventListener('visibilitychange',this.resume)
     this.timer = setInterval(() => {
       if (this.state.phase !== 'ready') return
       void this.read()
-      if (this.state.row?.data && Date.now() - this.heartbeat >= 30000 && !this.pending.length && !this.state.busy) { this.heartbeat = Date.now(); void this.send({ type: 'refresh' }) }
+      if (this.state.row?.data && performance.now() - this.heartbeat >= 30000 && !this.pending.length && !this.state.busy) { this.heartbeat = performance.now(); void this.send({ type: 'refresh' }) }
     }, 5000)
   }
   async read() {
@@ -116,7 +118,7 @@ export class CloudClient {
     } catch (e) { this.update({ error: `로그아웃을 완료하지 못했어요. ${(e as Error).message}` }) }
     finally { this.update({ busy: false }) }
   }
-  private stop() { if (this.timer) clearInterval(this.timer); this.timer = undefined; if (this.channel) void this.sdk.removeChannel(this.channel); this.channel = undefined }
+  private stop() { document.removeEventListener('visibilitychange',this.resume); if (this.timer) clearInterval(this.timer); this.timer = undefined; if (this.channel) void this.sdk.removeChannel(this.channel); this.channel = undefined }
   dispose() { this.stop(); this.disposed = true }
 }
 export function cloudConfiguration() {

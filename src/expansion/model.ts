@@ -1,3 +1,4 @@
+import {naturalChange,legacyChange,statusBalance} from '../status/balance.ts'
 import {roomScale,scaledPoint} from '../room/config.ts'
 import { normalFriendCount } from '../humans/model.ts'
 import type { Friend, Save, Point } from '../game.ts'
@@ -103,8 +104,11 @@ export function sleepLabel(f: Friend) {
     `${String(Math.floor(((m + 1440) % 1440) / 60)).padStart(2, '0')}:${String(m % 60 < 0 ? (m % 60) + 60 : m % 60).padStart(2, '0')}`
   return `${fmt(b)} ~ ${fmt(w)} (한국 시간)`
 }
+// The only live natural-stat settlement path. Advance both clocks together before any next command/save.
 export function settleLife(s: Save, now = Date.now()) {
+  const legacy=s.world?.statusBalanceVersion!==statusBalance.version
   expansion(s)
+  const previousSave=s.savedAt
   for (const f of s.friends) {
     const l = life(f, Math.min(s.savedAt, now)),
       previous = Math.max(l.lastSettledAt, now - 8 * 3600000)
@@ -112,6 +116,10 @@ export function settleLife(s: Save, now = Date.now()) {
       l.bathDay = dailyKey(now)
       l.bathCount = 0
     }
+    const from=Math.min(now,Math.max(previousSave,l.lastSettledAt))
+    const bathEnd=l.bath?.endsAt
+    if(legacy)f.stats=legacyChange(f.stats,now-previousSave)
+    else f.stats=naturalChange(f.stats,Math.max(0,(bathEnd!==undefined&&bathEnd<=now?Math.max(from,bathEnd):now)-from))
     // Integrate fixed KST windows, never recover the same elapsed interval twice.
     const [bed, wake] = sleepSchedules[f.id] ?? [0, 360]
     let sleepMs = 0
@@ -142,13 +150,14 @@ export function settleLife(s: Save, now = Date.now()) {
       100,
       f.stats.energy +
         (sleepMs / 3600000) *
-          (9.6 + B.sleepRecoveryPerHour * (l.coldAt ? 0.5 : 1)),
+          ((legacy?9.6:0) + B.sleepRecoveryPerHour * (l.coldAt ? 0.5 : 1)),
     )
     if (l.bath && now >= l.bath.endsAt) {
       const sinceEnd = Math.min(8 * 3600000, Math.max(0, now - l.bath.endsAt))
       delete l.bath
-      f.stats.hygiene = Math.max(0, 100 - (sinceEnd / 60000) * 0.3)
+      f.stats.hygiene = legacy?Math.max(0, 100 - (sinceEnd / 60000) * 0.3):100
       f.stats.happiness = Math.min(100, f.stats.happiness + 4)
+      if(!legacy)f.stats=naturalChange(f.stats,Math.max(0,now-Math.max(from,bathEnd!)))
       announce(f, '개운하다! 보송보송~ 목욕 끝!')
       f.restingUntil = now + 1500
     }
@@ -158,6 +167,8 @@ export function settleLife(s: Save, now = Date.now()) {
     }
     l.lastSettledAt = Math.max(l.lastSettledAt, now)
   }
+  if(legacy){s.world!.statusBalanceVersion=statusBalance.version;s.world!.statusBalanceSince=now}
+  s.savedAt=Math.max(previousSave,now)
 }
 export function furnitureObstacle(p: Placement): Obstacle {
   const base = furnitureSizes[p.itemId] ?? { w: 60, h: 40 },size={w:base.w*roomScale,h:base.h*roomScale}

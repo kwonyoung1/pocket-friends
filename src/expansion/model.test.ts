@@ -86,7 +86,7 @@ describe('life and data preservation', () => {
     expect(copy.friends[0].life?.bath).toBeUndefined()
     expect(copy.friends[0].stats.hygiene).toBeCloseTo(100, 2)
     settleLife(copy, noon + B.bathMs + 2)
-    expect(copy.friends[0].stats.happiness).toBe(after)
+    expect(copy.friends[0].stats.happiness).toBeCloseTo(after-6.6/3600000,10)
   })
   it('limits baths to four starts per KST day and accounts for a crossing-midnight bath on its start day', () => {
     const s = game()
@@ -382,7 +382,7 @@ it('an offline bath finishes at its recorded deadline and hygiene ages only afte
   const s = game()
   lifeCommand(s, { type: 'bath', friendId: 'momo' }, noon)
   const loaded = parseSave(JSON.stringify(s), noon + B.bathMs + 120 * 60000)
-  expect(loaded.friends[0].stats.hygiene).toBeCloseTo(64)
+  expect(loaded.friends[0].stats.hygiene).toBeCloseTo(82)
   const h = loaded.friends[0].stats.hygiene
   settleLife(loaded, noon + B.bathMs + 120 * 60000)
   expect(loaded.friends[0].stats.hygiene).toBe(h)

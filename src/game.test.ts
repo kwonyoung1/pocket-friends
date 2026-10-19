@@ -1,7 +1,8 @@
+import {legacyChange} from './status/balance'
 import {roomScale,scaledPoint} from './room/config'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cells } from './navigation'
-import { care, createFriends, decay, findRoute, parseSave, tick, walkable } from './game'
+import { care, createFriends, findRoute, parseSave, tick, walkable } from './game'
 const start = 1760000000000
 function seeded() {
   let seed = 42
@@ -97,7 +98,7 @@ describe('care and persistence', () => {
     expect(restored.friends[0].stats.hunger).toBeCloseTo(73.5)
     expect(restored.memories[0].text).toBe('함께한 추억')
     expect(restored.friends.every(f => !f.moving && f.route.length === 0)).toBe(true)
-    expect(decay(friends[0].stats, 999999999)).toEqual(decay(friends[0].stats, 8 * 3600000))
+    expect(legacyChange(friends[0].stats, 999999999)).toEqual(legacyChange(friends[0].stats, 8 * 3600000))
   })
   it('rejects invalid saves and ignores foreign photo protocols', () => {
     expect(() => parseSave('{')).toThrow()

@@ -39,6 +39,12 @@ export async function hydrateStorage() {
   valid.sort((a, b) => b.savedAt - a.savedAt)
   initialRaw = valid[0]?.raw ?? null
   if (!initialRaw && brokenRaw) { blocked = true; storageWarning = '저장 데이터가 손상되어 자동 덮어쓰기를 멈췄어요. 추억 보관으로 원본을 백업하고 올바른 파일을 복원해 주세요.' }
+  if(initialRaw&&!JSON.parse(initialRaw).world?.statusBalanceVersion){
+    let backed=false
+    try{if(!localStorage.getItem(`${STORAGE_KEY}-before-status`))localStorage.setItem(`${STORAGE_KEY}-before-status`,initialRaw);backed=true}catch{}
+    try{if(database){if(!await read('before-status'))await put('before-status',initialRaw);backed=true}}catch{}
+    if(!backed){blocked=true;brokenRaw=initialRaw;storageWarning='상태 밸런스 변경 전 백업할 공간이 없어 자동 저장을 멈췄어요. 추억 보관으로 원본을 내려받아 주세요.'}
+  }
   if(initialRaw&&!JSON.parse(initialRaw).world?.roomVersion){
     let backed=false
     try{if(!localStorage.getItem(`${STORAGE_KEY}-before-room`))localStorage.setItem(`${STORAGE_KEY}-before-room`,initialRaw);backed=true}catch{}
