@@ -23,7 +23,7 @@ import { Character } from './Character'
 import { RoomArt } from './Room'
 import { InteractiveFriend } from './InteractiveFriend'
 import { interactionBalance } from './balance'
-import { care, clamp, createFriends, decay, parseSave, tick, restLabel } from './game'
+import { care, clamp, createFriends, parseSave, tick, restLabel } from './game'
 import type { Care, Friend, Memory, Save, Stats } from './game'
 
 function load() {
@@ -90,7 +90,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
   const notify = useCallback((message: string) => setNotice(message), [])
   const persist = useCallback(() => {
     if (cloudRef.current) return // Local saves are never overwritten with cloud state.
-    model.current.savedAt = Date.now()
+    settleLife(model.current,Date.now())
     saveSnapshot(JSON.stringify(model.current), (local, indexed) => {
       setStorageError(!local || !indexed)
       if (local || indexed) setSavedAt(model.current.savedAt)
@@ -129,13 +129,13 @@ function App({ cloud }: { cloud?: CloudGame }) {
     setSavedAt(snapshot.savedAt); render(v => v + 1)
   }, [cloud?.row.revision])
   useEffect(() => {
-    let frame = 0, previous = performance.now(), lastRender = 0, hiddenAt = 0, lastWorldCheck = -1000
+    let frame = 0, previous = performance.now(), lastRender = 0, lastWorldCheck = -1000
     const loop = (stamp: number) => {
       const dt = Math.min(Math.max((stamp - previous) / 1000, 0), .15)
       previous = stamp
+      if(!cloudRef.current)settleLife(model.current,Date.now())
       if (stamp - lastWorldCheck >= 1000) {
         lastWorldCheck = stamp
-        if(!cloudRef.current)settleLife(model.current)
         attachNavigation(model.current)
         model.current.friends.forEach(f=>furnitureDestination(f,model.current,Date.now()))
         const returns = cloudRef.current ? [] : completeExpeditions(model.current)
@@ -148,10 +148,10 @@ function App({ cloud }: { cloud?: CloudGame }) {
     frame = requestAnimationFrame(loop)
     const interval = window.setInterval(persist, 5000)
     const visibility = () => {
-      if (document.hidden) { hiddenAt = Date.now(); persist() }
+      if (document.hidden) { persist() }
       else {
-        if (hiddenAt && !cloudRef.current) for (const f of model.current.friends) f.stats = decay(f.stats, Date.now() - hiddenAt)
-        hiddenAt = 0; previous = performance.now()
+        if(!cloudRef.current)settleLife(model.current,Date.now())
+        previous = performance.now()
       }
     }
     document.addEventListener('visibilitychange', visibility)

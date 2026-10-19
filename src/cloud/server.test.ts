@@ -33,7 +33,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 9 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 10 }),
     }),
   )
 }
@@ -742,5 +742,33 @@ describe.sequential('daily ranking and recovery foods on durable shared storage'
   data=(await repo.load()).data!;const {ranking}=await import('../sichuan/state')
   expect(data.world!.sichuan!.dailyBests).toHaveLength(2);expect(ranking(data.world!.sichuan!,at)[0]).toMatchObject({nickname:'서버친구',elapsedMs:3000,at:midnight+1000});expect(data.world!.sichuan!.bests[0].nickname).toBe('어제친구')
   expect(data.world!.coins).toBe(300);expect(ranking(data.world!.sichuan!,midnight+86400000)).toEqual([])
+ })
+})
+
+describe.sequential('gentle status balance uses one authoritative settlement clock',()=>{
+ it('two devices and retried operations recover the same fifteen minutes once, ignoring forged client times',async()=>{
+  await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'})
+  let data=(await repo.load()).data!;data.friends[0].stats={hunger:100,hygiene:100,happiness:100,energy:40,affection:47};data.friends[0].photo='data:image/png;base64,AAAA';data.world!.coins=777
+  const {life}=await import('../expansion/model');life(data.friends[0],now)
+  await db.query("update game_worlds set data=$1::jsonb where id='home'",[JSON.stringify(data)])
+  at=now+15*60000;const c={type:'refresh',now:now+1000*3600000,elapsedMs:999999999},op=crypto.randomUUID()
+  await Promise.all([command(pc,c,op),command(mobile,c)]);await command(pc,c,op)
+  data=(await repo.load()).data!;expect(data.friends[0].stats).toEqual({hunger:97.75,hygiene:97.75,happiness:98.35,energy:42,affection:47});expect(data.savedAt).toBe(at);expect(data.friends[0].life!.lastSettledAt).toBe(at)
+  expect(data.world!.coins).toBe(777);expect(data.friends[0].photo).toBe('data:image/png;base64,AAAA')
+  const revision=(await repo.load()).revision;await command(pc,c,op);expect((await repo.load()).revision).toBe(revision)
+  at=now+3600000;await Promise.all([command(pc,c),command(mobile,c)]);data=(await repo.load()).data!;expect(data.friends[0].stats.energy).toBe(48);expect(data.friends[0].stats.hunger).toBe(91)
+ })
+ it('racing first migrations settle the old interval once and reject stale version-nine writers without changing data',async()=>{
+  await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'})
+  let data=(await repo.load()).data!;delete data.world!.statusBalanceVersion;delete data.world!.statusBalanceSince
+  data.friends[0].stats={hunger:100,hygiene:100,happiness:100,energy:80,affection:47};const {life}=await import('../expansion/model');life(data.friends[0],now)
+  const originalIds=data.friends.map(f=>f.id),originalInventory=structuredClone(data.world!.inventory)
+  await db.query("update game_worlds set data=$1::jsonb where id='home'",[JSON.stringify(data)])
+  at=now+2*3600000;await Promise.all([command(pc,{type:'refresh'}),command(mobile,{type:'refresh'})])
+  data=(await repo.load()).data!;expect(data.friends[0].stats.energy).toBeCloseTo(60.8,10);expect(data.friends[0].stats.hunger).toBe(46);expect(data.world!.statusBalanceSince).toBe(at)
+  expect(data.friends.map(f=>f.id)).toEqual(originalIds);expect(data.world!.inventory).toEqual(originalInventory)
+  const before=await repo.load(),stale=new Request('https://project.supabase.co/functions/v1/game',{method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${mobile}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:9,command:{type:'refresh'}})})
+  expect((await handler(stale)).status).toBe(409);expect(await repo.load()).toEqual(before)
+  at+=3600000;await command(mobile,{type:'refresh'});data=(await repo.load()).data!;expect(data.friends[0].stats.energy).toBeCloseTo(68.8,10);expect(data.world!.statusBalanceSince).toBe(now+2*3600000)
  })
 })

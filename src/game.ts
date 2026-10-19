@@ -1,3 +1,4 @@
+import {naturalChange} from './status/balance.ts'
 import {settleEmotions,migrateEmotion} from './emotions/model.ts'
 import {roomScale} from './room/config.ts'
 import {upgradeRoom} from './room/migrate.ts'
@@ -53,15 +54,13 @@ export function createFriends(now = Date.now()): Friend[] {
   }))
 }
 export function say(f: Friend, text: string, now: number) { return speak(f, text, now, 4) }
-export function decay(stats: Stats, milliseconds: number): Stats {
-  const minutes = Math.max(0, Math.min(milliseconds, 8 * 3600000)) / 60000
-  return { hunger: clamp(stats.hunger - minutes * .45), happiness: clamp(stats.happiness - minutes * (.22 + (stats.hunger <= 10 ? .12 : 0) + (stats.hygiene <= 10 ? .08 : 0))), energy: clamp(stats.energy - minutes * .16), hygiene: clamp(stats.hygiene - minutes * .3), affection: stats.affection }
-}
+// Kept as a pure helper for callers and tests; authoritative settlement lives in settleLife.
+export const decay=naturalChange
+
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 export function tick(friends: Friend[], now: number, dt: number, onMeeting: (text: string) => void, onBond: (friend: Friend) => void = () => {}, visualOnly = false) {
   if(!visualOnly)settleEmotions(friends,now)
   for (const f of friends) {
-    if (!visualOnly) f.stats = decay(f.stats, dt * 1000)
     if (f.growth?.awayJobId || busyLife(f,now)) { f.moving = false; continue }
     advanceInteraction(f, now, dt, () => onBond(f))
     f.moving = false
@@ -165,12 +164,12 @@ export function parseSave(raw: string, now = Date.now()): Save {
     f.stateEmotion=migrateEmotion(old.stateEmotion)
     if (typeof old.lastCareLine === 'string') f.lastCareLine = old.lastCareLine.slice(0, 200)
     if (typeof old.lastPetLine === 'string') f.lastPetLine = old.lastPetLine.slice(0, 200)
-    f.stats = decay(Object.fromEntries(Object.entries(old.stats).filter(([k]) => k in f.stats).map(([k, v]) => [k, clamp(v)])) as Stats, now - saved.savedAt)
+    f.stats = Object.fromEntries(Object.entries(old.stats).filter(([k]) => k in f.stats).map(([k, v]) => [k, clamp(v)])) as Stats
     if (typeof old.photo === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(old.photo) && old.photo.length < 400000 && ['momo', 'bibi'].includes(f.id)) f.photo = old.photo
     if (Number.isFinite(old.x) && Number.isFinite(old.y)) { f.x = old.x; f.y = old.y }
   }
   const memories = Array.isArray(saved.memories) ? saved.memories.filter(m => m && typeof m.text === 'string' && typeof m.id === 'string' && Number.isFinite(m.at)).slice(0, 20) : []
-  const result = migrateProgress({ version: 2, savedAt: now, friends: base, memories }, saved.friends, saved.world, now)
+  const result = migrateProgress({ version: 2, savedAt: saved.savedAt, friends: base, memories }, saved.friends, saved.world, now)
   if(!saved.world?.roomVersion)delete result.world!.roomVersion
   upgradeRoom(result)
   settleLife(result,now)

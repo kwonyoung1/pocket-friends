@@ -18,7 +18,7 @@ import {
 } from '../expansion/model.ts'
 import { adoptionCatalog } from '../expansion/config.ts'
 // Runs on the server. The browser never submits balances, XP or expedition results.
-import { care, createFriends, decay, parseSave } from '../game.ts'
+import { care, createFriends, parseSave } from '../game.ts'
 import type { Save } from '../game.ts'
 import { grantPetReward } from '../interaction.ts'
 import { validPosition } from '../navigation.ts'
@@ -174,6 +174,8 @@ export function importWorld(value: unknown, now: number): Save {
   // Migration is a one-time, explicitly selected trust boundary; never merge economies.
   const s = parseSave(raw, now)
   s.savedAt = now
+  for(const f of s.friends)if(f.life)f.life.lastSettledAt=now
+  world(s,now).statusBalanceVersion=1;world(s,now).statusBalanceSince=now
   // Imported local records cannot seed a public ranking or claim server rewards.
   if(s.world)delete s.world.sichuan
   return s
@@ -192,7 +194,6 @@ export function applyCommand(
   world(save,now).recoveryLearningVersion=1
   if(save.world?.sichuan)sichuanProgress(save)
   for (const f of save.friends) {
-    f.stats = decay(f.stats, Math.max(0, now - save.savedAt))
     f.foodTaste=resolveTaste(f.id,f.foodTaste)
     delete f.interaction
   }
