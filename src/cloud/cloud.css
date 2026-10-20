@@ -2,3 +2,6 @@
 .cloud-message{font-size:12px;color:#6b785c;margin:6px 20px}
 .cloud-error{position:fixed;top:12px;left:12px;right:12px;z-index:6000;margin:0;box-shadow:0 8px 28px #624f3420}
 .cloud-file{display:grid;gap:8px;padding:12px;text-align:left;font-size:12px;border:1px dashed #cdbd9c;border-radius:12px;margin:12px 0}.cloud-file input{padding:8px;font-size:12px;max-width:100%}
+
+/* Reserve the result line so acknowledgements never move the room under a held pointer. */
+.cloud-message{min-height:1.5em;line-height:1.5}
