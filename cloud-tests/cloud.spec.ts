@@ -369,16 +369,62 @@ test('natural status balance syncs one elapsed interval to two devices after bro
  const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
  try{
   const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await expect(second.getByRole('button',{name:'새로 동기화',exact:true})).toBeEnabled()
+  const baseline=backend.row().data!
+  const expectedEnergy=()=>{const data=backend.row().data!;return baseline.friends[0].stats.energy+8*(data.savedAt-baseline.savedAt)/3600000}
   backend.setTime(epoch+15*60000)
   // Heartbeats must follow performance.now rather than the forged wall clock.
   await page.evaluate(()=>{Date.now=()=>Date.parse('2000-01-01T00:00:00Z')})
   await page.clock.runFor(31000)
   await expect.poll(()=>backend.row().data!.friends[0].stats.energy).toBeGreaterThanOrEqual(42)
-  expect(backend.row().data!.friends[0].stats.energy).toBeCloseTo(42,1)
+  expect(backend.row().data!.friends[0].stats.energy).toBeCloseTo(expectedEnergy(),8)
   await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await second.getByRole('button',{name:'모모 상태 확인'}).click();await page.getByRole('button',{name:'모모 상태 확인'}).click()
   await expect(page.getByRole('progressbar',{name:'체력',exact:true})).toHaveAttribute('aria-valuenow','42');await expect(second.getByRole('progressbar',{name:'체력',exact:true})).toHaveAttribute('aria-valuenow','42')
   await second.reload();await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await expect(second.getByRole('button',{name:'새로 동기화',exact:true})).toBeEnabled()
-  expect(backend.row().data!.friends[0].stats.energy).toBeCloseTo(42,1);expect(backend.row().data!.world!.coins).toBe(777);expect(backend.row().data!.world!.inventory.snack).toBe(7)
+  expect(backend.row().data!.friends[0].stats.energy).toBeCloseTo(expectedEnergy(),8);expect(backend.row().data!.world!.coins).toBe(777);expect(backend.row().data!.world!.inventory.snack).toBe(7)
   expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw)
  }finally{await phone.close()}
+})
+
+test('background refresh keeps the board usable and queued player work never fades the tiles', async ({ page, backend }) => {
+  await page.clock.install()
+  await fresh(page, backend.secret)
+  await expect(page.locator('.cloud-status')).not.toContainText('처리 중')
+  await menu(page, '사천성')
+  await page.getByRole('button', { name: '사천성 탐험 시작' }).click()
+  const tiles = page.locator('.sichuan-board button:not(.empty)')
+  await expect(tiles.first()).toBeEnabled()
+  const coins = backend.row().data!.world!.coins
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  let held = false
+  const commands: string[] = []
+  await page.route('**/functions/v1/game', async route => {
+    const body = route.request().postDataJSON()
+    if (body?.action === 'command') {
+      commands.push(body.command.type)
+      if (body.command.type === 'refresh' && !held) { held = true; await gate }
+    }
+    await route.fallback()
+  })
+  try {
+    await page.clock.runFor(31000)
+    await expect(page.locator('.cloud-status')).toContainText('백그라운드 동기화 중')
+    await expect(tiles.first()).toBeEnabled()
+    await expect(tiles.first()).toHaveCSS('opacity', '1')
+    const boardTop=await page.getByTestId('sichuan-board').evaluate(el=>el.getBoundingClientRect().top)
+    await page.getByRole('button', { name: '힌트 (3/3)' }).click()
+    await expect(tiles.first()).toBeDisabled()
+    await expect(tiles.first()).toHaveCSS('opacity', '1')
+    expect(commands).toEqual(['refresh'])
+    release()
+    await expect(page.getByRole('button', { name: '힌트 (2/3)' })).toBeEnabled()
+    await expect(tiles.first()).toBeEnabled()
+    expect(await page.getByTestId('sichuan-board').evaluate(el=>el.getBoundingClientRect().top)).toBeCloseTo(boardTop,1)
+    expect(commands).toEqual(['refresh', 'sichuan-hint'])
+    expect(backend.row().data!.world!.coins).toBe(coins)
+    await page.reload()
+    await page.getByRole('button', { name: '이 클라우드 월드 사용하기' }).click()
+    await menu(page, '사천성')
+    await expect(page.getByRole('button', { name: '힌트 (2/3)' })).toBeEnabled()
+  } finally { release() }
 })

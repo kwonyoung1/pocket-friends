@@ -4,16 +4,18 @@ import type { GameCommand, WorldRow } from './protocol'
 import { resolveCloudConfiguration } from './configuration'
 export type InitialCommand = { type: 'initialize'; source: 'fresh' | 'local'; data?: unknown }
 type Pending = { operation: string; command: GameCommand | InitialCommand }
-export type CloudState = { phase: 'loading' | 'login' | 'ready'; row: WorldRow | null; busy: boolean; error: string; message: string; realtime: boolean; pending: boolean }
+export type CloudState = { phase: 'loading' | 'login' | 'ready'; row: WorldRow | null; busy: boolean; blocking: boolean; error: string; message: string; realtime: boolean; pending: boolean }
 class CloudRequestError extends Error { constructor(message: string, readonly rejected = false) { super(message) } }
 const pendingKey = 'pocket-friends-cloud-pending'
 export class CloudClient {
-  private state: CloudState = { phase: 'loading', row: null, busy: false, error: '', message: '', realtime: false, pending: false }
+  private state: CloudState = { phase: 'loading', row: null, busy: false, blocking: false, error: '', message: '', realtime: false, pending: false }
   private listeners = new Set<() => void>()
   private pending: Pending[] = []
   private channel?: RealtimeChannel
   private timer?: ReturnType<typeof setInterval>
   private reading = false
+  private draining?: Promise<void>
+  private processingQueue = false
   private heartbeat = 0
   private disposed = false
   private serverAt = 0
@@ -26,10 +28,12 @@ export class CloudClient {
     try { this.pending = JSON.parse(sessionStorage.getItem(pendingKey) ?? '[]') } catch { /* original game data is untouched */ }
     if (!Array.isArray(this.pending)) this.pending = []
     this.state.pending = this.pending.length > 0
+    this.state.blocking = this.pending.some(p => p.command.type !== 'refresh')
   }
   snapshot = () => this.state
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
-  private update(patch: Partial<CloudState>) { if (this.disposed) return; this.state = { ...this.state, ...patch }; this.listeners.forEach(fn => fn()) }
+  // Background refreshes use the same durable queue without locking gameplay.
+  private update(patch: Partial<CloudState>) { if (this.disposed) return; this.state = { ...this.state, ...patch }; this.state.blocking = this.pending.some(p => p.command.type !== 'refresh') || (this.state.busy && !this.processingQueue); this.listeners.forEach(fn => fn()) }
   private accept(row: WorldRow) { if (!this.state.row || row.revision >= this.state.row.revision) this.update({ row }) }
   private async request(body: unknown): Promise<{ row: WorldRow; message?: string }> {
     const { data: { session } } = await this.sdk.auth.getSession()
@@ -87,13 +91,21 @@ export class CloudClient {
   }
   private saveQueue() { try { sessionStorage.setItem(pendingKey, JSON.stringify(this.pending)); return true } catch { return false } }
   async send(command: GameCommand | InitialCommand) {
-    if (this.pending.length >= 20 || this.state.error && this.pending.length) { this.update({ error: '앞선 작업을 다시 확인한 뒤 시도해 주세요.' }); return }
+    if (this.pending.length >= 20 || this.state.error && this.pending.some(p => p.command.type !== 'refresh')) { this.update({ error: '앞선 작업을 다시 확인한 뒤 시도해 주세요.' }); return }
     this.pending.push({ operation: crypto.randomUUID(), command })
     if (!this.saveQueue()) { this.pending.pop(); this.update({ error: '작업 번호를 저장하지 못해 요청을 보내지 않았어요. 브라우저 저장 공간을 확인해 주세요.', pending: this.pending.length > 0 }); return }
     this.update({ pending: true }); await this.retry()
   }
   async retry() {
+    // Every caller waits for its queued command, even when a refresh is in flight.
+    if (this.draining) return this.draining
     if (!this.pending.length || this.state.busy) return
+    this.processingQueue = true
+    this.draining = this.drainQueue()
+    try { await this.draining }
+    finally { this.draining = undefined; this.processingQueue = false }
+  }
+  private async drainQueue() {
     this.update({ busy: true, error: '' })
     try {
       while (this.pending.length) {
