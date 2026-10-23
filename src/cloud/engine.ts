@@ -1,3 +1,4 @@
+import {changeRoomTheme} from '../room/theme.ts'
 import {gearCommand} from '../equipment/model.ts'
 import {settleEmotions} from '../emotions/model.ts'
 import {sichuanCommand,expireSichuan,progress as sichuanProgress} from '../sichuan/model.ts'
@@ -51,6 +52,9 @@ export function validateCommand(value: unknown): GameCommand {
   if ('friendId' in c && !friendIds.includes(String(c.friendId)))
     throw Error('친구를 선택해 주세요.')
   switch (c.type) {
+    case 'room-theme':
+      if(c.theme!=='default'&&c.theme!=='halloween')throw Error('방 테마를 확인해 주세요.')
+      break
     case 'sichuan-start': case 'sichuan-match': case 'sichuan-hint': case 'sichuan-shuffle': case 'sichuan-next': case 'sichuan-stop':
       if(!['adventure','competition'].includes(String(c.mode))||(c.type==='sichuan-start'?(c.nickname!==undefined&&(typeof c.nickname!=='string'||c.nickname.length>48)):(!string(c.sessionId,36)||!Number.isSafeInteger(c.turn)||Number(c.turn)<0))||(c.type==='sichuan-match'&&(!Number.isInteger(c.a)||!Number.isInteger(c.b)||Number(c.a)<0||Number(c.b)<0||Number(c.a)>119||Number(c.b)>119)))throw Error('사천성 조작 정보를 확인해 주세요.')
       break
@@ -219,6 +223,7 @@ export function applyCommand(
   if ('friendId' in c && !f) throw Error('아직 함께 살지 않는 친구예요.')
   let message = returns.join(' · ') || '클라우드와 동기화했어요.'
   switch (c.type) {
+    case 'room-theme': message=changeRoomTheme(save,c.theme,now);break
     case 'sichuan-start': case 'sichuan-match': case 'sichuan-hint': case 'sichuan-shuffle': case 'sichuan-next': case 'sichuan-stop': message=sichuanCommand(save,c as SichuanCommand,user,now);break
     case 'buy-many': case 'sell-many': message=trade(save,c,now);break
     case 'word-delete': case 'word-start': case 'word-answer': case 'word-reveal': case 'word-skip': case 'word-next': case 'word-hint': case 'word-abandon':

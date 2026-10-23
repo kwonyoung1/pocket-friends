@@ -1,63 +1,28 @@
 import { itemById } from '../progression/config'
-const shapes = [
-  [
-    'plant',
-    'chair',
-    'stones',
-    'basket',
-    'mushroom',
-    'frame',
-    'cushion',
-    'shell',
-  ],
-  ['plant', 'heart', 'fountain', 'lamp', 'cactus', 'aquarium', 'doll', 'clock'],
-  [
-    'rainbow',
-    'cactus',
-    'moon',
-    'tree',
-    'fountain',
-    'telescope',
-    'chest',
-    'bed',
-  ],
-  [
-    'tree',
-    'throne',
-    'orb',
-    'fountain',
-    'hourglass',
-    'egg',
-    'plant',
-    'bookshelf',
-  ],
-]
+import {furnitureShape} from './artConfig'
 /** Local SVG illustrations: stable asset identity, no remote images or photo processing. */
-export function FurnitureArt({ itemId }: { itemId: string }) {
+export function FurnitureArt({ itemId,worldSize }: { itemId: string;worldSize?:{w:number;h:number} }) {
   const item = itemById[itemId],
     parts = itemId.split('-'),
     grade = item?.rarity ?? 'common',
-    g = itemId.startsWith('decor-') ? Number(parts[1]) : 0,
-    index = itemId.startsWith('decor-') ? Number(parts[2]) : 0
-  const shape =
-    itemId === 'light'
-      ? 'lamp'
-      : itemId === 'decoration'
-        ? 'orb'
-        : (shapes[g]?.[index] ?? 'plant')
+    g = itemId.startsWith('decor-') ? Number(parts[1]) : 0
+  const shape=furnitureShape(itemId)
   const color = ['#94b89a', '#91b8c8', '#baa4d4', '#d6b45f'][g],
     accent = ['#eab4ab', '#e4b9ce', '#aad5d4', '#f4e4ac'][g],
     wood = '#b58e70',
     ink = '#8e7760'
   return (
     <svg
-      viewBox="0 0 100 110"
+      viewBox={worldSize?`0 0 ${worldSize.w} ${worldSize.h}`:"0 0 100 110"}
+      preserveAspectRatio={worldSize?"none":"xMidYMid meet"}
       className={`furniture-art furniture-${grade}`}
       data-art={itemId}
       aria-hidden="true"
     >
+      <g transform={worldSize?`translate(${(worldSize.w-100*Math.min(worldSize.w/100,worldSize.h/110))/2} ${(worldSize.h-110*Math.min(worldSize.w/100,worldSize.h/110))/2}) scale(${Math.min(worldSize.w/100,worldSize.h/110)})`:undefined}>
       <ellipse cx="50" cy="99" rx="35" ry="7" fill="#6b5544" opacity=".14" />
       <g
+        data-placement-body
         stroke={ink}
         strokeWidth="1.7"
         strokeLinejoin="round"
@@ -436,6 +401,7 @@ export function FurnitureArt({ itemId }: { itemId: string }) {
         d="m83 9 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"
         fill={grade === 'legendary' ? '#e0b84c' : '#fff4d5'}
       />
+      </g>
     </svg>
   )
 }

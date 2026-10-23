@@ -34,7 +34,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 11 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 12 }),
     }),
   )
 }
@@ -812,4 +812,32 @@ it('competing departure and equipment change keep each committed expedition snap
  at=job.endsAt+1
  await Promise.all([command(pc,{type:'refresh'}),command(mobile,{type:'refresh'})])
  expect((await repo.load()).data!.friends[0].growth!.explorations).toBe(1)
+})
+
+it('room themes are server-timed, free and synchronized without editing existing placements or possessions',async()=>{
+ await reset();await login(pc);await login(mobile)
+ const s=freshWorld(now);world(s).coins=7654;world(s).inventory={'treasure-diamond':2};world(s).equipment={version:1,instances:[{id:'kept',itemId:'gear-crystal-hat',regionId:'mine',foundAt:now,equippedBy:'momo'}]}
+ world(s).expansion={version:1,placements:[{id:'legacy',itemId:'plant',x:530,y:275*Math.sqrt(1.5),layer:4}],hamsters:[],adoptions:[],events:[],seen:[]}
+ await command(pc,{type:'initialize',source:'local',data:s})
+ const before=(await repo.load()).data!
+ const result=await command(mobile,{type:'room-theme',theme:'halloween',changedAt:0,coins:0})
+ expect(result.response.status).toBe(200)
+ let row=await repo.load();expect(row.data!.world!.roomTheme).toEqual({id:'halloween',changedAt:now})
+ expect(row.data!.world!.coins).toBe(before.world!.coins);expect(row.data!.world!.inventory).toEqual(before.world!.inventory);expect(row.data!.world!.equipment).toEqual(before.world!.equipment);expect(row.data!.world!.expansion).toEqual(before.world!.expansion)
+ const positions=before.friends.map(f=>[f.id,f.x,f.y]);expect(row.data!.friends.map(f=>[f.id,f.x,f.y])).toEqual(positions)
+ const status=await call(pc,{action:'status'});expect((await status.json()).row.data.world.roomTheme.id).toBe('halloween')
+ await command(pc,{type:'room-theme',theme:'default'});await command(mobile,{type:'room-theme',theme:'halloween'})
+ row=await repo.load();expect(row.data!.world!.coins).toBe(7654);expect(row.data!.world!.roomTheme!.id).toBe('halloween')
+ const stale=await handler(new Request('https://project.supabase.co/functions/v1/game',{method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${pc}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:11,command:{type:'refresh'}})}))
+ expect(stale.status).toBe(409);expect(await repo.load()).toEqual(row)
+})
+
+it('new floor-edge gem placement is validated on the server and duplicate operations never consume twice',async()=>{
+ await reset();await login(pc);await login(mobile)
+ const s=freshWorld(now);world(s).inventory={'treasure-diamond':2};await command(pc,{type:'initialize',source:'local',data:s})
+ for(const y of [250,610]){const op=crypto.randomUUID(),c={type:'place',itemId:'treasure-diamond',x:500*Math.sqrt(1.5),y:y*Math.sqrt(1.5)};const results=await Promise.all([command(pc,c,op),command(pc,c,op)]);expect(results.map(r=>r.response.status)).toEqual([200,200])}
+ const row=await repo.load();expect(row.data!.world!.inventory['treasure-diamond']).toBe(0);expect(row.data!.world!.expansion!.placements).toHaveLength(2)
+ const id=row.data!.world!.expansion!.placements[0].id
+ await command(mobile,{type:'place',itemId:'treasure-diamond',placementId:id,x:0,y:0})
+ expect((await repo.load()).data!.world!.expansion!.placements).toEqual(row.data!.world!.expansion!.placements)
 })

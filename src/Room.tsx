@@ -1,20 +1,25 @@
+import {memo} from 'react'
+import type {RoomThemeId} from './room/theme'
+import {HalloweenDecor} from './room/HalloweenDecor'
+import './room/theme.css'
 import {room,roomScale} from './room/config'
-export function RoomArt() {
-  return <svg className="room-art" viewBox={`0 0 ${room.width} ${room.height}`} preserveAspectRatio="none" aria-hidden="true">
+export const RoomArt=memo(function RoomArt({theme='default'}:{theme?:RoomThemeId}) {
+  const halloween=theme==='halloween'
+  return <svg className={`room-art theme-${theme}`} key={theme} viewBox={`0 0 ${room.width} ${room.height}`} preserveAspectRatio="none" aria-hidden="true">
     <defs>
-      <pattern id="floor" width="170" height="76" patternUnits="userSpaceOnUse"><rect width="170" height="76" fill="#f3e2ca" /><path d="M0 75h170M0 0v76M85 0v0" stroke="#e7cfaf" strokeWidth="2" /><path d="M15 12h50m28 37h54M23 63h22" stroke="#ecd6b8" strokeWidth="2" strokeLinecap="round" /></pattern>
-      <pattern id="wall" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#f5eee2" /><circle cx="12" cy="12" r="1" fill="#ddd6c5" /></pattern>
-      <linearGradient id="sunbeam" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fffbe6" stopOpacity=".6" /><stop offset="1" stopColor="#fffbe6" stopOpacity="0" /></linearGradient>
-      <linearGradient id="glass" x2="0" y2="1"><stop stopColor="#c5ded5" /><stop offset="1" stopColor="#e2ece0" /></linearGradient>
+      <pattern id="floor" width="170" height="76" patternUnits="userSpaceOnUse"><rect width="170" height="76" fill={halloween?'#efdbca':'#f3e2ca'} /><path d="M0 75h170M0 0v76M85 0v0" stroke={halloween?'#dec3bc':'#e7cfaf'} strokeWidth="2" /><path d="M15 12h50m28 37h54M23 63h22" stroke={halloween?'#e3c9be':'#ecd6b8'} strokeWidth="2" strokeLinecap="round" /></pattern>
+      <pattern id="wall" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill={halloween?'#f0e6f2':'#f5eee2'} /><circle cx="12" cy="12" r="1" fill={halloween?'#d5bedc':'#ddd6c5'} /></pattern>
+      <linearGradient id="sunbeam" x1="0" y1="0" x2="1" y2="1"><stop stopColor={halloween?'#ead7f0':'#fffbe6'} stopOpacity=".6" /><stop offset="1" stopColor={halloween?'#ead7f0':'#fffbe6'} stopOpacity="0" /></linearGradient>
+      <linearGradient id="glass" x2="0" y2="1"><stop stopColor={halloween?'#72779e':'#c5ded5'} /><stop offset="1" stopColor={halloween?'#a3a1be':'#e2ece0'} /></linearGradient>
       <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="5" floodColor="#88613e" floodOpacity=".11" /></filter>
     </defs>
     <g transform={`scale(${roomScale})`}><rect width="1000" height="640" fill="url(#floor)" /><path d="M0 0h1000v194H0Z" fill="url(#wall)" />
-    <path d="M0 184h1000v15H0Z" fill="#d5bfa4" /><path d="M0 184h1000" stroke="#fff9ee" strokeWidth="5" />
+    <path d="M0 184h1000v15H0Z" fill={halloween?'#b8a0be':'#d5bfa4'} /><path d="M0 184h1000" stroke="#fff9ee" strokeWidth="5" />
     <path d="m405 170 176-4 244 458H456Z" fill="url(#sunbeam)" />
-    <g filter="url(#shadow)"><rect x="387" y="23" width="208" height="146" rx="6" fill="#dfc6a4" /><rect x="397" y="32" width="188" height="126" rx="2" fill="url(#glass)" /><path d="M400 119q35-30 68-5 28-36 58-13 25-10 59 10v47H400Z" fill="#b9cdb5" /><path d="M398 91h187m-94-59v126" stroke="#fff8eb" strokeWidth="7" /><path d="M380 165h221" stroke="#d1b48e" strokeWidth="12" strokeLinecap="round" /><path d="M377 26q-9 72 7 112l26-7-8-105m191 0q9 72-7 112l-26-7 8-105" fill="#dfc3b2" /><path d="M382 33q0 62 8 91m6-91q-1 58 2 88m188-88q0 62-8 91" fill="none" stroke="#cfb29f" strokeWidth="2" /></g>
+    <g filter="url(#shadow)"><rect x="387" y="23" width="208" height="146" rx="6" fill="#dfc6a4" /><rect x="397" y="32" width="188" height="126" rx="2" fill="url(#glass)" /><path d="M400 119q35-30 68-5 28-36 58-13 25-10 59 10v47H400Z" fill={halloween?'#9890b0':'#b9cdb5'} /><path d="M398 91h187m-94-59v126" stroke="#fff8eb" strokeWidth="7" /><path d="M380 165h221" stroke="#d1b48e" strokeWidth="12" strokeLinecap="round" /><path d="M377 26q-9 72 7 112l26-7-8-105m191 0q9 72-7 112l-26-7 8-105" fill="#dfc3b2" /><path d="M382 33q0 62 8 91m6-91q-1 58 2 88m188-88q0 62-8 91" fill="none" stroke="#cfb29f" strokeWidth="2" /></g>
     <g transform="translate(157 46) rotate(-5)"><rect width="77" height="87" rx="4" fill="#b99b7b" /><rect x="7" y="7" width="63" height="73" fill="#fff8e9" /><path d="M18 65 38 35l22 30Z" fill="#c5cbb0" /><circle cx="52" cy="25" r="9" fill="#e1bc83" /></g>
     <g transform="translate(670 60)"><circle r="31" fill="#d4b89b" /><circle r="26" fill="#fffaf0" /><path d="M0-16V0l11 7" fill="none" stroke="#977e65" strokeWidth="3" strokeLinecap="round" /><circle r="3" fill="#977e65" /></g>
-    <ellipse cx="490" cy="435" rx="251" ry="126" fill="#b9c6a6" opacity=".35" /><ellipse cx="490" cy="426" rx="245" ry="119" fill="#d0d6b9" /><ellipse cx="490" cy="426" rx="228" ry="104" fill="none" stroke="#e5e6cd" strokeWidth="3" strokeDasharray="5 6" /><path d="M410 426q80-70 160 0-80 70-160 0Z" fill="#dfe1c6" opacity=".65" />
+    <ellipse cx="490" cy="435" rx="251" ry="126" fill="#b9c6a6" opacity=".35" /><ellipse cx="490" cy="426" rx="245" ry="119" fill={halloween?'#d7c6db':'#d0d6b9'} /><ellipse cx="490" cy="426" rx="228" ry="104" fill="none" stroke={halloween?'#eee0e5':'#e5e6cd'} strokeWidth="3" strokeDasharray="5 6" /><path d="M410 426q80-70 160 0-80 70-160 0Z" fill={halloween?'#e8d7d9':'#dfe1c6'} opacity=".65" />
     <g filter="url(#shadow)"><path d="M83 276v18m190-18v18" stroke="#a78060" strokeWidth="12" strokeLinecap="round" /><rect x="85" y="176" width="194" height="97" rx="25" fill="#b7c1a0" /><rect x="95" y="187" width="83" height="67" rx="17" fill="#c9d0b2" /><rect x="182" y="187" width="83" height="67" rx="17" fill="#c9d0b2" /><rect x="88" y="238" width="189" height="42" rx="15" fill="#b3be9b" /><rect x="68" y="218" width="37" height="65" rx="16" fill="#c0c9ab" /><rect x="260" y="218" width="37" height="65" rx="16" fill="#c0c9ab" /><rect x="119" y="201" width="45" height="42" rx="9" fill="#f1dfc3" transform="rotate(-12 140 220)" /><path d="m124 216 23 9m-17-20 23 9" stroke="#ddc5a6" strokeWidth="3" /><rect x="208" y="204" width="39" height="37" rx="9" fill="#dfb7a2" transform="rotate(10 225 220)" /></g>
     <g filter="url(#shadow)"><rect x="810" y="83" width="130" height="177" rx="5" fill="#bc9872" /><rect x="818" y="91" width="114" height="152" fill="#dcc09a" /><path d="M818 140h114m-114 55h114" stroke="#b28d68" strokeWidth="8" /><path d="M828 102v32m12-30v30m13-24v24" stroke="#a4b198" strokeWidth="9" /><path d="m872 104 8 28" stroke="#d79f8d" strokeWidth="12" /><rect x="891" y="111" width="25" height="21" rx="5" fill="#f1e4cf" /><path d="M827 160h38m-34 11h38m-40 11h38" stroke="#d3a482" strokeWidth="7" /><circle cx="902" cy="173" r="14" fill="#e4ddbd" /><path d="M835 214h36v23h-36Z" fill="#b9c4a1" /><path d="M893 215h26m-26 12h26" stroke="#eedfc7" strokeWidth="8" /><path d="M818 258v12m114-12v12" stroke="#a17c57" strokeWidth="9" /></g>
     <g transform="translate(83 472)" filter="url(#shadow)"><ellipse cy="12" rx="41" ry="13" fill="#c9b595" opacity=".4" /><path d="m-22-23 6 43h33l6-43" fill="#d6a78b" /><ellipse cy="-23" rx="23" ry="8" fill="#b9886f" /><path d="M0-22v-63m0 48q-38-2-30-38 30 0 30 38m0-16q37-4 31-39-29 5-31 39m0-18q-21-12-12-37 23 8 12 37" fill="#91a989" stroke="#7f987b" strokeWidth="3" /></g>
@@ -22,6 +27,7 @@ export function RoomArt() {
     <g transform="translate(910 534) rotate(10)"><ellipse rx="40" ry="17" fill="#e7cab3" /><ellipse cy="-6" rx="40" ry="17" fill="#f1d9c5" /><path d="m-18-9 11 6m14-6 11 6" stroke="#dfbea3" strokeWidth="2" /></g>
     <path d="m355 567 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1Z" fill="#dfbc89" opacity=".65" />
     <g fill="#fff9df" opacity=".8"><path d="m604 235 2 7 7 2-7 2-2 7-2-7-7-2 7-2Z" /><circle cx="560" cy="282" r="3" /><circle cx="639" cy="316" r="2" /></g>
+    {halloween&&<HalloweenDecor/>}
     </g>
   </svg>
-}
+})

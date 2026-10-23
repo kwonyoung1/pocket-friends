@@ -1,3 +1,4 @@
+import {placementVisualSize,placementFloor,clampPlacement,roomPointer} from '../room/placement'
 import {EquipmentPanel} from '../equipment/UI'
 import {isGem,gemById} from '../adventure/gems'
 import {TreasureArt} from '../adventure/TreasureArt'
@@ -540,13 +541,13 @@ export function RoomExtras({
             top: topPercent(p.y),
             zIndex: (editing?2000:300)+index,
             '--gem-color':gemById[p.itemId]?.color,
-            ...(p.w?{width:`${p.w/room.width*100}%`}:{}),
-            ...(p.h?{height:`${p.h/room.height*100}%`}:{}),
+            width:leftPercent(placementVisualSize(p.itemId,p).w),
+            height:topPercent(placementVisualSize(p.itemId,p).h),
           } as CSSProperties}
           onClick={() => setSelected(p)}
           onContextMenu={(ev) => ev.preventDefault()}
         >
-          {isGem(p.itemId)?<TreasureArt id={p.itemId}/>:<FurnitureArt itemId={p.itemId}/>}
+          {isGem(p.itemId)?<TreasureArt id={p.itemId} worldSize={placementVisualSize(p.itemId,p)}/>:<FurnitureArt itemId={p.itemId} worldSize={placementVisualSize(p.itemId,p)}/>}
           {isGem(p.itemId)&&itemById[p.itemId].rarity==='legendary'&&<span className="gem-sparkles" aria-hidden="true">✧ · ✦</span>}
         </button>
       ))}
@@ -591,8 +592,7 @@ export function RoomExtras({
             const r = ev.currentTarget.getBoundingClientRect()
             setDraft({
               ...draft,
-              x: ((ev.clientX - r.left) / r.width) * room.width,
-              y: ((ev.clientY - r.top) / r.height) * room.height,
+              ...clampPlacement(draft.itemId,roomPointer(ev.clientX,ev.clientY,r),e.placements.find(p=>p.id===draft.placementId)),
             })
           }}
           onPointerMove={(ev) => {
@@ -600,8 +600,7 @@ export function RoomExtras({
             const r = ev.currentTarget.getBoundingClientRect()
             setDraft({
               ...draft,
-              x: ((ev.clientX - r.left) / r.width) * room.width,
-              y: ((ev.clientY - r.top) / r.height) * room.height,
+              ...clampPlacement(draft.itemId,roomPointer(ev.clientX,ev.clientY,r),e.placements.find(p=>p.id===draft.placementId)),
             })
           }}
           onPointerUp={(ev) => {
@@ -610,16 +609,18 @@ export function RoomExtras({
           }}
           onContextMenu={(ev) => ev.preventDefault()}
         >
+          <div className="placement-safe-area" data-testid="placement-floor" style={{left:leftPercent(placementFloor.left),top:topPercent(placementFloor.top),width:leftPercent(placementFloor.right-placementFloor.left),height:topPercent(placementFloor.bottom-placementFloor.top)}}/>
           <div
             data-item={draft.itemId}
             className={`furniture-preview ${isGem(draft.itemId)?'placed-gem':''} ${isGem(draft.itemId)&&itemById[draft.itemId].rarity==='legendary'?'gem-aura':''}`}
             data-testid="placement-preview"
-            style={{ left: leftPercent(draft.x), top: topPercent(draft.y) }}
+            data-map-x={draft.x} data-map-y={draft.y}
+            style={{ left: leftPercent(draft.x), top: topPercent(draft.y),width:leftPercent(placementVisualSize(draft.itemId,e.placements.find(p=>p.id===draft.placementId)).w),height:topPercent(placementVisualSize(draft.itemId,e.placements.find(p=>p.id===draft.placementId)).h) }}
           >
-            {isGem(draft.itemId)?<TreasureArt id={draft.itemId}/>:<FurnitureArt itemId={draft.itemId}/>}
+            {isGem(draft.itemId)?<TreasureArt id={draft.itemId} worldSize={placementVisualSize(draft.itemId,e.placements.find(p=>p.id===draft.placementId))}/>:<FurnitureArt itemId={draft.itemId} worldSize={placementVisualSize(draft.itemId,e.placements.find(p=>p.id===draft.placementId))}/>}
           </div>
           {roomTools(<div className="furniture-controls">
-            <span>바닥을 톡 누르거나 끌어서 위치 선택</span>
+            <span className="draft-thumbnail" aria-label="손가락에 가리지 않는 배치 미리보기">{isGem(draft.itemId)?<TreasureArt id={draft.itemId}/>:<FurnitureArt itemId={draft.itemId}/>}</span><span>바닥을 누르거나 끌어서 위치 선택 · 가장자리는 크기에 맞춰 조절해요</span>
             <button
               disabled={busy}
               onClick={() => {
