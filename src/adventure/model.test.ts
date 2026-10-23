@@ -1,5 +1,5 @@
 import {expect,it} from 'vitest'
-import {newTreasures,defaultTaste,restCooldownMs} from './catalog'
+import {newTreasures,defaultTaste,restCooldownMs,treasureAllowed} from './catalog'
 import {items,itemById,salePrice} from '../progression/config'
 import {regionWeights,collectionItems} from '../expansion/config'
 import {acquire,buy,chooseLoot,completeExpeditions,growth,rollRarity,sell,startExpedition,useItem,world} from '../progression/model'
@@ -24,7 +24,7 @@ it('uses exact regional weights at 100000 stratified draws and never awards fore
  }
  expect(rollRarity(()=>.997499999,'cave')).toBe('rare');expect(rollRarity(()=>.9975,'cave')).toBe('legendary')
  expect(rollRarity(()=>.994999999,'garden')).toBe('rare');expect(rollRarity(()=>.995,'garden')).toBe('legendary')
- const expected=items.filter(i=>i.category==='treasure'&&i.rarity==='legendary').map(i=>i.id)
+ const expected=items.filter(i=>i.category==='treasure'&&i.rarity==='legendary'&&treasureAllowed(i.id,i.rarity,'cave')).map(i=>i.id)
  for(const region of ['cave','garden'])expect(expected.map((_,i)=>chooseLoot(region,'legendary',()=>(i+.5)/expected.length))).toEqual(expected)
 })
 it('draws collectible, curious extra and furniture separately; retains all locked rewards through migration and pays once',()=>{

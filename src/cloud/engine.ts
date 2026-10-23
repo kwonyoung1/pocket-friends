@@ -1,3 +1,4 @@
+import {gearCommand} from '../equipment/model.ts'
 import {settleEmotions} from '../emotions/model.ts'
 import {sichuanCommand,expireSichuan,progress as sichuanProgress} from '../sichuan/model.ts'
 import type {SichuanCommand} from '../sichuan/state.ts'
@@ -81,6 +82,12 @@ export function validateCommand(value: unknown): GameCommand {
     case 'rename':
       if (!friendIds.includes(String(c.friendId)) || !string(c.name, 100))
         throw Error('이름을 확인해 주세요.')
+      break
+    case 'equip': case 'unequip':
+      if(!friendIds.includes(String(c.friendId))||!string(c.instanceId))throw Error('장비와 친구를 확인해 주세요.')
+      break
+    case 'layer':
+      if(!string(c.id)||!['front','back','forward','backward'].includes(String(c.direction)))throw Error('배치 순서를 확인해 주세요.')
       break
     case 'adopt':
     case 'recover-furniture':
@@ -217,6 +224,8 @@ export function applyCommand(
     case 'word-delete': case 'word-start': case 'word-answer': case 'word-reveal': case 'word-skip': case 'word-next': case 'word-hint': case 'word-abandon':
       message=wordCommand(save,c as WordCommand,now);break
     case 'claim-special-friends': message=grantSpecialFriends(save,now)?'남자아이와 여자아이가 새 가족이 되었어요! 특별 친구는 무료예요.':'특별 친구들과 함께하고 있어요.';break
+    case 'equip': case 'unequip': message=gearCommand(save,c);break
+    case 'layer': message=lifeCommand(save,c,now);break
     case 'bath':
     case 'medicine':
     case 'rename':

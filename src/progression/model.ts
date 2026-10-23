@@ -1,4 +1,8 @@
-import { resolveTaste, furnitureChance } from '../adventure/catalog.ts'
+import {bonusWeights,drawEquipment,equipment,gearBonus} from '../equipment/model.ts'
+import type {GearState} from '../equipment/model.ts'
+import type {GearBonus} from '../equipment/catalog.ts'
+import {equipmentById} from '../equipment/catalog.ts'
+import { resolveTaste, furnitureChance, treasureAllowed } from '../adventure/catalog.ts'
 import { humanLine } from '../humans/config.ts'
 import { rollTripExtras } from '../expansion/rolls.ts'
 import { busyLife, expansion, life, lifeCommand } from '../expansion/model.ts'
@@ -13,8 +17,9 @@ export type Growth = {
   actions: { day: string; feed: number; play: number; pet: number; explore: number }; explorations: number; rareFinds: number
   awayJobId?: string; events: string[]; levelUpUntil: number; specialAfter: number; specialUntil: number
 }
-export type Expedition = { id: string; friendId: string; regionId: string; startedAt: number; endsAt: number; energyCost: number; result: { coins: number; xp: number; items: string[]; cold?: boolean; hamster?: boolean; eventId?: string }; claimedAt?: number }
+export type Expedition = { id: string; friendId: string; regionId: string; startedAt: number; endsAt: number; energyCost: number; equipmentBonus?:GearBonus; equippedIds?:string[]; result: { coins: number; xp: number; items: string[]; cold?: boolean; hamster?: boolean; eventId?: string; equipment?:{id:string;itemId:string} }; claimedAt?: number }
 export type World = {
+  expeditionGearVersion?:1; equipment?:GearState;
   statusBalanceVersion?:1; statusBalanceSince?:number; recoveryLearningVersion?:1; careEffectsVersion?:1; sichuan?: import('../sichuan/state.ts').SichuanState; roomVersion?: 1; trades?: import('../trade/model.ts').TradeRecord[]; adventureVersion?: 1; words?: import('../words/state.ts').WordProgress; careRulesVersion?: 1; specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
   jobs: Expedition[]; book: Record<string, { firstAt: number; lastAt: number; count: number }>; legendaries: { id: string; itemId: string; friendId: string; at: number; first?: boolean }[]
   notices: { id: string; itemId: string; friendId: string; at: number; first?: boolean }[]; day: string; attendanceDays: string[]; claimedMissions: string[]; achievements: string[]
@@ -86,7 +91,7 @@ export function acquire(w: World, itemId: string, now: number, f?: Friend) {
 }
 export function buy(save: Save, itemId: string, now = Date.now()): string {
   const w = world(save, now), item = itemById[itemId]
-  if (!item || item.category === 'treasure' || collectionItems.some(i=>i.id===itemId)) return '판매하지 않는 아이템이에요.'
+  if (!item || ['treasure','equipment'].includes(item.category) || collectionItems.some(i=>i.id===itemId)) return '판매하지 않는 아이템이에요.'
   if (now < w.buyAfter) return '구매를 처리하고 있어요. 잠깐 기다려 주세요.'
   if (Math.max(...save.friends.map(f => growth(f).level)) < item.minLevel) return `친구 레벨 ${item.minLevel}부터 살 수 있어요.`
   if (!transact(w, -item.price, `${item.name} 구매`, now)) return '코인이 부족해요.'
@@ -100,6 +105,7 @@ export function useItem(save: Save, itemId: string, friendId: string, now = Date
   if (!available(f,now)) return '탐험 중이거나 교감 중인 친구는 잠시 기다려 주세요.'
   if (item.category === 'medicine') return lifeCommand(save,{type:'medicine',friendId},now)
   if (item.category === 'decor') return '인벤토리에서 방에 배치하기를 눌러 위치를 골라 주세요.'
+  if (item.category === 'equipment') return '장비 탭에서 착용해 주세요.'
   if (item.category === 'treasure') return '사용하지 않는 수집용 보물이에요.'
   if (now < w.useAfter || now < (growth(f).rewardAfter[item.category === 'food' ? 'feed' : 'play'] ?? 0)) return '친구가 즐기는 중이에요. 잠깐 기다려 주세요.'
   if (item.consumable) w.inventory[itemId]--
@@ -122,8 +128,8 @@ export function sell(save: Save, itemId: string, now = Date.now()) {
   w.inventory[itemId]--; w.buyAfter = now + B.purchaseCooldownMs
   return `${item.name} 1개를 판매했어요.`
 }
-export function rollRarity(random = Math.random, regionId?: string): Rarity {
-  const weights = Object.entries(regionId ? regionWeights[regionId] ?? B.rarityWeights : B.rarityWeights) as [Rarity, number][]
+export function rollRarity(random = Math.random, regionId?: string, rareBonus=0): Rarity {
+  const weights = Object.entries(regionId ? bonusWeights(regionWeights[regionId] ?? B.rarityWeights,rareBonus) : B.rarityWeights) as [Rarity, number][]
   const value = random() * weights.reduce((s, [, w]) => s + w, 0)
   let sum = 0
   for (const [rarity, weight] of weights) { sum += weight; if (value < sum) return rarity }
@@ -133,14 +139,13 @@ export function rarityPercent(rarity: Rarity) { return B.rarityWeights[rarity] /
 export function chooseLoot(regionId: string, rarity: Rarity, random = Math.random) {
   const region = regions.find(r => r.id === regionId)
   if (!region) throw Error('알 수 없는 지역')
-  const allowed = regionId==='cave'||regionId==='garden'
-  const pool = items.filter(i=>i.category==='treasure'&&i.rarity===rarity&&(rarity!=='legendary'||allowed)).map(i=>i.id)
+  const pool = items.filter(i=>i.category==='treasure'&&i.rarity===rarity&&treasureAllowed(i.id,rarity,regionId)).map(i=>i.id)
   if(!pool.length) throw Error('이 지역에 없는 보물 등급이에요.')
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))]
 }
-export function expeditionTerms(f: Friend, regionId: string) {
-  const r = regions.find(r => r.id === regionId)!, trait = dominant(f)
-  return { duration: Math.round(r.minutes * 60000 * (trait === 'active' ? 1 - B.bonuses.activeTime : 1)), energy: Math.ceil(r.energy * (trait === 'calm' ? 1 - B.bonuses.calmEnergy : 1)), xp: Math.floor(r.xp * (trait === 'adventurous' ? 1 + B.bonuses.adventurousXp : 1)) }
+export function expeditionTerms(f: Friend, regionId: string, save?:Save) {
+  const r = regions.find(r => r.id === regionId)!, trait = dominant(f),bonus=save?gearBonus(save,f.id):{time:0,coins:0,rare:0}
+  return { duration: Math.round(r.minutes * 60000 * Math.max(.65,(trait === 'active' ? 1 - B.bonuses.activeTime : 1)*(1-bonus.time))), energy: Math.ceil(r.energy * (trait === 'calm' ? 1 - B.bonuses.calmEnergy : 1)), xp: Math.floor(r.xp * (trait === 'adventurous' ? 1 + B.bonuses.adventurousXp : 1)) }
 }
 export function startExpedition(save: Save, friendId: string, regionId: string, now = Date.now(), random = Math.random) {
   const w = world(save, now), f = save.friends.find(p => p.id === friendId), r = regions.find(p => p.id === regionId)
@@ -149,15 +154,17 @@ export function startExpedition(save: Save, friendId: string, regionId: string, 
   if (!available(f,now)) return '이미 탐험 중이거나 교감 중이에요.'
   if (g.level < r.minLevel) return `레벨 ${r.minLevel}부터 탐험할 수 있어요.`
   if(life(f,now).coldAt)return '감기가 나은 뒤 탐험할 수 있어요. 생활 메뉴에서 약을 줄 수 있어요.'
-  const terms = expeditionTerms(f, regionId)
+  const terms = expeditionTerms(f, regionId,save), bonus=gearBonus(save,f.id)
   if (f.stats.energy < terms.energy) return `체력이 ${terms.energy} 이상 필요해요.`
-  const resultItems = [chooseLoot(regionId, rollRarity(random,regionId), random)]
-  if (dominant(f) === 'curious' && random() < B.bonuses.curiousExtra) resultItems.push(chooseLoot(regionId, rollRarity(random,regionId), random))
-  if(random()<furnitureChance) { const rarity=rollRarity(random,regionId); const pool=collectionItems.filter(i=>i.rarity===rarity&&Number(i.id.split('-')[2])%4===regions.findIndex(r=>r.id===regionId)); resultItems.push(pool[Math.min(pool.length-1,Math.floor(random()*pool.length))].id) }
-  const job: Expedition = { id: uid(), friendId, regionId, startedAt: now, endsAt: now + terms.duration, energyCost: terms.energy, result: { coins: r.coins, xp: terms.xp, items: resultItems } }
+  const resultItems = [chooseLoot(regionId, rollRarity(random,regionId,bonus.rare), random)]
+  if (dominant(f) === 'curious' && random() < B.bonuses.curiousExtra) resultItems.push(chooseLoot(regionId, rollRarity(random,regionId,bonus.rare), random))
+  if(random()<furnitureChance) { const rarity=rollRarity(random,regionId); const pool=collectionItems.filter(i=>i.rarity===rarity&&Number(i.id.split('-')[2])%4===regions.findIndex(r=>r.id===regionId)%4); resultItems.push(pool[Math.min(pool.length-1,Math.floor(random()*pool.length))].id) }
+  const job: Expedition = { id: uid(), friendId, regionId, startedAt: now, endsAt: now + terms.duration, energyCost: terms.energy, equipmentBonus:bonus,equippedIds:equipment(save).instances.filter(i=>i.equippedBy===f.id).map(i=>i.id), result: { coins: Math.floor(r.coins*(1+bonus.coins)), xp: terms.xp, items: resultItems } }
   // Independent rolls, once per trip. Stored before departure; reloading cannot reroll.
   const extras=rollTripExtras(random)
   Object.assign(job.result,{cold:extras.cold,hamster:extras.hamster,...(extras.eventId?{eventId:extras.eventId}:{})})
+  const gearId=drawEquipment(regionId,random)
+  if(gearId)job.result.equipment={id:uid(),itemId:gearId}
   job.result.coins+=extras.bonusCoins
   w.jobs = [...w.jobs.filter(j => j.claimedAt === undefined).concat(w.jobs.filter(j => j.claimedAt !== undefined).slice(-39)), job]
   g.awayJobId = job.id; f.stats.energy -= terms.energy; f.route = []; f.meeting = undefined; f.moving = false
@@ -176,11 +183,18 @@ export function completeExpeditions(save: Save, now = Date.now()): string[] {
     g.explorations++; g.actions.explore++; evolve(f, 'curious', now)
     announce(f, humanLine(f.kind,'return',f.bubble)??'나 돌아왔어! 재미있는 걸 발견했어!')
     job.result.items.forEach(id => acquire(w, id, now, f))
+    if(job.result.equipment){
+      const drop=job.result.equipment,d=equipmentById[drop.itemId]
+      if(!equipment(save).instances.some(i=>i.id===drop.id)){
+        equipment(save).instances.push({id:drop.id,itemId:drop.itemId,regionId:d.regionId,foundAt:job.endsAt})
+        acquire(w,drop.itemId,now,f);w.inventory[drop.itemId]--
+      }
+    }
     if(job.result.cold){life(f,now).coldAt=now;announce(f,'에취! 감기에 걸린 것 같아… 약이 필요해.')}
     if(job.result.hamster){expansion(save).hamsters.push({id:crypto.randomUUID(),foundAt:job.endsAt,regionId:job.regionId,deployed:false,x:530,y:390});announce(f,'작은 햄스터를 만났어! 인벤토리를 봐 줘!')}
     if(job.result.eventId){expansion(save).events.push({id:job.id,eventId:job.result.eventId,friendId:f.id,at:job.endsAt});announce(f,tripEvents.find(e=>e.id===job.result.eventId)!.name+'! 특별한 추억이 생겼어~')}
     f.restingUntil = now + 1500
-    results.push(`${f.name} 귀환! ${job.result.coins}코인 · 경험치 ${job.result.xp} · ${job.result.items.map(id => itemById[id].name).join(', ')}`)
+    results.push(`${f.name} 귀환! ${job.result.coins}코인 · 경험치 ${job.result.xp} · ${[...job.result.items,...(job.result.equipment?[job.result.equipment.itemId]:[])].map(id => itemById[id].name).join(', ')}`)
   }
   return results
 }

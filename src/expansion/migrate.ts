@@ -1,3 +1,4 @@
+import {isGem} from '../adventure/gems.ts'
 import {room} from '../room/config.ts'
 import type { Life, Expansion } from './model.ts'
 import { itemById } from '../progression/config.ts'
@@ -58,9 +59,13 @@ export function migrateExpansion(raw: unknown): Expansion | undefined {
     placements: arr(r.placements, 18).map((v) => {
       const p = obj(v),
         itemId = text(p.itemId)
-      if (itemById[itemId]?.category !== 'decor')
+      if (itemById[itemId]?.category !== 'decor' && !isGem(itemId))
         throw Error('알 수 없는 가구예요.')
-      return { id: text(p.id), itemId, x: num(p.x, room.width), y: num(p.y, room.height) }
+      const placement:Expansion['placements'][number]={ id: text(p.id), itemId, x: num(p.x, room.width), y: num(p.y, room.height) }
+      if(p.layer!==undefined){placement.layer=num(p.layer,100000);if(!Number.isSafeInteger(p.layer))throw Error('배치 순서를 확인해 주세요.')}
+      if(p.collision!==undefined){if(!['decoration','obstacle'].includes(String(p.collision)))throw Error('가구 충돌 유형을 확인해 주세요.');placement.collision=p.collision as 'decoration'|'obstacle';if(isGem(itemId)&&p.collision!=='decoration')throw Error('보석은 이동을 막을 수 없어요.')}
+      for(const key of ['w','h'] as const)if(p[key]!==undefined){placement[key]=num(p[key],500);if(!placement[key])throw Error('가구 크기를 확인해 주세요.')}
+      return placement
     }),
     hamsters: arr(r.hamsters).map((v) => {
       const h = obj(v)

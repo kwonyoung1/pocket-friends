@@ -1,5 +1,7 @@
 # 포켓프렌즈 · 우리의 작은 집
 
+최근 업데이트: [탐험·장비·보석·가구 사용법](docs/EQUIPMENT_GEMS_UPDATE.md) · [서버와 웹사이트 배포 순서](docs/EQUIPMENT_GEMS_DEPLOY.md) · [검증 결과](docs/EQUIPMENT_GEMS_VERIFICATION.md)
+
 일반 친구 최대 8명과 특별 지급 남자아이·여자아이 2명, 작은 햄스터가 함께 생활하는 따뜻한 2D 웹게임입니다.
 React 19 + TypeScript + Vite를 사용합니다. 개발 서버의 로컬 모드와 운영 배포의 Supabase 공유 월드 모드를 지원합니다.
 

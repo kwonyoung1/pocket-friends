@@ -1,6 +1,7 @@
 import type { LifeCommand } from '../expansion/model.ts'
 import type { Save } from '../game.ts'
 export type GameCommand =
+  | import('../equipment/model.ts').GearCommand
   | import('../sichuan/state.ts').SichuanCommand
   | import('../words/state.ts').WordCommand
   | import('../trade/model.ts').TradeCommand

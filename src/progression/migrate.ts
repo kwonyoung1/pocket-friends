@@ -1,3 +1,5 @@
+import {migrateEquipment} from '../equipment/migrate.ts'
+import {equipmentById} from '../equipment/catalog.ts'
 import {migrateSichuan} from '../sichuan/state.ts'
 import { migrateWords } from '../words/state.ts'
 import { specialIds } from '../humans/config.ts'
@@ -46,11 +48,15 @@ export function migrateWorld(raw: unknown, now: number): World {
     const job: Expedition = { id: text(j.id), friendId, regionId, startedAt: number(j.startedAt), endsAt: number(j.endsAt), energyCost: number(j.energyCost, 0, 100), result: { coins: number(result.coins, 0, 1e6), xp: number(result.xp, 0, 1000), items: itemIds } }
     for(const key of ['cold','hamster'] as const)if(result[key]!==undefined){if(typeof result[key]!=='boolean')throw Error('탐험 확률 기록이 올바르지 않아요.');job.result[key]=result[key]}
     if(result.eventId!==undefined){const id=text(result.eventId);if(!tripEvents.some(e=>e.id===id))throw Error('알 수 없는 탐험 이벤트');job.result.eventId=id}
+    if(j.equipmentBonus!==undefined){const b=record(j.equipmentBonus);job.equipmentBonus={time:number(b.time,0,.35,false),coins:number(b.coins,0,.8,false),rare:number(b.rare,0,8,false)};job.equippedIds=stringList(j.equippedIds??[],3)}
+    if(result.equipment!==undefined){const drop=record(result.equipment),itemId=text(drop.itemId);if(equipmentById[itemId]?.regionId!==regionId)throw Error('지역 전용 장비 기록이 올바르지 않아요.');job.result.equipment={id:text(drop.id,100),itemId}}
     if (job.endsAt < job.startedAt) throw Error('탐험 시간이 올바르지 않아요.')
     if (j.claimedAt !== undefined) job.claimedAt = number(j.claimedAt)
     return job
   })
   if (new Set(w.jobs.map(j => j.id)).size !== w.jobs.length) throw Error('탐험 기록이 중복돼요.')
+  const dropIds=w.jobs.flatMap(j=>j.result.equipment?[j.result.equipment.id]:[])
+  if(new Set(dropIds).size!==dropIds.length)throw Error('장비 획득 개체가 중복돼요.')
   const found = (value: unknown) => { const e = record(value); const itemId = text(e.itemId); if (itemById[itemId]?.rarity !== 'legendary') throw Error('전설 기록이 올바르지 않아요.'); return { id: text(e.id), itemId, friendId: text(e.friendId), at: number(e.at), ...(typeof e.first==='boolean'?{first:e.first}:{}) } }
   w.legendaries = list(r.legendaries ?? []).map(found); w.notices = list(r.notices ?? [], 1000).map(found)
   w.day = text(r.day ?? dailyKey(now), 10); w.attendanceDays = stringList(r.attendanceDays ?? []); w.claimedMissions = stringList(r.claimedMissions ?? [], 4); w.achievements = stringList(r.achievements ?? [], 10)
@@ -65,6 +71,8 @@ export function migrateWorld(raw: unknown, now: number): World {
   if(r.recoveryLearningVersion!==undefined){if(r.recoveryLearningVersion!==1)throw Error('지원하지 않는 회복·학습 버전');w.recoveryLearningVersion=1}
   if(r.statusBalanceVersion===undefined){delete w.statusBalanceVersion;delete w.statusBalanceSince}
   else{if(r.statusBalanceVersion!==1)throw Error('지원하지 않는 상태 밸런스 버전');w.statusBalanceVersion=1;w.statusBalanceSince=number(r.statusBalanceSince)}
+  if(r.expeditionGearVersion!==undefined){if(r.expeditionGearVersion!==1)throw Error('지원하지 않는 장비·배치 버전');w.expeditionGearVersion=1}
+  w.equipment=migrateEquipment(r.equipment)
   w.words=migrateWords(r.words)
   w.sichuan=migrateSichuan(r.sichuan)
   if (r.careRulesVersion !== undefined) { if (r.careRulesVersion !== 1) throw Error('지원하지 않는 돌봄 규칙'); w.careRulesVersion = 1 }
@@ -82,5 +90,6 @@ export function migrateProgress(save: Save, rawFriends: unknown[], rawWorld: unk
     if (active.length > 1) throw Error('같은 친구의 탐험이 중복돼요.')
     if (active[0]) f.growth.awayJobId = active[0].id
   }
+  save.world.equipment=migrateEquipment(save.world.equipment,save.friends.map(f=>f.id))
   return save
 }
