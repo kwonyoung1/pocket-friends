@@ -63,7 +63,7 @@ test('expedition keeps others active, blocks care, returns once after wall time 
   expect(started.world.coins).toBe(300)
   // The departure result already includes any random event bonus; return must pay it exactly once.
   const expectedCoins = started.world.coins + job.result.coins
-  await expect(page.getByRole('button', { name: '이미 탐험 중이에요' })).toHaveCount(4)
+  await expect(page.getByRole('button', { name: '이미 탐험 중이에요' })).toHaveCount(7)
   await close(page)
   await expect(page.getByTestId('room-momo')).toHaveCount(0)
   await page.getByRole('button',{name:'모모 상태 확인'}).click()

@@ -484,3 +484,11 @@
 .room {
   isolation: isolate;
 }
+
+.placed-furniture.placed-gem,.furniture-preview.placed-gem{width:4.25%;height:8%;min-width:26px;min-height:26px;filter:drop-shadow(0 3px 2px #67513d33)}
+.placed-gem .treasure-art{width:100%;height:100%;overflow:visible}
+.gem-aura::before{content:'';position:absolute;inset:12%;border-radius:50%;background:var(--gem-color,#e7d7a4);opacity:.2;filter:blur(6px);pointer-events:none;animation:gem-glow 3s ease-in-out infinite alternate}
+.gem-sparkles{position:absolute;inset:0;color:var(--gem-color,#e7c774);font-size:14px;pointer-events:none;animation:gem-stars 4s ease-in-out infinite}
+.placement-list{padding:10px 14px;background:#fff9ee;border-radius:12px;border:1px solid #dfccb0;margin:8px 0}.placement-list label{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.placement-list select{font:inherit;max-width:100%;min-height:44px;border:1px solid #d5c3a8;border-radius:8px;padding:6px;background:#fffdf7}.furniture-controls{flex-wrap:wrap}
+@keyframes gem-glow{to{opacity:.4;scale:1.15}}@keyframes gem-stars{50%{translate:0 -5px;opacity:.5}}
+@media(prefers-reduced-motion:reduce){.gem-aura::before,.gem-sparkles{animation:none}}

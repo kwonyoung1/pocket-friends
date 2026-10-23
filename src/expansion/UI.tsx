@@ -1,3 +1,7 @@
+import {EquipmentPanel} from '../equipment/UI'
+import {isGem,gemById} from '../adventure/gems'
+import {TreasureArt} from '../adventure/TreasureArt'
+import {orderedPlacements} from './model'
 import {createPortal} from 'react-dom'
 import type {ReactNode} from 'react'
 import {room,leftPercent,topPercent} from '../room/config'
@@ -122,6 +126,7 @@ export function LifePanel({
         <div className="filter-tabs">
           {[
             ['life', '친구 생활'],
+            ['equipment','장비'],
             ['adopt', '입양'],
             ['hamsters', '햄스터'],
             ['events', '탐험 추억'],
@@ -248,6 +253,7 @@ export function LifePanel({
             </section>
           </>
         )}
+        {tab==='equipment'&&<EquipmentPanel save={save} friend={f} command={command} busy={busy} changed={changed} notify={notify}/>}
         {tab === 'adopt' && (
           <>
             <p className="menu-note">
@@ -499,7 +505,8 @@ export function RoomExtras({
   const [, refresh] = useState(0)
   const [editing, setEditing] = useState(false)
   const e = expansion(save),
-    [selected, setSelected] = useState<Placement | null>(null)
+    [selection, setSelected] = useState<Placement | null>(null)
+  const selected=e.placements.find(p=>p.id===selection?.id)??null
   const run = (c: LifeCommand) => {
     if (command) {
       void command(c)
@@ -521,21 +528,26 @@ export function RoomExtras({
       >
         {editing ? '편집 끝내기' : '가구 편집'}
       </button>
-      {e.placements.map((p) => (
+      {orderedPlacements(save).map((p,index) => (
         <button
           data-item={p.itemId}
-          className="placed-furniture"
+          className={`placed-furniture ${isGem(p.itemId)?'placed-gem':''} ${isGem(p.itemId)&&itemById[p.itemId].rarity==='legendary'?'gem-aura':''}`}
+          data-placement-id={p.id}
           key={p.id}
           aria-label={`${itemById[p.itemId].name} 이동 또는 회수`}
           style={{
             left: leftPercent(p.x),
             top: topPercent(p.y),
-            zIndex: editing ? 2000 : Math.round(p.y) - 1,
-          }}
+            zIndex: (editing?2000:300)+index,
+            '--gem-color':gemById[p.itemId]?.color,
+            ...(p.w?{width:`${p.w/room.width*100}%`}:{}),
+            ...(p.h?{height:`${p.h/room.height*100}%`}:{}),
+          } as CSSProperties}
           onClick={() => setSelected(p)}
           onContextMenu={(ev) => ev.preventDefault()}
         >
-          <FurnitureArt itemId={p.itemId} />
+          {isGem(p.itemId)?<TreasureArt id={p.itemId}/>:<FurnitureArt itemId={p.itemId}/>}
+          {isGem(p.itemId)&&itemById[p.itemId].rarity==='legendary'&&<span className="gem-sparkles" aria-hidden="true">✧ · ✦</span>}
         </button>
       ))}
       {e.hamsters
@@ -543,9 +555,11 @@ export function RoomExtras({
         .map((h) => (
           <HamsterActor key={h.id} hamster={h} save={save} />
         ))}
+      {editing&&roomTools(<div className="placement-list"><label>배치 아이템 선택<select aria-label="배치 아이템 선택" value={selected?.id??''} onChange={ev=>setSelected(e.placements.find(p=>p.id===ev.target.value)??null)}><option value="">겹친 아이템을 목록에서 선택하세요</option>{orderedPlacements(save).map((p,i)=><option key={p.id} value={p.id}>{i+1}. {itemById[p.itemId].name} · {p.id.slice(0,6)}</option>)}</select></label></div>)}
       {selected && !draft && (roomTools(
         <div className="furniture-controls">
           <strong>{itemById[selected.itemId].name}</strong>
+          {(['front','back','forward','backward'] as const).map((direction,i)=><button disabled={busy} key={direction} onClick={()=>run({type:'layer',id:selected.id,direction})}>{['맨 앞으로 가져오기','맨 뒤로 보내기','한 단계 앞으로','한 단계 뒤로'][i]}</button>)}
           <button
             disabled={busy}
             onClick={() => {
@@ -598,10 +612,11 @@ export function RoomExtras({
         >
           <div
             data-item={draft.itemId}
-            className="furniture-preview"
+            className={`furniture-preview ${isGem(draft.itemId)?'placed-gem':''} ${isGem(draft.itemId)&&itemById[draft.itemId].rarity==='legendary'?'gem-aura':''}`}
+            data-testid="placement-preview"
             style={{ left: leftPercent(draft.x), top: topPercent(draft.y) }}
           >
-            <FurnitureArt itemId={draft.itemId} />
+            {isGem(draft.itemId)?<TreasureArt id={draft.itemId}/>:<FurnitureArt itemId={draft.itemId}/>}
           </div>
           {roomTools(<div className="furniture-controls">
             <span>바닥을 톡 누르거나 끌어서 위치 선택</span>

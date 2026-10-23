@@ -48,6 +48,9 @@ export const adoptionCatalog = [
   },
 ]
 export const regionWeights: Record<string, Record<Rarity, number>> = {
+  mine:{common:18,uncommon:42,rare:39,legendary:1},
+  temple:{common:10,uncommon:37,rare:51,legendary:2},
+  sanctuary:{common:5,uncommon:30,rare:61,legendary:4},
   forest: { common: 70, uncommon: 24, rare: 6, legendary: 0 },
   beach: { common: 55, uncommon: 32, rare: 13, legendary: 0 },
   cave: { common: 40, uncommon: 37, rare: 22.75, legendary: 0.25 },
@@ -188,3 +191,6 @@ export const furnitureActivities: Record<string, string> = {
   'decor-3-0': '세계수 곁에 모이기',
   'decor-3-3': '은하수 분수 구경',
 }
+
+// Small ornaments have no character collision; everything else keeps its old footprint.
+export const decorativeFurniture=new Set(['light','decoration','decor-0-2','decor-0-3','decor-0-4','decor-0-5','decor-0-7','decor-1-3','decor-1-7'])

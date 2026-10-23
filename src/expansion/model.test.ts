@@ -1,4 +1,3 @@
-import {scaledPoint} from '../room/config'
 import { rollTripExtras } from './rolls'
 import { describe, it, expect } from 'vitest'
 import { createFriends, parseSave, care, tick } from '../game'
@@ -230,7 +229,7 @@ describe('exploration, furnishing and new friends', () => {
     lifeCommand(s, { type: 'medicine', friendId: 'momo' }, job.endsAt + 3)
     expect(world(s).coins).toBe(470)
   })
-  it('keeps furniture quantities across place, move, recovery, reload and rejects blocked paths and occupied furniture', () => {
+  it('keeps furniture quantities across place, move, recovery, reload and allows overlap and rejects out-of-room placement', () => {
     const s = game()
     acquire(world(s), 'plant', noon)
     const count = () =>
@@ -250,9 +249,11 @@ describe('exploration, furnishing and new friends', () => {
     acquire(world(s), 'plant', noon)
     expect(
       lifeCommand(s, { type: 'place', itemId: 'plant', x: 450, y: 390 }, noon),
-    ).toContain('통로')
+    ).toContain('놓았어요')
+    expect(count()).toBe(2)
+    expect(expansion(s).placements.filter(p=>p.x===450&&p.y===390)).toHaveLength(2)
     expect(
-      lifeCommand(s, { type: 'place', itemId: 'plant', ...scaledPoint({x:700,y:450}) }, noon),
+      lifeCommand(s, { type: 'place', itemId: 'plant', placementId:p.id,x:-10,y:450 }, noon),
     ).toContain('통로')
     const loaded = parseSave(JSON.stringify(s), noon)
     expect(expansion(loaded).placements).toEqual(expansion(s).placements)

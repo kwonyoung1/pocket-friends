@@ -1,3 +1,5 @@
+import {isGem} from '../adventure/gems.ts'
+import {decorativeFurniture} from './config.ts'
 import {naturalChange,legacyChange,statusBalance} from '../status/balance.ts'
 import {roomScale,scaledPoint} from '../room/config.ts'
 import { normalFriendCount } from '../humans/model.ts'
@@ -15,7 +17,6 @@ import { itemById } from '../progression/config.ts'
 import {
   cells,
   findRoute,
-  obstacles,
   segmentWalkable,
   validPosition,
   walkable,
@@ -37,7 +38,7 @@ export type Life = {
   coldAt?: number
   lastSettledAt: number
 }
-export type Placement = { id: string; itemId: string; x: number; y: number }
+export type Placement = { id: string; itemId: string; x: number; y: number; layer?:number; collision?:'decoration'|'obstacle'; w?:number; h?:number }
 export type Hamster = {
   id: string
   foundAt: number
@@ -66,6 +67,7 @@ export type LifeCommand =
       placementId?: string
     }
   | { type: 'recover-furniture'; id: string }
+  | { type: 'layer'; id:string; direction:'front'|'back'|'forward'|'backward' }
   | { type: 'hamster'; id: string; deployed: boolean }
   | { type: 'seen-discoveries' }
 export function life(f: Friend, now = Date.now()): Life {
@@ -170,12 +172,14 @@ export function settleLife(s: Save, now = Date.now()) {
   if(legacy){s.world!.statusBalanceVersion=statusBalance.version;s.world!.statusBalanceSince=now}
   s.savedAt=Math.max(previousSave,now)
 }
+export function placementCollision(p:Placement){return isGem(p.itemId)?'decoration':p.collision??(decorativeFurniture.has(p.itemId)?'decoration':'obstacle')}
+export function orderedPlacements(s:Save){return [...(s.world?.expansion?.placements??[])].sort((a,b)=>(a.layer??s.world!.expansion!.placements.indexOf(a))-(b.layer??s.world!.expansion!.placements.indexOf(b)))}
 export function furnitureObstacle(p: Placement): Obstacle {
-  const base = furnitureSizes[p.itemId] ?? { w: 60, h: 40 },size={w:base.w*roomScale,h:base.h*roomScale}
+  const base = furnitureSizes[p.itemId] ?? { w: 60, h: 40 },size={w:(p.w??base.w)*roomScale*(isGem(p.itemId)?.5:1),h:(p.h??base.h)*roomScale*(isGem(p.itemId)?.5:1)}
   return { x: p.x - size.w / 2, y: p.y - size.h * 0.6, ...size }
 }
 export function furnitureObstacles(s: Save) {
-  return s.world?.expansion?.placements.map(furnitureObstacle) ?? []
+  return s.world?.expansion?.placements.filter(p=>placementCollision(p)==='obstacle').map(furnitureObstacle) ?? []
 }
 export function validLayout(s: Save, itemId: string, p: Point, exclude?: string) {
   const placed = expansion(s).placements.filter((x) => x.id !== exclude),
@@ -189,17 +193,8 @@ export function validLayout(s: Save, itemId: string, p: Point, exclude?: string)
     p.y > 530*roomScale
   )
     return false
-  if (
-    [...obstacles, ...placed.map(furnitureObstacle)].some(
-      (x) =>
-        o.x < x.x + x.w + 15*roomScale &&
-        o.x + o.w + 15*roomScale > x.x &&
-        o.y < x.y + x.h + 15*roomScale &&
-        o.y + o.h + 15*roomScale > x.y,
-    )
-  )
-    return false
-  const extra = [...placed.map(furnitureObstacle), o],
+  if(isGem(itemId)||decorativeFurniture.has(itemId))return true
+  const extra = [...placed.filter(p=>placementCollision(p)==='obstacle').map(furnitureObstacle), o],
     floor = cells.filter((c) => walkable(c, extra))
   if (floor.length < 90) return false
   // Every remaining grid cell must remain reachable: no sealed-off walking pockets.
@@ -324,7 +319,7 @@ export function lifeCommand(s: Save, c: LifeCommand, now = Date.now()): string {
       item = itemById[c.itemId]
     if (
       !item ||
-      item.category !== 'decor' ||
+      (item.category !== 'decor' && !isGem(c.itemId)) ||
       (c.placementId && !old) ||
       (old && old.itemId !== c.itemId)
     )
@@ -335,7 +330,7 @@ export function lifeCommand(s: Save, c: LifeCommand, now = Date.now()): string {
     )
       return '보유한 가구만 최대 18개 배치할 수 있어요.'
     if (!validLayout(s, c.itemId, c, c.placementId))
-      return '가구와 통로를 피해 조금 더 넓은 바닥에 놓아 주세요.'
+      return '방 안의 바닥에 놓아 주세요. 친구들이 걸을 통로도 남겨 주세요.'
     if (old) {
       old.x = c.x
       old.y = c.y
@@ -346,6 +341,8 @@ export function lifeCommand(s: Save, c: LifeCommand, now = Date.now()): string {
         itemId: c.itemId,
         x: c.x,
         y: c.y,
+        layer:e.placements.reduce((n,p)=>Math.max(n,p.layer??e.placements.indexOf(p)),-1)+1,
+        collision:isGem(c.itemId)||decorativeFurniture.has(c.itemId)?'decoration':'obstacle',
       })
     }
     const extra = furnitureObstacles(s)
@@ -354,6 +351,13 @@ export function lifeCommand(s: Save, c: LifeCommand, now = Date.now()): string {
       f.route = []
     }
     return '가구를 놓았어요! 친구들의 산책길도 확인했어요.'
+  }
+  if(c.type==='layer'){
+    const ordered=orderedPlacements(s),index=ordered.findIndex(p=>p.id===c.id)
+    if(index<0)throw Error('배치한 아이템을 선택해 주세요.')
+    const [p]=ordered.splice(index,1),target=c.direction==='front'?ordered.length:c.direction==='back'?0:c.direction==='forward'?Math.min(ordered.length,index+1):Math.max(0,index-1)
+    ordered.splice(target,0,p);ordered.forEach((p,i)=>p.layer=i)
+    return '배치 순서를 바꿨어요.'
   }
   if (c.type === 'recover-furniture') {
     const p = e.placements.find((p) => p.id === c.id)

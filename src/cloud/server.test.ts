@@ -1,3 +1,4 @@
+import {equipment,gearCommand} from '../equipment/model'
 import {pair} from '../sichuan/board'
 import { beforeAll, afterAll, describe, it, expect } from 'vitest'
 import { PGlite } from '@electric-sql/pglite'
@@ -33,7 +34,7 @@ async function call(user: string | null, body: unknown) {
         ...(user ? { authorization: `Bearer ${user}` } : {}),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...(body as object), clientVersion: 10 }),
+      body: JSON.stringify({ ...(body as object), clientVersion: 11 }),
     }),
   )
 }
@@ -771,4 +772,44 @@ describe.sequential('gentle status balance uses one authoritative settlement clo
   expect((await handler(stale)).status).toBe(409);expect(await repo.load()).toEqual(before)
   at+=3600000;await command(mobile,{type:'refresh'});data=(await repo.load()).data!;expect(data.friends[0].stats.energy).toBeCloseTo(68.8,10);expect(data.world!.statusBalanceSince).toBe(now+2*3600000)
  })
+})
+
+it('new equipment and overlapping gems commit atomically across devices and old clients cannot overwrite them',async()=>{
+ await reset();await login(pc);await login(mobile)
+ const s=freshWorld(now);world(s).equipment={version:1,instances:[{id:'one-hat',itemId:'gear-crystal-hat',regionId:'mine',foundAt:now}]};world(s).inventory['treasure-diamond']=1
+ await command(pc,{type:'initialize',source:'local',data:s})
+ const equipped=await Promise.all([command(pc,{type:'equip',friendId:'momo',instanceId:'one-hat'}),command(mobile,{type:'equip',friendId:'bibi',instanceId:'one-hat'})])
+ expect(equipped.map(r=>r.response.status).sort()).toEqual([200,400])
+ let row=await repo.load();expect(equipment(row.data!).instances).toHaveLength(1)
+ const owner=equipment(row.data!).instances[0].equippedBy!
+ const unequip=await command(pc,{type:'unequip',friendId:owner,instanceId:'one-hat'})
+ await command(pc,{type:'unequip',friendId:owner,instanceId:'one-hat'},unequip.operation)
+ expect(equipment((await repo.load()).data!).instances[0].equippedBy).toBeUndefined()
+ const placed=await Promise.all([command(pc,{type:'place',itemId:'treasure-diamond',x:530,y:390}),command(mobile,{type:'place',itemId:'treasure-diamond',x:530,y:390})])
+ expect(placed.every(p=>p.response.status===200)).toBe(true)
+ row=await repo.load();expect(row.data!.world!.expansion!.placements).toHaveLength(1);expect(row.data!.world!.inventory['treasure-diamond']).toBe(0)
+ const id=row.data!.world!.expansion!.placements[0].id
+ const recovered=await Promise.all([command(pc,{type:'recover-furniture',id}),command(mobile,{type:'recover-furniture',id})])
+ expect(recovered.every(p=>p.response.status===200)).toBe(true)
+ expect((await repo.load()).data!.world!.inventory['treasure-diamond']).toBe(1)
+ const before=await repo.load()
+ const stale=await handler(new Request('https://project.supabase.co/functions/v1/game',{method:'POST',headers:{origin:'https://example.test',authorization:`Bearer ${mobile}`,'Content-Type':'application/json'},body:JSON.stringify({action:'command',operation:crypto.randomUUID(),clientVersion:10,command:{type:'refresh'}})}))
+ expect(stale.status).toBe(409);expect(await repo.load()).toEqual(before)
+})
+
+it('competing departure and equipment change keep each committed expedition snapshot immutable',async()=>{
+ await reset();await login(pc);await login(mobile)
+ const s=freshWorld(now);s.friends[0].growth!.level=30;s.friends[0].stats.energy=100
+ world(s).equipment={version:1,instances:[{id:'crown',itemId:'gear-star-crown',regionId:'sanctuary',foundAt:now}]}
+ gearCommand(s,{type:'equip',friendId:'momo',instanceId:'crown'})
+ await command(pc,{type:'initialize',source:'local',data:s})
+ await Promise.all([command(pc,{type:'expedition',friendId:'momo',id:'mine'}),command(mobile,{type:'unequip',friendId:'momo',instanceId:'crown'})])
+ const row=await repo.load(),job=row.data!.world!.jobs[0],snapshot=structuredClone(job)
+ expect([0,.5]).toContain(job.equipmentBonus!.coins)
+ expect(job.result.coins).toBeGreaterThanOrEqual(Math.floor(1100*(1+job.equipmentBonus!.coins)))
+ await command(pc,{type:'equip',friendId:'momo',instanceId:'crown'})
+ expect((await repo.load()).data!.world!.jobs[0]).toEqual(snapshot)
+ at=job.endsAt+1
+ await Promise.all([command(pc,{type:'refresh'}),command(mobile,{type:'refresh'})])
+ expect((await repo.load()).data!.friends[0].growth!.explorations).toBe(1)
 })
