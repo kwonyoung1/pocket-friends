@@ -1,0 +1,19 @@
+function Pumpkin({x,y,size=1}:{x:number;y:number;size?:number}){return <g transform={`translate(${x} ${y}) scale(${size})`}><path d="M0-14q-2-10 7-11" fill="none" stroke="#87936e" strokeWidth="5" strokeLinecap="round"/><ellipse rx="23" ry="20" fill="#efb276"/><ellipse rx="14" ry="20" fill="#f4c28d"/><path d="M-11-3q3-5 6 0m10 0q3-5 6 0M-8 6q8 9 16 0" stroke="#906377" strokeWidth="2.5" fill="none" strokeLinecap="round"/></g>}
+function Ghost({x,y,delay=0}:{x:number;y:number;delay?:number}){return <g transform={`translate(${x} ${y})`}><g className="halloween-ghost" style={{animationDelay:`${delay}s`}}><path d="M-20 17v-26a20 20 0 0 1 40 0v26l-8-6-8 6-8-6-8 6Z" fill="#fff8e9" stroke="#d6bddf" strokeWidth="2"/><path d="M-10-3q3-4 6 0m8 0q3-4 6 0M-5 4q5 5 10 0" stroke="#8b779d" strokeWidth="2" fill="none" strokeLinecap="round"/><ellipse cx="-11" cy="3" rx="4" ry="2" fill="#f0c1bd"/><ellipse cx="11" cy="3" rx="4" ry="2" fill="#f0c1bd"/></g></g>}
+export function HalloweenDecor(){return <g className="halloween-decor" pointerEvents="none" data-testid="halloween-decor">
+ <path d="M110 30q390 80 780 0" stroke="#ba9ebf" strokeWidth="2" fill="none"/>
+ {[170,280,710,820].map((x,i)=><g key={x} transform={`translate(${x} ${i===0||i===3?43:60}) rotate(${i%2?8:-8})`}><path d="m-17 12 18-35 13 34Z" fill={i%2?'#b49ac8':'#d0b4d3'}/><path d="M-23 12q23-8 46 0l-2 5h-42Z" fill="#9682b1"/><path d="m-5-2 15 1" stroke="#e8c383" strokeWidth="5"/></g>)}
+ <g fill="#c9acd9" stroke="#b697c7" strokeWidth="1.5">{[230,650,770].map(x=><g key={x}><path d={`M${x} 49v13`}/><circle cx={x} cy="67" r="6"/><circle cx={x} cy="67" r="11" opacity=".15" stroke="none"/></g>)}</g>
+ <Pumpkin x={194} y={90} size={.8}/><Pumpkin x={570} y={143} size={.65}/>
+ <g className="halloween-lantern"><ellipse cx="570" cy="145" rx="23" ry="23" fill="#f8d38d" opacity=".15"/><ellipse cx="570" cy="145" rx="13" ry="12" fill="#ffe7a2" opacity=".2"/></g>
+ <path d="M398 33h35m-35 0v35m0-35 29 27m-19-27q-1 11-10 11m20-11q-2 22-20 22m30-22q-2 32-30 32" stroke="#f5ebdf" strokeWidth="1.4" fill="none" opacity=".8"/>
+ <path d="M518 57a16 16 0 1 1-14-18 13 13 0 0 0 14 18Z" fill="#f4dfaa"/>
+ {[{x:421,y:51},{x:456,y:66},{x:548,y:49},{x:564,y:80},{x:433,y:99}].map(({x,y},i)=><path key={x} className="halloween-star" style={{animationDelay:`${i*.7}s`}} d={`m${x} ${y-4} 1 3 4 1-4 1-1 4-1-4-4-1 4-1Z`} fill="#fff0bd"/>)}
+ <g className="halloween-bat"><path d="M600 118q-12-16-24-12l7 13-16-1q4 13 20 10l13 6 13-6q16 3 20-10l-16 1 7-13q-12-4-24 12Z" fill="#9d87b8"/><path d="m594 117 2-8 4 5 4-5 2 8" fill="#9d87b8"/><circle cx="597" cy="121" r="1.2" fill="#fff3d5"/><circle cx="603" cy="121" r="1.2" fill="#fff3d5"/></g>
+ <g fill="#ab94be" opacity=".75"><path d="M320 100q-10-12-22-8l6 10-12-1q9 14 28 8 19 6 28-8l-12 1 6-10q-12-4-22 8Z"/><path d="M741 160q-7-9-16-6l5 7-9-1q7 10 20 6 13 4 20-6l-9 1 5-7q-9-3-16 6Z"/></g>
+ <Ghost x={342} y={240}/><Ghost x={942} y={370} delay={-2}/>
+ <g fill="#b49ac8" opacity=".65"><path className="halloween-star" d="m44 283 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"/><path className="halloween-star" style={{animationDelay:'2.5s'}} d="m916 601 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"/></g>
+ <g transform="translate(118 590)"><path d="M-33-2h66l-8 28h-50Z" fill="#cf9e87"/><path d="M-23-4v-13a23 23 0 0 1 46 0v13" stroke="#b38d7e" strokeWidth="4" fill="none"/><Pumpkin x={0} y={-9} size={.8}/><path d="m-25 10 9 11m1-13 9 15m6-15 9 15m0-15 9 13" stroke="#e7c2a5" strokeWidth="2"/></g>
+ {[{x:35,y:565},{x:965,y:590},{x:295,y:615}].map(({x,y},i)=><g key={x} transform={`translate(${x} ${y}) rotate(${i*25-10})`}><path d="m-14-7 7 3v8l-7 3 3-7Zm28 0-7 3v8l7 3-3-7Z" fill="#bba5d0"/><rect x="-8" y="-7" width="16" height="14" rx="5" fill="#e3b8aa"/><path d="m-3-5 6 10" stroke="#ffedd1" strokeWidth="3"/></g>)}
+ <g fill="#d9b778" opacity=".6"><path d="m942 542 3 6 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1Z"/><path d="m382 599 2 4 5 1-4 3 1 5-4-3-4 3 1-5-4-3 5-1Z"/></g>
+</g>}

@@ -1,3 +1,4 @@
+import {withinPlacementFloor} from '../room/placement.ts'
 import {isGem} from '../adventure/gems.ts'
 import {decorativeFurniture} from './config.ts'
 import {naturalChange,legacyChange,statusBalance} from '../status/balance.ts'
@@ -184,15 +185,8 @@ export function furnitureObstacles(s: Save) {
 export function validLayout(s: Save, itemId: string, p: Point, exclude?: string) {
   const placed = expansion(s).placements.filter((x) => x.id !== exclude),
     o = furnitureObstacle({ id: '', itemId, ...p })
-  if (
-    !Number.isFinite(p.x) ||
-    !Number.isFinite(p.y) ||
-    p.x < 165*roomScale ||
-    p.x > 910*roomScale ||
-    p.y < 275*roomScale ||
-    p.y > 530*roomScale
-  )
-    return false
+  const old=s.world?.expansion?.placements.find(x=>x.id===exclude)
+  if(!withinPlacementFloor(itemId,p,old))return false
   if(isGem(itemId)||decorativeFurniture.has(itemId))return true
   const extra = [...placed.filter(p=>placementCollision(p)==='obstacle').map(furnitureObstacle), o],
     floor = cells.filter((c) => walkable(c, extra))

@@ -1,3 +1,5 @@
+import {roomTheme,changeRoomTheme,themeLabels} from './room/theme'
+import {placementFloor} from './room/placement'
 import {RoomClock} from './room/RoomClock'
 import {SichuanPanel} from './sichuan/Panel'
 import {room,leftPercent,topPercent} from './room/config'
@@ -91,6 +93,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
   const persist = useCallback(() => {
     if (cloudRef.current) return // Local saves are never overwritten with cloud state.
     settleLife(model.current,Date.now())
+    world(model.current).placementBoundsVersion=placementFloor.version
     saveSnapshot(JSON.stringify(model.current), (local, indexed) => {
       setStorageError(!local || !indexed)
       if (local || indexed) setSavedAt(model.current.savedAt)
@@ -259,8 +262,8 @@ function App({ cloud }: { cloud?: CloudGame }) {
       {storageError && <div className="storage-warning" role="alert">일부 저장소에 저장하지 못했어요. 저장 공간과 사이트 권한을 확인하고, 아래 ‘추억 보관’으로 데이터를 백업해 주세요.</div>}
       <nav className="adventure-nav" aria-label="성장과 모험 메뉴">{menus.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} onClick={() => { setMenu(id); }}><Icon size={17} /><span>{label}</span>{id === 'inventory' && <small>{Object.values(world(model.current).inventory).reduce((s, n) => s + n, 0)}</small>}</button>)}<button onClick={()=>setSichuanOpen(true)}>사천성</button><button className="life-nav-button" onClick={()=>setLifeOpen(true)}>생활·입양</button></nav>
       <div className="game-layout">
-        <section className="room-panel" aria-label="친구들이 생활하는 방"><div className="room-toolbar"><div><span className="live-dot" /><strong>우리의 거실</strong><span className="room-caption">작은 발걸음으로 채워지는 공간</span></div><span className="friend-count"><PawPrint size={14} /> {friends.length}명의 친구</span></div>
-          <div className="room-camera-shell"><RoomClock now={cloud?.now}/><div className="room-viewport" ref={roomCamera} role="region" aria-label="확장된 방 카메라" tabIndex={0}><div className="room" data-world-width={room.width} data-world-height={room.height} data-night={(Date.now()/3600000+9)%24>=20||(Date.now()/3600000+9)%24<6}><RoomArt /><RoomExtras save={model.current} draft={draft} setDraft={setDraft} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/><div className="room-label"><Sun size={13} /> 햇살 가득한 오후</div>
+        <section className="room-panel" aria-label="친구들이 생활하는 방"><div className="room-toolbar"><div><span className="live-dot" /><strong>우리의 거실</strong><span className="room-caption">작은 발걸음으로 채워지는 공간</span></div><div className="room-theme-control" role="group" aria-label="방 테마"><span>{themeLabels[roomTheme(model.current)]} 테마</span><button disabled={cloud?.busy} onClick={()=>{const theme=roomTheme(model.current)==='default'?'halloween':'default';if(cloud){void cloud.send({type:'room-theme',theme})}else{notify(changeRoomTheme(model.current,theme,Date.now()));persist()}}}>{roomTheme(model.current)==='default'?'🎃 할로윈 테마로 변경':'🌿 기본 테마로 변경'}</button></div><span className="friend-count"><PawPrint size={14} /> {friends.length}명의 친구</span></div>
+          <div className="room-camera-shell"><RoomClock now={cloud?.now}/><div className="room-viewport" ref={roomCamera} role="region" aria-label="확장된 방 카메라" tabIndex={0}><div className="room" data-theme={roomTheme(model.current)} data-world-width={room.width} data-world-height={room.height} data-night={(Date.now()/3600000+9)%24>=20||(Date.now()/3600000+9)%24<6}><RoomArt theme={roomTheme(model.current)}/><RoomExtras save={model.current} draft={draft} setDraft={setDraft} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/><div className="room-label"><Sun size={13} /> {roomTheme(model.current)==='halloween'?'사탕 향기 가득한 할로윈':'햇살 가득한 오후'}</div>
             {friends.filter(f => { const j = world(model.current).jobs.find(j => j.id === f.growth?.awayJobId); return j && Date.now() - j.startedAt < 1800 }).map(f => <div key={`leaving-${f.id}`} className="room-friend departing-friend" style={{ left: leftPercent(f.x), top: topPercent(f.y), zIndex: Math.round(f.y) }} aria-label={`${f.name} 탐험 출발`}><span className="speech" role="status">다녀올게~! 오늘은 어떤 보물을 찾을까?</span><span className="friend-figure"><Character friend={f} /></span><span className="friend-name">{f.name} · 외출</span></div>)}
             {friends.filter(f => !f.growth?.awayJobId).map(f => <InteractiveFriend key={f.id} friend={f} selected={selected === f.id} select={() => {setSelected(f.id);setCareOpen(true)}} changed={persist} bonded={bonded} remote={cloud ? { busy: cloud.busy, send: cloud.send } : undefined} />)}
           </div></div></div>
@@ -293,7 +296,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
     <input className="sr-only" ref={restoreRef} type="file" accept="application/json,.json" aria-label="게임 백업 선택" onChange={chooseBackup} />
     {notice && <div className="toast" role="status"><Heart size={16} />{notice}<button aria-label="알림 닫기" onClick={() => setNotice('')}><X size={14} /></button></div>}
     {sichuanOpen&&<SichuanPanel save={model.current} cloud={cloud} changed={persist} close={()=>setSichuanOpen(false)}/>}
-    {menu && <GameMenu now={cloud?.now} onPlace={itemId=>{setDraft({itemId,x:530,y:390});setMenu(null);document.querySelector('.room')?.scrollIntoView({block:'center',behavior:'smooth'})}} key={menu} save={model.current} tab={menu} close={() => setMenu(null)} selected={selected} select={setSelected} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy} />}
+    {menu && <GameMenu now={cloud?.now} onPlace={itemId=>{setDraft({itemId,x:530,y:390});setMenu(null);document.querySelector('.room')?.scrollIntoView({block:'center',behavior:'instant'})}} key={menu} save={model.current} tab={menu} close={() => setMenu(null)} selected={selected} select={setSelected} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy} />}
     {restore && <div className="modal-backdrop restore-backdrop"><div className="photo-modal" role="dialog" aria-modal="true" aria-label="백업 복원 확인"><h2>이 추억으로 돌아갈까요?</h2><p>친구 {restore.friends.length}명 · {world(restore).coins}코인<br />현재 게임을 별도로 백업한 다음 이 파일로 바꿔요.</p><button className="primary-button" disabled={restoring} onClick={confirmRestore}>{restoring ? '백업하고 복원하는 중…' : '현재 게임 백업 후 복원'}</button><button className="restore-cancel" disabled={restoring} onClick={() => setRestore(null)}>취소</button></div></div>}
     {lifeOpen&&<LifePanel key={friend.id} save={model.current} friend={friend} now={cloud?.now} close={()=>setLifeOpen(false)} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/>}
     {!lifeOpen&&!menu&&<DiscoveryNotice save={model.current} changed={persist} command={cloud?.send}/>}

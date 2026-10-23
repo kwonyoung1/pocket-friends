@@ -73,6 +73,8 @@ export function migrateWorld(raw: unknown, now: number): World {
   else{if(r.statusBalanceVersion!==1)throw Error('지원하지 않는 상태 밸런스 버전');w.statusBalanceVersion=1;w.statusBalanceSince=number(r.statusBalanceSince)}
   if(r.expeditionGearVersion!==undefined){if(r.expeditionGearVersion!==1)throw Error('지원하지 않는 장비·배치 버전');w.expeditionGearVersion=1}
   w.equipment=migrateEquipment(r.equipment)
+  if(r.roomTheme!==undefined){const t=record(r.roomTheme);if(t.id!=='default'&&t.id!=='halloween')throw Error('방 테마 정보가 올바르지 않아요.');w.roomTheme={id:t.id,changedAt:number(t.changedAt)}}
+  if(r.placementBoundsVersion!==undefined){if(r.placementBoundsVersion!==2)throw Error('새로운 배치 영역 버전이에요.');w.placementBoundsVersion=2}
   w.words=migrateWords(r.words)
   w.sichuan=migrateSichuan(r.sichuan)
   if (r.careRulesVersion !== undefined) { if (r.careRulesVersion !== 1) throw Error('지원하지 않는 돌봄 규칙'); w.careRulesVersion = 1 }

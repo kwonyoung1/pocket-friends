@@ -19,6 +19,7 @@ export type Growth = {
 }
 export type Expedition = { id: string; friendId: string; regionId: string; startedAt: number; endsAt: number; energyCost: number; equipmentBonus?:GearBonus; equippedIds?:string[]; result: { coins: number; xp: number; items: string[]; cold?: boolean; hamster?: boolean; eventId?: string; equipment?:{id:string;itemId:string} }; claimedAt?: number }
 export type World = {
+  roomTheme?:import('../room/theme.ts').RoomTheme; placementBoundsVersion?:2;
   expeditionGearVersion?:1; equipment?:GearState;
   statusBalanceVersion?:1; statusBalanceSince?:number; recoveryLearningVersion?:1; careEffectsVersion?:1; sichuan?: import('../sichuan/state.ts').SichuanState; roomVersion?: 1; trades?: import('../trade/model.ts').TradeRecord[]; adventureVersion?: 1; words?: import('../words/state.ts').WordProgress; careRulesVersion?: 1; specialFriendsVersion?: 1; expansion?: Expansion; starterGranted: boolean; coins: number; inventory: Record<string, number>; ledger: { id: string; delta: number; balance: number; reason: string; at: number }[]
   jobs: Expedition[]; book: Record<string, { firstAt: number; lastAt: number; count: number }>; legendaries: { id: string; itemId: string; friendId: string; at: number; first?: boolean }[]
