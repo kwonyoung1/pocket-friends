@@ -53,3 +53,9 @@
 8. PC와 모바일의 장비·배치 상태가 일치하는지 확인합니다. 다른 기기 화면 갱신에 잠시 걸리면 상단 **새로 동기화**를 누릅니다.
 
 `최신 게임으로 새로고침해 주세요` 문구가 나오면 오래 열린 이전 화면입니다. 새로고침해서 사용하세요. 게임 데이터 초기화나 Supabase 테이블 삭제로 해결하지 않습니다.
+
+## CLI 설치에서 `rate limit exceeded`가 나온 경우
+
+`Failed to resolve latest Supabase CLI release: rate limit exceeded`는 Supabase 토큰 검사 전에, 설치 도구가 GitHub의 최신 버전 조회 한도에 걸렸다는 뜻입니다. 이를 방지하도록 CLI를 `2.121.0`으로 고정했습니다. 해당 배포용 Linux 다운로드 주소 응답과 CLI 버전 출력을 확인했습니다. 게임 데이터·배포 비밀값은 변경하지 않았습니다.
+
+수정 전 실패한 실행의 **Re-run jobs**는 예전 코드·설정을 사용할 수 있으므로, [서버 배포 목록](https://github.com/kwonyoung1/pocket-friends/actions/workflows/deploy-cloud.yml)으로 돌아가 **Run workflow → feat/equipment-gems-regions → Run workflow**로 새로 시작하세요. 초록색 성공이 되면 PR을 병합합니다. 이 오류만으로 Supabase 토큰을 다시 생성할 필요는 없으며, 토큰 자체의 유효성은 다음 배포 단계에서 확인됩니다.
