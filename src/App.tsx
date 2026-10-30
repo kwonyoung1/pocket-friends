@@ -58,7 +58,7 @@ function mood(f: Friend) {
 }
 type Crop = { src: string; target: string; ratio: number; zoom: number; x: number; y: number }
 const cropBounds = (crop: Crop, zoom = crop.zoom) => ({ x: Math.floor((Math.max(1, crop.ratio) * zoom - 1) * 50), y: Math.floor((Math.max(1, 1 / crop.ratio) * zoom - 1) * 50) })
-function App({ cloud }: { cloud?: CloudGame }) {
+function App({ cloud, suspended=false, openTreasureMatch }: { cloud?: CloudGame; suspended?:boolean; openTreasureMatch?:()=>void }) {
   const [initial] = useState(() => {if(!cloud?.row.data)return load();const data=structuredClone(cloud.row.data);upgradeRoom(data);return{data,warning:''}})
   const claimedSpecial=useRef(false)
   const cloudRef = useRef(cloud); cloudRef.current = cloud
@@ -132,6 +132,7 @@ function App({ cloud }: { cloud?: CloudGame }) {
     setSavedAt(snapshot.savedAt); render(v => v + 1)
   }, [cloud?.row.revision])
   useEffect(() => {
+    if(suspended){persist();return}
     let frame = 0, previous = performance.now(), lastRender = 0, lastWorldCheck = -1000
     const loop = (stamp: number) => {
       const dt = Math.min(Math.max((stamp - previous) / 1000, 0), .15)
@@ -160,12 +161,12 @@ function App({ cloud }: { cloud?: CloudGame }) {
     document.addEventListener('visibilitychange', visibility)
     window.addEventListener('pagehide', persist)
     return () => { cancelAnimationFrame(frame); clearInterval(interval); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', persist) }
-  }, [persist, remember, bonded])
+  }, [persist, remember, bonded, suspended])
   useEffect(() => {
-    if (!notice) return
+    if (suspended || !notice) return
     const id = setTimeout(() => setNotice(''), 5500)
     return () => clearTimeout(id)
-  }, [notice])
+  }, [notice, suspended])
   const chime = () => {
     if (!sound) return
     try {
@@ -260,10 +261,10 @@ function App({ cloud }: { cloud?: CloudGame }) {
     <main id="home">
       <section className="intro"><div><div className="eyebrow"><span /> LITTLE FRIENDS, LITTLE HAPPINESS</div><h1>오늘도 함께라서, <span>포근한 하루.</span></h1><p>작은 친구들의 일상에 당신의 다정함을 더해 주세요.</p></div><div className="today"><Sun size={29} strokeWidth={1.4} /><div><strong>{new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })}</strong><span>우리 집은 언제나 맑음</span></div></div></section>
       {storageError && <div className="storage-warning" role="alert">일부 저장소에 저장하지 못했어요. 저장 공간과 사이트 권한을 확인하고, 아래 ‘추억 보관’으로 데이터를 백업해 주세요.</div>}
-      <nav className="adventure-nav" aria-label="성장과 모험 메뉴">{menus.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} onClick={() => { setMenu(id); }}><Icon size={17} /><span>{label}</span>{id === 'inventory' && <small>{Object.values(world(model.current).inventory).reduce((s, n) => s + n, 0)}</small>}</button>)}<button onClick={()=>setSichuanOpen(true)}>사천성</button><button className="life-nav-button" onClick={()=>setLifeOpen(true)}>생활·입양</button></nav>
+      <nav className="adventure-nav" aria-label="성장과 모험 메뉴">{menus.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} onClick={() => { setMenu(id); }}><Icon size={17} /><span>{label}</span>{id === 'inventory' && <small>{Object.values(world(model.current).inventory).reduce((s, n) => s + n, 0)}</small>}</button>)}<button onClick={()=>setSichuanOpen(true)}>사천성</button><button onClick={openTreasureMatch}>💎 보물 3매치</button><button className="life-nav-button" onClick={()=>setLifeOpen(true)}>생활·입양</button></nav>
       <div className="game-layout">
         <section className="room-panel" aria-label="친구들이 생활하는 방"><div className="room-toolbar"><div><span className="live-dot" /><strong>우리의 거실</strong><span className="room-caption">작은 발걸음으로 채워지는 공간</span></div><div className="room-theme-control" role="group" aria-label="방 테마"><span>{themeLabels[roomTheme(model.current)]} 테마</span><button disabled={cloud?.busy} onClick={()=>{const theme=roomTheme(model.current)==='default'?'halloween':'default';if(cloud){void cloud.send({type:'room-theme',theme})}else{notify(changeRoomTheme(model.current,theme,Date.now()));persist()}}}>{roomTheme(model.current)==='default'?'🎃 할로윈 테마로 변경':'🌿 기본 테마로 변경'}</button></div><span className="friend-count"><PawPrint size={14} /> {friends.length}명의 친구</span></div>
-          <div className="room-camera-shell"><RoomClock now={cloud?.now}/><div className="room-viewport" ref={roomCamera} role="region" aria-label="확장된 방 카메라" tabIndex={0}><div className="room" data-theme={roomTheme(model.current)} data-world-width={room.width} data-world-height={room.height} data-night={(Date.now()/3600000+9)%24>=20||(Date.now()/3600000+9)%24<6}><RoomArt theme={roomTheme(model.current)}/><RoomExtras save={model.current} draft={draft} setDraft={setDraft} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/><div className="room-label"><Sun size={13} /> {roomTheme(model.current)==='halloween'?'사탕 향기 가득한 할로윈':'햇살 가득한 오후'}</div>
+          <div className="room-camera-shell">{!suspended&&<RoomClock now={cloud?.now}/>}<div className="room-viewport" ref={roomCamera} role="region" aria-label="확장된 방 카메라" tabIndex={0}><div className="room" data-theme={roomTheme(model.current)} data-world-width={room.width} data-world-height={room.height} data-night={(Date.now()/3600000+9)%24>=20||(Date.now()/3600000+9)%24<6}><RoomArt theme={roomTheme(model.current)}/><RoomExtras suspended={suspended} save={model.current} draft={draft} setDraft={setDraft} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/><div className="room-label"><Sun size={13} /> {roomTheme(model.current)==='halloween'?'사탕 향기 가득한 할로윈':'햇살 가득한 오후'}</div>
             {friends.filter(f => { const j = world(model.current).jobs.find(j => j.id === f.growth?.awayJobId); return j && Date.now() - j.startedAt < 1800 }).map(f => <div key={`leaving-${f.id}`} className="room-friend departing-friend" style={{ left: leftPercent(f.x), top: topPercent(f.y), zIndex: Math.round(f.y) }} aria-label={`${f.name} 탐험 출발`}><span className="speech" role="status">다녀올게~! 오늘은 어떤 보물을 찾을까?</span><span className="friend-figure"><Character friend={f} /></span><span className="friend-name">{f.name} · 외출</span></div>)}
             {friends.filter(f => !f.growth?.awayJobId).map(f => <InteractiveFriend key={f.id} friend={f} selected={selected === f.id} select={() => {setSelected(f.id);setCareOpen(true)}} changed={persist} bonded={bonded} remote={cloud ? { busy: cloud.busy, send: cloud.send } : undefined} />)}
           </div></div></div>

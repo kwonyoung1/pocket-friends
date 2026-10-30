@@ -1,0 +1,59 @@
+import {memo,useCallback,useEffect,useId,useRef,useState,useSyncExternalStore} from 'react'
+import type {CSSProperties,PointerEvent} from 'react'
+import {MatchController} from './controller'
+import {COLORS,CHEERS,COMBOS,stages} from './config'
+import type {Game} from './engine'
+import {GemArt,GemSprites} from './GemArt'
+import {Effects} from './Effects'
+import {recordKey} from './records'
+import './styles.css'
+const specialNames={row:'가로 관통',column:'세로 관통',bomb:'폭발',rainbow:'무지개',lightning:'번개'}
+function Score({value,reduced,paused}:{value:number;reduced:boolean;paused:boolean}){const ref=useRef<HTMLOutputElement>(null),old=useRef(value)
+ useEffect(()=>{if(paused)return;const from=old.current;let id=0;const start=performance.now();const draw=(now:number)=>{const t=reduced?1:Math.min(1,(now-start)/280);old.current=Math.round(from+(value-from)*(1-(1-t)**3));if(ref.current)ref.current.textContent=old.current.toLocaleString();if(t<1)id=requestAnimationFrame(draw)};id=requestAnimationFrame(draw);return()=>cancelAnimationFrame(id)},[value,reduced,paused])
+ return <output ref={ref} aria-label="현재 점수" data-score={value}>{value.toLocaleString()}</output>
+}
+export default memo(function TreasureMatch({close,initialGame}:{close:()=>void;initialGame?:Game}){
+ const [reduced,setReduced]=useState(()=>matchMedia('(prefers-reduced-motion:reduce)').matches)
+ const [controller]=useState(()=>new MatchController(initialGame,reduced)),view=useSyncExternalStore(controller.subscribe,controller.snapshot),art=useId().replaceAll(':','')
+ const {game,frame,phase,paused,records}=view,board=frame?.board??game.board,ice=frame?.ice??game.ice,score=frame?.score??game.score,combo=frame?.combo??0,stage=stages[game.stage-1]
+ const drag=useRef<{index:number;x:number;y:number;pointer:number}|null>(null),suppressClick=useRef(false),panel=useRef<HTMLDivElement>(null),audio=useRef<AudioContext|null>(null)
+ const [confirm,setConfirm]=useState<'restart'|'exit'|null>(null),[help,setHelp]=useState(false)
+ useEffect(()=>controller.setReduced(reduced),[controller,reduced])
+ useEffect(()=>{controller.start();const original=document.body.style.overflow;document.body.style.overflow='hidden';const focus=document.activeElement as HTMLElement|null;panel.current?.focus()
+  const visibility=()=>{if(document.hidden)controller.pause(true)},storage=(e:StorageEvent)=>{if(e.key===recordKey)controller.refreshRecords()},media=matchMedia('(prefers-reduced-motion:reduce)'),motion=()=>setReduced(media.matches)
+  document.addEventListener('visibilitychange',visibility);window.addEventListener('storage',storage);media.addEventListener('change',motion)
+  return()=>{controller.dispose();document.body.style.overflow=original;document.removeEventListener('visibilitychange',visibility);window.removeEventListener('storage',storage);media.removeEventListener('change',motion);void audio.current?.close();focus?.focus()}
+ },[controller])
+ useEffect(()=>{if(!records.sound||paused||frame?.phase!=='CLEARING')return;try{const ctx=audio.current;if(!ctx||ctx.state!=='running')return;const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.type=frame.effects.length?'triangle':'sine';osc.frequency.setValueAtTime(440*Math.min(2,1+combo*.12),ctx.currentTime);gain.gain.setValueAtTime(.035,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.13);osc.start();osc.stop(ctx.currentTime+.14);osc.onended=()=>{osc.disconnect();gain.disconnect()}}catch{/* silent play stays available */}},[frame,records.sound,paused,combo])
+ const toggleSound=()=>{if(!records.sound){try{audio.current??=new AudioContext();void audio.current.resume()}catch{/* unsupported audio */}}controller.sound()}
+ const ask=(kind:'restart'|'exit')=>{controller.pause(true);setConfirm(kind)}
+ const resetDrag=useCallback(()=>{drag.current=null},[])
+ useEffect(()=>{window.addEventListener('blur',resetDrag);return()=>window.removeEventListener('blur',resetDrag)},[resetDrag])
+ const unlockSound=()=>{if(records.sound)try{audio.current??=new AudioContext();void audio.current.resume()}catch{/* optional audio */}}
+ const pointerDown=(ev:PointerEvent<HTMLButtonElement>,i:number)=>{if(phase!=='IDLE'||paused||game.status!=='playing')return;unlockSound();drag.current={index:i,x:ev.clientX,y:ev.clientY,pointer:ev.pointerId};suppressClick.current=false;ev.currentTarget.setPointerCapture(ev.pointerId)}
+ const pointerUp=(ev:PointerEvent<HTMLButtonElement>)=>{const d=drag.current;resetDrag();if(!d||ev.pointerId!==d.pointer)return;const dx=ev.clientX-d.x,dy=ev.clientY-d.y;if(Math.hypot(dx,dy)>14){suppressClick.current=true;const horizontal=Math.abs(dx)>Math.abs(dy),to=d.index+(horizontal?(dx>0?1:-1):(dy>0?8:-8));if(horizontal&&Math.floor(to/8)!==Math.floor(d.index/8))return;controller.move(d.index,to)}}
+ const keyDown=(e:React.KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();if(!confirm)controller.pause();return}if(e.key==='Tab'&&panel.current){const els=[...panel.current.querySelectorAll<HTMLElement>('button:not(:disabled),select:not(:disabled)')].filter(e=>e.getClientRects().length);const first=els[0],last=els.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}}}
+ return <div className="tm-backdrop"><div className="tm-panel" role="dialog" aria-modal="true" aria-label="보물 3매치" tabIndex={-1} ref={panel} onKeyDown={keyDown}>
+  <GemSprites id={art}/><header className="tm-header"><div><span>POCKET TREASURE MATCH</span><h1>보물 3매치 <small>반짝이는 나의 보물 모험</small></h1></div><button className="tm-close" aria-label="보물 3매치 종료" onClick={()=>ask('exit')}>×</button></header>
+  <div className="tm-stats"><label>스테이지<select aria-label="스테이지 선택" value={game.stage} disabled={phase!=='IDLE'||paused} onChange={e=>controller.restart(Number(e.target.value))}>{stages.map(s=><option key={s.id} value={s.id} disabled={s.id>records.unlocked}>{s.id}{s.id>records.unlocked?' 🔒':''}</option>)}</select></label><div>현재 점수<Score value={score} reduced={reduced} paused={paused}/></div><div>목표<strong>{stage.target.toLocaleString()}</strong></div><div>남은 이동<strong data-testid="match3-moves">{frame?.moves??game.moves}</strong></div><div>최고 점수<strong data-testid="match3-best">{records.bests[game.stage-1].toLocaleString()}</strong></div></div>
+  <div className="tm-progress"><span style={{width:`${Math.min(100,score/stage.target*100)}%`}}/></div>
+  <div className={`tm-board-wrap ${combo>=4?'tm-big-combo':''} ${phase==='CLEARING'&&frame?.effects.some(e=>e.kind==='rainbow'||e.kind==='all')?'tm-rainbow-flash':''} ${phase==='CLEARING'&&(combo>=6||frame?.effects.some(e=>e.kind==='bomb'||e.kind==='all'))?'tm-shock':''}`} data-paused={paused}>
+   <div className="tm-board" role="grid" aria-label="8 곱하기 8 보물 보드" data-phase={phase} data-combo={combo} data-status={game.status}>
+    {board.map((gem,i)=>{if(!gem)return null;const r=Math.floor(i/8),c=i%8,motion=frame?.motions.find(m=>m.id===gem.id),removed=frame?.removed.includes(i),selected=view.selected===i,hint=view.hint.includes(i)
+     return <button key={gem.id} role="gridcell" aria-label={`${r+1}행 ${c+1}열 ${gem.color===null?'무지개':COLORS[gem.color]}${gem.special?` ${specialNames[gem.special]}`:''}${ice[i]?` 얼음 ${ice[i]}겹`:''}`} aria-selected={selected} aria-disabled={paused||phase!=='IDLE'||game.status!=='playing'} data-index={i} data-gem-id={gem.id} data-color={gem.color??'rainbow'} data-special={gem.special??''} data-ice={ice[i]} className={`tm-tile ${selected?'selected':''} ${hint?'hinted':''} ${removed?'tm-burst':''} ${motion?'tm-moving':''}`} style={{'--x':c,'--y':r,'--dx':motion?(((motion.from%8)+8)%8-c)*100:0,'--dy':motion?(Math.floor(motion.from/8)-r)*100:0,'--duration':`${phase==='FALLING'?270:170}ms`,'--stagger':`${(r+c)*4}ms`} as CSSProperties} onPointerDown={e=>pointerDown(e,i)} onPointerUp={pointerUp} onPointerCancel={resetDrag} onLostPointerCapture={resetDrag} onContextMenu={e=>e.preventDefault()} onKeyDown={e=>{const delta:Record<string,number>={ArrowLeft:-1,ArrowRight:1,ArrowUp:-8,ArrowDown:8};if(e.key in delta){e.preventDefault();const to=i+delta[e.key];if(to>=0&&to<64&&(Math.abs(delta[e.key])===8||Math.floor(to/8)===r))panel.current?.querySelector<HTMLElement>(`[data-index="${to}"]`)?.focus()}else if(e.key==='Enter'||e.key===' ')unlockSound()}} onClick={()=>{if(suppressClick.current){suppressClick.current=false;return}controller.choose(i)}}>
+      <GemArt gem={gem} id={art}/>{ice[i]>0&&<span className={`tm-ice tm-ice-${ice[i]}`} aria-hidden="true">❄</span>}
+     </button>
+    })}
+   </div>
+   <Effects frame={frame} paused={paused} reduced={reduced}/>
+   {phase==='CLEARING'&&frame&&frame.removed.filter((_,i)=>i%Math.max(1,Math.ceil(frame.removed.length/3))===0).map((i,n,spots)=><span className="tm-cell-pop" key={`${score}-${i}`} aria-hidden="true" style={{left:`${(i%8+.5)*12.5}%`,top:`${(Math.floor(i/8)+.5)*12.5}%`}}>+{Math.floor(frame.gain/spots.length)+(n===0?frame.gain%spots.length:0)}</span>)}
+   {phase==='CLEARING'&&frame&&frame.gain>0&&<div className="tm-score-burst" key={`${score}-${combo}`} aria-hidden="true"><span className={frame.gain>=1000?'large':''}>+{frame.gain.toLocaleString()}{frame.gain>=1000?'!':''}</span>{combo>=3&&<b style={{fontSize:`clamp(17px,${18+Math.min(combo,6)*2}px,32px)`}}>{CHEERS[Math.min(combo-1,5)]}</b>}<small>{combo} COMBO · ×{COMBOS[Math.min(Math.max(0,combo-1),5)]}</small></div>}
+   {paused&&!confirm&&<div className="tm-overlay"><span>잠깐 쉬어가요</span><h2>일시정지</h2><p>점수와 보석은 그대로 기다리고 있어요.</p><button className="tm-primary" onClick={()=>controller.pause(false)}>계속하기</button></div>}
+   {confirm&&<div className="tm-overlay" role="alertdialog" aria-label={confirm==='exit'?'게임 종료 확인':'다시 시작 확인'}><h2>{confirm==='exit'?'거실로 돌아갈까요?':'다시 시작할까요?'}</h2><p>최고 기록은 보관하고, 진행 중인 보드는 끝내요.</p><button className="tm-primary" onClick={()=>{if(confirm==='exit')close();else{setConfirm(null);controller.restart()}}}>{confirm==='exit'?'거실로 돌아가기':'새 보드로 시작'}</button><button onClick={()=>{setConfirm(null);controller.pause(false)}}>계속 플레이</button></div>}
+   {phase==='IDLE'&&game.status!=='playing'&&!confirm&&!paused&&<div className="tm-overlay tm-result"><span>{view.record?'NEW RECORD!':'TREASURE JOURNEY'}</span><h2>{game.status==='won'?'반짝! 스테이지 클리어':'한 번 더 도전해 볼까요?'}</h2><p>{game.score.toLocaleString()}점 · 최고 {game.maxCombo}콤보</p><p>보상 없이 즐기는 나만의 보물 퍼즐</p>{game.status==='won'&&game.stage<30&&<button className="tm-primary" onClick={()=>controller.restart(game.stage+1)}>다음 스테이지</button>}<button onClick={()=>controller.restart()}>다시 도전</button><button onClick={close}>거실로 돌아가기</button></div>}
+  </div>
+  <div className="tm-notice" role="status">{view.record&&phase==='IDLE'&&<strong>NEW RECORD! </strong>}{view.notice}</div>
+  <footer className="tm-tools"><button onClick={()=>ask('restart')}>↻ 다시 시작</button><button onClick={()=>controller.hint()} disabled={phase!=='IDLE'||paused||game.status!=='playing'}>✦ 힌트</button><button onClick={()=>controller.pause()} disabled={!!confirm}>{paused?'▶ 재개':'Ⅱ 일시정지'}</button><button onClick={toggleSound} aria-pressed={records.sound}>소리 {records.sound?'ON':'OFF'}</button><button onClick={()=>setHelp(!help)} aria-expanded={help}>게임 방법</button></footer>
+  {help&&<aside className="tm-help"><h2>작은 보석, 커다란 콤보</h2><p>이웃한 보석을 클릭하거나 밀어서 바꿔요. 3개 일렬은 제거, 4개 일렬은 관통, 5개 일렬은 무지개, ㄱ·T자는 폭발, 2×2는 번개 보석이 돼요.</p><p>특수 보석끼리는 매치 없이도 조합할 수 있어요. 얼음 위 보석은 움직이지 않지만 매치와 폭발로 한 겹씩 깰 수 있어요. 움직일 곳이 없으면 자동으로 섞어요.</p><p>잘못된 교환은 이동 횟수를 쓰지 않아요. 힌트는 무료예요. 기록은 이 브라우저에만 저장하고 코인·경험치·아이템 보상은 없어요.</p><p>방향키로 옆 칸에 초점을 옮기고 Enter로 두 칸을 선택할 수도 있어요.</p></aside>}
+ </div></div>
+})

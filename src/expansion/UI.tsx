@@ -389,7 +389,7 @@ function HamsterArt() {
     </svg>
   )
 }
-function HamsterActor({ hamster: h, save }: { hamster: Hamster; save: Save }) {
+function HamsterActor({ hamster: h, save, suspended=false }: { hamster: Hamster; save: Save; suspended?:boolean }) {
   const state = useRef({
       x: h.x,
       y: h.y,
@@ -400,6 +400,7 @@ function HamsterActor({ hamster: h, save }: { hamster: Hamster; save: Save }) {
     }),
     [, redraw] = useState(0)
   useEffect(() => {
+    if(suspended)return
     let frame = 0,
       last = performance.now(),
       paint = 0
@@ -465,7 +466,7 @@ function HamsterActor({ hamster: h, save }: { hamster: Hamster; save: Save }) {
     }
     frame = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(frame)
-  }, [save, h.id])
+  }, [save, h.id, suspended])
   const s = state.current
   return (
     <span
@@ -488,6 +489,7 @@ function HamsterActor({ hamster: h, save }: { hamster: Hamster; save: Save }) {
 function roomTools(node:ReactNode){const container=document.getElementById('room-placement-tools');return container?createPortal(node,container):node}
 export function RoomExtras({
   save,
+  suspended=false,
   draft,
   setDraft,
   changed,
@@ -496,6 +498,7 @@ export function RoomExtras({
   busy,
 }: {
   save: Save
+  suspended?: boolean
   draft: Draft | null
   setDraft: (d: Draft | null) => void
   changed: () => void
@@ -554,7 +557,7 @@ export function RoomExtras({
       {e.hamsters
         .filter((h) => h.deployed)
         .map((h) => (
-          <HamsterActor key={h.id} hamster={h} save={save} />
+          <HamsterActor key={h.id} hamster={h} save={save} suspended={suspended}/>
         ))}
       {editing&&roomTools(<div className="placement-list"><label>배치 아이템 선택<select aria-label="배치 아이템 선택" value={selected?.id??''} onChange={ev=>setSelected(e.placements.find(p=>p.id===ev.target.value)??null)}><option value="">겹친 아이템을 목록에서 선택하세요</option>{orderedPlacements(save).map((p,i)=><option key={p.id} value={p.id}>{i+1}. {itemById[p.itemId].name} · {p.id.slice(0,6)}</option>)}</select></label></div>)}
       {selected && !draft && (roomTools(

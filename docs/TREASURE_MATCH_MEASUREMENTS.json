@@ -1,0 +1,459 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Seoul",
+  "environment": "Node.js 24; headless Chromium development fixture; desktop 1440x1100; mobile touch emulation 390x664; not physical iPhone Safari",
+  "quietStress": [
+    {
+      "device": "desktop",
+      "minimumChain": 3,
+      "actualMaxCombo": 4,
+      "durationMs": 2868.8000000715256,
+      "frames": 166,
+      "rafFps": 57.863915224435736,
+      "frameP95Ms": 16.800000000000182,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    {
+      "device": "desktop",
+      "minimumChain": 5,
+      "actualMaxCombo": 6,
+      "durationMs": 3834.100000023842,
+      "frames": 224,
+      "rafFps": 58.42309798873454,
+      "frameP95Ms": 16.799999999999955,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    {
+      "device": "desktop",
+      "minimumChain": 10,
+      "actualMaxCombo": 10,
+      "durationMs": 5829.5,
+      "frames": 344,
+      "rafFps": 59.01020670726477,
+      "frameP95Ms": 16.700000000000728,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    {
+      "device": "mobile",
+      "minimumChain": 3,
+      "actualMaxCombo": 4,
+      "durationMs": 2872,
+      "frames": 172,
+      "rafFps": 59.88857938718663,
+      "frameP95Ms": 16.800000000000182,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    {
+      "device": "mobile",
+      "minimumChain": 5,
+      "actualMaxCombo": 6,
+      "durationMs": 3862.7000000476837,
+      "frames": 232,
+      "rafFps": 60.06161493181868,
+      "frameP95Ms": 16.700000000000273,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    {
+      "device": "mobile",
+      "minimumChain": 10,
+      "actualMaxCombo": 10,
+      "durationMs": 5862.299999952316,
+      "frames": 352,
+      "rafFps": 60.04469235673083,
+      "frameP95Ms": 16.700000000000728,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    }
+  ],
+  "initialParallelStressWithBuild": [
+    {
+      "device": "desktop",
+      "minimumChain": 3,
+      "durationMs": 2664.6999999284744,
+      "frames": 118,
+      "rafFps": 44.28265846180334,
+      "frameP95Ms": 66.59999999999991,
+      "longTasks": 4,
+      "longestTaskMs": 88
+    },
+    {
+      "device": "desktop",
+      "minimumChain": 5,
+      "durationMs": 4204.700000047684,
+      "frames": 184,
+      "rafFps": 43.76055366563925,
+      "frameP95Ms": 50,
+      "longTasks": 5,
+      "longestTaskMs": 90
+    },
+    {
+      "device": "desktop",
+      "minimumChain": 10,
+      "durationMs": 6203.200000047684,
+      "frames": 285,
+      "rafFps": 45.94402888796254,
+      "frameP95Ms": 49.90000000000009,
+      "longTasks": 5,
+      "longestTaskMs": 103
+    },
+    {
+      "device": "mobile",
+      "minimumChain": 3,
+      "durationMs": 2911.5,
+      "frames": 172,
+      "rafFps": 59.07607762321827,
+      "frameP95Ms": 16.799999999999955,
+      "longTasks": 1,
+      "longestTaskMs": 54
+    },
+    {
+      "device": "mobile",
+      "minimumChain": 5,
+      "durationMs": 3899.5,
+      "frames": 230,
+      "rafFps": 58.98192075907167,
+      "frameP95Ms": 16.799999999999955,
+      "longTasks": 1,
+      "longestTaskMs": 53
+    },
+    {
+      "device": "mobile",
+      "minimumChain": 10,
+      "durationMs": 6074.900000095367,
+      "frames": 358,
+      "rafFps": 58.93101120913593,
+      "frameP95Ms": 16.700000000000728,
+      "longTasks": 1,
+      "longestTaskMs": 69
+    }
+  ],
+  "tenMinutePlay": [
+    {
+      "project": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 1100
+      },
+      "durationMs": 600044.7999999523,
+      "frames": 35642,
+      "rafFps": 59.398898215604625,
+      "frameP50Ms": 16.699999999982538,
+      "frameP95Ms": 16.79999999998836,
+      "frameP99Ms": 16.800000000046566,
+      "over33Ms": 79,
+      "longTasks": 0,
+      "longestTaskMs": 0,
+      "turns": 523,
+      "domNodes": 467,
+      "commits": 3688,
+      "resources": 39,
+      "heapBefore": 4480816,
+      "heapAfter": 7158508,
+      "retainedHeapDelta": 2677692,
+      "nodesBefore": 478,
+      "errors": []
+    },
+    {
+      "project": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 664
+      },
+      "durationMs": 600074,
+      "frames": 35914,
+      "rafFps": 59.849285254818575,
+      "frameP50Ms": 16.699999999982538,
+      "frameP95Ms": 16.79999999993015,
+      "frameP99Ms": 16.800000000046566,
+      "over33Ms": 17,
+      "longTasks": 5,
+      "longestTaskMs": 124,
+      "turns": 527,
+      "domNodes": 467,
+      "commits": 3690,
+      "resources": 39,
+      "heapBefore": 4510108,
+      "heapAfter": 6993304,
+      "retainedHeapDelta": 2483196,
+      "nodesBefore": 478,
+      "errors": []
+    }
+  ],
+  "balance": [
+    {
+      "stage": 1,
+      "colors": 5,
+      "moves": 25,
+      "target": 2000,
+      "wins": 20,
+      "samples": 20,
+      "median": 5375
+    },
+    {
+      "stage": 2,
+      "colors": 5,
+      "moves": 25,
+      "target": 2750,
+      "wins": 20,
+      "samples": 20,
+      "median": 4825
+    },
+    {
+      "stage": 3,
+      "colors": 5,
+      "moves": 25,
+      "target": 3500,
+      "wins": 20,
+      "samples": 20,
+      "median": 5350
+    },
+    {
+      "stage": 4,
+      "colors": 5,
+      "moves": 25,
+      "target": 4250,
+      "wins": 20,
+      "samples": 20,
+      "median": 5150
+    },
+    {
+      "stage": 5,
+      "colors": 5,
+      "moves": 25,
+      "target": 5000,
+      "wins": 20,
+      "samples": 20,
+      "median": 8600
+    },
+    {
+      "stage": 6,
+      "colors": 5,
+      "moves": 23,
+      "target": 5800,
+      "wins": 20,
+      "samples": 20,
+      "median": 9025
+    },
+    {
+      "stage": 7,
+      "colors": 5,
+      "moves": 23,
+      "target": 6600,
+      "wins": 20,
+      "samples": 20,
+      "median": 8900
+    },
+    {
+      "stage": 8,
+      "colors": 5,
+      "moves": 23,
+      "target": 7400,
+      "wins": 20,
+      "samples": 20,
+      "median": 8925
+    },
+    {
+      "stage": 9,
+      "colors": 5,
+      "moves": 23,
+      "target": 8200,
+      "wins": 20,
+      "samples": 20,
+      "median": 10400
+    },
+    {
+      "stage": 10,
+      "colors": 5,
+      "moves": 23,
+      "target": 9000,
+      "wins": 20,
+      "samples": 20,
+      "median": 10350
+    },
+    {
+      "stage": 11,
+      "colors": 6,
+      "moves": 23,
+      "target": 9900,
+      "wins": 20,
+      "samples": 20,
+      "median": 10725
+    },
+    {
+      "stage": 12,
+      "colors": 6,
+      "moves": 23,
+      "target": 10800,
+      "wins": 20,
+      "samples": 20,
+      "median": 11475
+    },
+    {
+      "stage": 13,
+      "colors": 6,
+      "moves": 23,
+      "target": 11700,
+      "wins": 20,
+      "samples": 20,
+      "median": 13800
+    },
+    {
+      "stage": 14,
+      "colors": 6,
+      "moves": 23,
+      "target": 12600,
+      "wins": 20,
+      "samples": 20,
+      "median": 13675
+    },
+    {
+      "stage": 15,
+      "colors": 6,
+      "moves": 23,
+      "target": 13500,
+      "wins": 20,
+      "samples": 20,
+      "median": 15375
+    },
+    {
+      "stage": 16,
+      "colors": 6,
+      "moves": 21,
+      "target": 14400,
+      "wins": 20,
+      "samples": 20,
+      "median": 15225
+    },
+    {
+      "stage": 17,
+      "colors": 6,
+      "moves": 21,
+      "target": 15300,
+      "wins": 17,
+      "samples": 20,
+      "median": 16125
+    },
+    {
+      "stage": 18,
+      "colors": 6,
+      "moves": 21,
+      "target": 16200,
+      "wins": 18,
+      "samples": 20,
+      "median": 17125
+    },
+    {
+      "stage": 19,
+      "colors": 6,
+      "moves": 21,
+      "target": 17100,
+      "wins": 17,
+      "samples": 20,
+      "median": 17600
+    },
+    {
+      "stage": 20,
+      "colors": 6,
+      "moves": 21,
+      "target": 18000,
+      "wins": 18,
+      "samples": 20,
+      "median": 18700
+    },
+    {
+      "stage": 21,
+      "colors": 6,
+      "moves": 20,
+      "target": 19400,
+      "wins": 17,
+      "samples": 20,
+      "median": 20200
+    },
+    {
+      "stage": 22,
+      "colors": 6,
+      "moves": 20,
+      "target": 20800,
+      "wins": 14,
+      "samples": 20,
+      "median": 21525
+    },
+    {
+      "stage": 23,
+      "colors": 6,
+      "moves": 20,
+      "target": 22200,
+      "wins": 13,
+      "samples": 20,
+      "median": 22875
+    },
+    {
+      "stage": 24,
+      "colors": 6,
+      "moves": 20,
+      "target": 23600,
+      "wins": 11,
+      "samples": 20,
+      "median": 23875
+    },
+    {
+      "stage": 25,
+      "colors": 6,
+      "moves": 20,
+      "target": 25000,
+      "wins": 9,
+      "samples": 20,
+      "median": 23875
+    },
+    {
+      "stage": 26,
+      "colors": 7,
+      "moves": 20,
+      "target": 10000,
+      "wins": 12,
+      "samples": 20,
+      "median": 10250
+    },
+    {
+      "stage": 27,
+      "colors": 7,
+      "moves": 20,
+      "target": 11000,
+      "wins": 11,
+      "samples": 20,
+      "median": 11050
+    },
+    {
+      "stage": 28,
+      "colors": 7,
+      "moves": 20,
+      "target": 12000,
+      "wins": 3,
+      "samples": 20,
+      "median": 8900
+    },
+    {
+      "stage": 29,
+      "colors": 7,
+      "moves": 20,
+      "target": 13000,
+      "wins": 2,
+      "samples": 20,
+      "median": 8925
+    },
+    {
+      "stage": 30,
+      "colors": 7,
+      "moves": 20,
+      "target": 14000,
+      "wins": 4,
+      "samples": 20,
+      "median": 10525
+    }
+  ]
+}

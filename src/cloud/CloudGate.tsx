@@ -4,18 +4,19 @@ import { CloudClient, cloudConfiguration } from './client'
 import { initialSnapshot, rawBackup } from '../storage'
 import { parseSave } from '../game'
 import { world } from '../progression/model'
-import App from '../App'
+import {GameShell} from '../match3/GameShell'
 import { Character } from '../Character'
 import { createFriends } from '../game'
 import './cloud.css'
 const config = cloudConfiguration()
 export function CloudGate() {
-  if (!config.enabled) return <App />
+  if (!config.enabled) return <GameShell />
   if (config.error) return <section className="cloud-gate"><h1>포켓프렌즈</h1><p role="alert">{config.error}</p><p>이 기기의 기존 사진과 육성 데이터는 그대로 보관되어 있어요.</p></section>
   return <ConnectedGame />
 }
 function ConnectedGame() {
   const [client] = useState(() => new CloudClient(config.url, config.key))
+  const resumeWorld=useCallback(()=>{void client.read()},[client])
   const send = useCallback((c: GameCommand) => client.send(c), [client])
   const state = useSyncExternalStore(client.subscribe, client.snapshot)
   const [password, setPassword] = useState(''), [joined, setJoined] = useState(false), [confirm, setConfirm] = useState<'local' | 'fresh' | null>(null)
@@ -30,7 +31,7 @@ function ConnectedGame() {
     a.href = url; a.download = 'pocket-friends-before-cloud.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   const retry = () => { void client.retry() }
-  if (state.phase === 'ready' && state.row?.data && joined) return <><div className="cloud-status" role="status"><span>{state.blocking ? '클라우드 처리 중…' : state.busy ? '백그라운드 동기화 중…' : state.realtime ? '공유 월드 · 실시간 연결' : '공유 월드 · 5초마다 연결 확인'}</span><span>v{state.row.revision}</span><button onClick={() => { void client.read() }} disabled={state.busy}>새로 동기화</button><button onClick={() => { setJoined(false); void client.logout() }} disabled={state.busy}>로그아웃</button></div>{state.error && <div className="cloud-error" role="alert">{state.error}{state.pending && <button onClick={retry} disabled={state.busy}>같은 작업 다시 시도</button>}</div>}<p className="cloud-message" role="status">{state.message}</p><App cloud={{ playerId: client.playerId, now: client.now, row: state.row, busy: state.blocking, error: state.error, send, retry, logout: () => { void client.logout() } }} /></>
+  if (state.phase === 'ready' && state.row?.data && joined) return <><div className="cloud-status" role="status"><span>{state.blocking ? '클라우드 처리 중…' : state.busy ? '백그라운드 동기화 중…' : state.realtime ? '공유 월드 · 실시간 연결' : '공유 월드 · 5초마다 연결 확인'}</span><span>v{state.row.revision}</span><button onClick={() => { void client.read() }} disabled={state.busy}>새로 동기화</button><button onClick={() => { setJoined(false); void client.logout() }} disabled={state.busy}>로그아웃</button></div>{state.error && <div className="cloud-error" role="alert">{state.error}{state.pending && <button onClick={retry} disabled={state.busy}>같은 작업 다시 시도</button>}</div>}<p className="cloud-message" role="status">{state.message}</p><GameShell onResume={resumeWorld} cloud={{ playerId: client.playerId, now: client.now, row: state.row, busy: state.blocking, error: state.error, send, retry, logout: () => { void client.logout() } }} /></>
   return <main className="cloud-gate"><div className="cloud-card"><span className="cloud-art"><Character friend={createFriends()[0]} /></span><small>OUR LITTLE SHARED HOME</small><h1>포켓프렌즈</h1>
     {state.phase === 'loading' ? <p>입장 정보를 확인하고 있어요…</p> : state.phase === 'login' ? <form onSubmit={e => { e.preventDefault(); setJoined(false); void client.login(password); setPassword('') }}><p>우리의 작은 집에 오신 걸 환영해요.</p><label>접속 비밀번호<input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required maxLength={128} autoFocus /></label><button className="primary-button" disabled={state.busy}>입장하기</button><p className="cloud-note">인증은 서버에서 확인해요.<br />기존 기기 데이터는 자동으로 삭제하지 않아요.</p></form> : <>
       <h2>{state.row?.data ? '공유 월드에 함께할까요?' : '처음 사용할 데이터를 선택해 주세요'}</h2><p>PC와 모바일의 데이터를 합산하지 않아요. 가져오면 사진도 인증된 기기들과 공유돼요.</p>
