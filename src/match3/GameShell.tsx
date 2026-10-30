@@ -14,5 +14,5 @@ export function GameShell({cloud,onResume}:{cloud?:CloudGame;onResume?:()=>void}
  const [open,setOpen]=useState(false),frozen=useRef(cloud),resume=useRef(onResume);resume.current=onResume
  if(!open)frozen.current=cloud
  const enter=useCallback(()=>setOpen(true),[]),leave=useCallback(()=>{setOpen(false);resume.current?.()},[])
- return <><div hidden={open} inert={open}><World cloud={frozen.current} suspended={open} openTreasureMatch={enter}/></div>{open&&<MatchBoundary close={leave}><Suspense fallback={<div className="cloud-gate" role="status">반짝이는 보물을 준비하고 있어요…</div>}><TreasureMatch close={leave}/></Suspense></MatchBoundary>}</>
+ return <><div hidden={open} inert={open}><World cloud={frozen.current} suspended={open} openTreasureMatch={enter}/></div>{open&&<MatchBoundary close={leave}><Suspense fallback={<div className="cloud-gate" role="status">반짝이는 보물을 준비하고 있어요…</div>}><TreasureMatch close={leave} rewarded={!!cloud}/></Suspense></MatchBoundary>}</>
 }

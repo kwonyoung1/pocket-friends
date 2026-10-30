@@ -3,3 +3,7 @@ project_id = "pocket-friends"
 [functions.game]
 # The handler validates every JWT with auth.getUser, then checks world membership.
 verify_jwt = false
+
+[functions.treasure]
+# Dedicated endpoint validates JWT plus existing world membership itself.
+verify_jwt = false

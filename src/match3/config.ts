@@ -4,7 +4,7 @@ export const COMBOS=[1,1.5,2,3,4,5] as const
 export const CHEERS=['GOOD!','GREAT!','AMAZING!','FANTASTIC!','INCREDIBLE!','LEGENDARY COMBO!']
 export const DIRECT_MULTIPLIERS=[1,1.3,1.6,2,2.5,3,3.5,4,4.5,5]
 export const directMultiplier=(combo:number)=>combo>=20?8:combo>=15?7:combo>=11?6:DIRECT_MULTIPLIERS[Math.max(0,combo-1)]??1
-export const CHALLENGE_TIERS=[{at:0,colors:5,candidates:5},{at:1500,colors:5,candidates:5},{at:3500,colors:6,candidates:4},{at:6500,colors:6,candidates:4},{at:10500,colors:7,candidates:3},{at:16000,colors:7,candidates:3},{at:23000,colors:7,candidates:2}]
+export const CHALLENGE_TIERS=[{at:0,colors:5,candidates:5},{at:5000,colors:5,candidates:5},{at:15000,colors:6,candidates:4},{at:30000,colors:6,candidates:4},{at:50000,colors:7,candidates:3},{at:80000,colors:7,candidates:3},{at:120000,colors:7,candidates:2}]
 export const stages=Array.from({length:30},(_,i)=>{
  const n=i+1,anchors=[[1,2000],[5,5000],[10,9000],[20,18000],[30,32000]]
  const end=anchors.findIndex(([stage])=>stage>=n),[b,y]=anchors[end],[a,x]=anchors[Math.max(0,end-1)]

@@ -12,7 +12,7 @@ for(const mode of ['stage','challenge'] as const)test(`${mode}: local match play
  try{
   const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기',exact:true}).click();await expect(second.getByTestId('room-momo')).toBeVisible()
   const before=structuredClone(backend.row().data!);const outgoing:{action?:string;command?:{type?:string}}[]=[];page.on('request',r=>{if(r.url().includes('/functions/v1/game'))outgoing.push(r.postDataJSON())})
-  await page.getByRole('button',{name:'💎 보물 3매치',exact:true}).click();await page.getByRole('button',{name:mode==='challenge'?'도전 모드 시작':'스테이지 모드 시작',exact:true}).click();await expect(page.getByRole('gridcell')).toHaveCount(64);await page.waitForTimeout(100)
+  await page.getByRole('button',{name:'💎 보물 3매치',exact:true}).click();await page.getByRole('button',{name:mode==='challenge'?'보상 없이 연습':'스테이지 모드 시작',exact:true}).click();await expect(page.getByRole('gridcell')).toHaveCount(64);await page.waitForTimeout(100)
   await page.evaluate(()=>{document.documentElement.dataset.worldChanges='0';new MutationObserver(()=>{document.documentElement.dataset.worldChanges=String(Number(document.documentElement.dataset.worldChanges)+1)}).observe(document.querySelector('.room')!,{subtree:true,attributes:true,childList:true})})
   const m=await nextMove(page);await swap(page,m.a,m.b);await idle(page)
   await second.getByRole('navigation',{name:'성장과 모험 메뉴'}).getByRole('button',{name:'상점',exact:true}).click();await second.getByTestId('item-snack').getByRole('button',{name:'구매하기',exact:true}).click();await second.getByRole('button',{name:'구매 확정',exact:true}).click();await expect(second.getByRole('button',{name:'보유 코인 285',exact:true})).toBeVisible()

@@ -1,12 +1,12 @@
 # 포켓프렌즈 · 우리의 작은 집
 
-최근 업데이트: [보물 3매치 v2 사용법·규칙](docs/TREASURE_MATCH_V2.md) · [버튼별 웹사이트 배포 안내](docs/TREASURE_MATCH_V2_DEPLOY.md) · [테스트·실측 결과](docs/TREASURE_MATCH_V2_VERIFICATION.md)
+최근 업데이트: [보물 3매치 v4 사용법·보상·보안](docs/TREASURE_MATCH_V4.md) · [SQL·서버·웹사이트 버튼별 배포 안내](docs/TREASURE_MATCH_V4_DEPLOY.md) · [테스트·실측 결과](docs/TREASURE_MATCH_V4_VERIFICATION.md)
 
-보물 3매치는 기존 30개 스테이지에 **5초 직접 콤보·30초 생존 도전 모드·강화 이펙트**를 추가했습니다. 직접 매치당 +5초(최대 30초), 최종 점수 배율 최대 ×8이며 연출·일시정지 중 시간은 멈춥니다. 최고 기록은 브라우저별로 저장하며 코인·경험치·아이템 보상은 없습니다. 기존 공유 월드와 사천성은 유지하고 이번에는 웹사이트만 배포합니다.
+보물 3매치 v4는 **3초 직접 콤보·난이도별 시간 소모 ×1~3·서버 검증 코인 보상·입체 보석과 직접 드래그**를 제공합니다. 서버에서 시작한 도전을 정상 시간 종료하면 시드·교환 기록을 재생해 점수·콤보·유지 시간에 따른 코인을 정산합니다. 스테이지·연습·중도 종료·예전 로컬 기록은 보상 대상이 아닙니다. 기존 육성 월드·사진·코인·사천성·영단어·스테이지 기록을 보존합니다.
 
-[v2 PC 화면](docs/screenshots/treasure-match-v2-desktop.png) · [v2 모바일 화면](docs/screenshots/treasure-match-v2-mobile.png)
+이번에는 **신규 SQL 한 번과 별도 treasure 보상 서버 배포가 필요**합니다. 기존 game 함수와 동기화는 변경하지 않습니다. [v4 PC 화면](docs/screenshots/treasure-match-v4-desktop.png) · [v4 모바일 화면](docs/screenshots/treasure-match-v4-mobile.png)
 
-이전 버전: [보물 3매치 v1 규칙](docs/TREASURE_MATCH.md) · [v1 검증](docs/TREASURE_MATCH_VERIFICATION.md)
+이전 버전: [보물 3매치 v2 규칙](docs/TREASURE_MATCH_V2.md) · [v2 검증](docs/TREASURE_MATCH_V2_VERIFICATION.md) · [v1 규칙](docs/TREASURE_MATCH.md)
 
 이전 업데이트: [할로윈 테마·배치 영역 확대](docs/HALLOWEEN_UPDATE.md) · [배포 안내](docs/HALLOWEEN_DEPLOY.md)
 

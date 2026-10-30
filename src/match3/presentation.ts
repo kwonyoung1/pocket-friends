@@ -1,5 +1,5 @@
-import {durations} from './config'
-import type {Frame} from './engine'
+import {durations} from './config.ts'
+import type {Frame} from './engine.ts'
 /** Skip redundant intermediate poses, never logical removals or points. Max four impact beats. */
 export function presentationFrames(frames:Frame[]){
  const budget=frames.reduce((n,f)=>n+durations[f.phase],0)

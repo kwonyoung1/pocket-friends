@@ -1,3 +1,5 @@
+import {createRewardHandler} from '../src/match3/rewardServer'
+import type {RewardRepository,RewardSession} from '../src/match3/rewardServer'
 import { test as base } from '@playwright/test'
 import type { BrowserContext } from '@playwright/test'
 import { createGameHandler } from '../src/cloud/server'
@@ -11,6 +13,7 @@ export const test = base.extend<{
     attach: (context: BrowserContext) => Promise<void>
     row: () => ServerWorld
     loseNextBuyResponse: () => void
+    loseNextRewardResponse: () => void
   }
 }>({
   backend: async ({ context }, use) => {
@@ -80,6 +83,10 @@ export const test = base.extend<{
       origins: ['http://127.0.0.1:4185'],
       now,
     })
+    let loseReward=false
+    const sessions=new Map<string,RewardSession&{user:string}>(),requests=new Map<string,string>()
+    const rewards:RewardRepository={authorize:async user=>members.has(user),start:async(user,request,seed)=>{const old=requests.get(user+request);if(old)return sessions.get(old)!;const value={id:crypto.randomUUID(),seed,created_at:new Date(now()).toISOString(),cursor:0,log_hash:null,checkpoint:null,coins:null,result:null,user};sessions.set(value.id,value);requests.set(user+request,value.id);return value},load:async(user,id)=>{const value=sessions.get(id);return value?.user===user?structuredClone(value):null},advance:async(user,id,cursor,hash,_log,state,complete,coins,result)=>{const value=sessions.get(id)!;if(value.user!==user)throw Error('wrong user');if(value.coins!==null)return {status:'paid',coins:value.coins,result:value.result};if(value.cursor!==cursor)return {status:'pending'};Object.assign(value,{cursor:state.cursor,log_hash:hash,checkpoint:structuredClone(state)});if(!complete)return {status:'pending'};value.coins=coins;value.result=result;row.data!.world!.coins+=coins;row.revision++;return {status:'paid',coins,result}}}
+    const rewardHandler=createRewardHandler({repository:rewards,user:async token=>{try{return JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString()).sub}catch{return null}},origins:['http://127.0.0.1:4185'],now,seed:()=>66})
     const attach = async (ctx: BrowserContext) => {
       await ctx.addInitScript(() => {
         const nativeNow = Date.now.bind(Date),
@@ -113,6 +120,7 @@ export const test = base.extend<{
           await route.fulfill({ status: 204 })
           return
         }
+        if(url.includes('/functions/v1/treasure')){const response=await rewardHandler(new Request(url,{method:request.method(),headers:request.headers(),...(request.method()!=='OPTIONS'?{body:request.postData()}: {})}));const body=await response.text();if(loseReward&&JSON.parse(body).status==='paid'){loseReward=false;await route.abort('failed');return}await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body});return}
         if (url.includes('/functions/v1/game')) {
           const response = await handler(
             new Request(url, {
@@ -146,6 +154,7 @@ export const test = base.extend<{
       seedRanking: () => {if(!row.data)throw Error('Initialize test world first');row.data.world!.sichuan={version:1,nextStartAt:0,competitions:{},bests:[{playerId:'test-player',nickname:'오늘친구',elapsedMs:1234,at:now(),sessionId:'test-record'}]};row.revision++},
       attach,
       row: () => structuredClone(row),
+      loseNextRewardResponse:()=>{loseReward=true},
       loseNextBuyResponse: () => {
         loseNext = true
       },
