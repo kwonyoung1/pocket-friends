@@ -25,7 +25,7 @@
 @keyframes tm-break-label{0%,55%{opacity:1;translate:0 0}100%{opacity:0;translate:0 -15px}}
 @keyframes tm-time-reward{0%{opacity:0;scale:.8}20%,60%{opacity:1;scale:1.08}100%{opacity:0;translate:0 -18px;scale:1}}
 @keyframes tm-urgent{50%{opacity:.55}}@keyframes tm-time-warn{50%{border-color:#e6a09b;background:#fff0ed}}
-@keyframes tm-v2-shatter{0%{scale:1;opacity:1}25%{scale:1.15;filter:brightness(1.9)}100%{scale:.12;opacity:0;rotate:18deg}}
+@keyframes tm-v2-shatter{0%{scale:1;opacity:1}25%{scale:1.15;opacity:.95}100%{scale:.12;opacity:0;rotate:18deg}}
 @keyframes tm-create{0%{scale:.6;filter:brightness(1.8)}60%{scale:1.25}100%{scale:1;filter:brightness(1)}}
 @keyframes tm-v2-shock{25%{translate:calc(var(--shake)*-1) 0}75%{translate:var(--shake) 0}}
 @keyframes tm-v2-prism{from{opacity:.23}to{opacity:0}}
@@ -37,3 +37,26 @@
 @media(prefers-reduced-motion:reduce){.tm-turn-banner{animation:none;display:none}}
 .tm-challenge-time.danger{animation:none}.tm-challenge-time.critical{animation:tm-time-warn 1s ease-in-out infinite}
 .tm-v2 .tm-board-wrap{width:min(100%,calc(100dvh - 315px))}
+/* v4: direct manipulation changes only transform; no React state on pointer frames. */
+.tm-tile.selected .tm-gem{scale:1.12;filter:drop-shadow(0 5px 3px #482a6460)}
+.tm-tile.selected{box-shadow:inset 0 0 0 2px #fff4a2;background:#fff5}
+.tm-tile.tm-dragging{z-index:4;overflow:visible}.tm-dragging .tm-gem{transform:translate(var(--drag-x,0px),var(--drag-y,0px)) rotate(var(--drag-tilt,0deg));scale:1.12;filter:drop-shadow(0 8px 4px #51306465);will-change:transform;transition:scale .08s}
+.tm-dragging:after{content:'✦';position:absolute;left:32%;top:30%;font-size:19px;color:#fff1ad;pointer-events:none;opacity:.8;translate:calc(var(--drag-x,0px)*.6) calc(var(--drag-y,0px)*.6);text-shadow:-7px 6px #fff9,9px -6px #ffd686}
+.tm-tile.tm-drag-target{background:#fff7cb80;box-shadow:inset 0 0 0 2px #fff4a2}.tm-drag-target .tm-gem{scale:1.06}
+.tm-tile:nth-child(23n) .tm-gem{animation:tm-facet-spark 7s ease-in-out infinite}@keyframes tm-facet-spark{0%,88%,100%{opacity:1}94%{opacity:.75}}
+.tm-reward-status{font-size:12px;text-align:center;padding:12px;border-radius:12px;background:#f6eef8;margin:8px 0;line-height:1.7}.tm-reward-status small{display:block;font-size:10px}.tm-reward-status button,.tm-practice{border:1px solid #d6badb;border-radius:10px;padding:9px 12px;background:#fffaf3;margin:5px;font-size:11px}.tm-reward-paid{background:linear-gradient(120deg,#fff3cd,#fff9e9,#f4e9ff)}.tm-reward-paid strong{font-size:34px;color:#b9822d}.tm-reward-paid.gold{border:2px solid #e4c25d;animation:tm-reward-gold .6s ease-out}.tm-reward-paid.gold:before{content:'✦ 🪙 ✧ 🪙 ✦';display:block;color:#d6a134;letter-spacing:12px;font-size:22px;animation:tm-coin-rise .7s both}@keyframes tm-reward-gold{from{box-shadow:0 0 0 0 #ffe7a0;scale:.97}50%{box-shadow:0 0 25px 5px #ffe7a078}to{scale:1}}@keyframes tm-coin-rise{from{opacity:0;translate:0 14px}40%{opacity:1}to{translate:0 -3px}}
+.tm-level-change{font-weight:700;animation:tm-level-pulse .5s ease-out}.tm-level-up{position:absolute;inset:auto 0 -8px;font-size:11px;color:#d28640;pointer-events:none;animation:tm-break-label 1s both}.tm-challenge-time:has(.tm-level-change){border-left-color:#d9ad73}.tm-combo-digits strong{font-size:68px}.tone-rainbow .tm-direct-combo,.tone-legend .tm-direct-combo{background:radial-gradient(ellipse,#ecd5ff80,transparent 70%)}.tone-legend .tm-combo-digits{color:#c19a36}@keyframes tm-level-pulse{50%{scale:1.07;color:#c88131}}
+@media(max-width:600px){.tm-combo-digits strong{font-size:46px}.tm-challenge-time>span{font-size:7px}.tm-v2 .tm-board-wrap{width:min(100%,calc(100dvh - 325px))}}
+@media(prefers-reduced-motion:reduce){.tm-tile:nth-child(23n) .tm-gem,.tm-level-change,.tm-reward-paid.gold,.tm-reward-paid.gold:before{animation:none!important}.tm-dragging .tm-gem{rotate:0deg}.tm-dragging:after{display:none}}
+.tm-session-label{font-size:9px;text-align:center;color:#ab8c9b;margin:0 0 6px}
+.tm-reward-chest{width:64px;height:48px;display:block;margin:5px auto;animation:tm-create .4s ease-out}
+@media(prefers-reduced-motion:reduce){.tm-reward-chest{animation:none}}
+.tm-v2 .tm-challenge-time[data-level]{border-left-width:2px;transition:border-color .2s}
+.tm-v2 .tm-challenge-time[data-level="1"]{border-color:#bca9d2}.tm-v2 .tm-challenge-time[data-level="2"]{border-color:#caa75e}.tm-v2 .tm-challenge-time[data-level="3"]{border-color:#d69f83}.tm-v2 .tm-challenge-time[data-level="4"]{border-color:#db9267}.tm-v2 .tm-challenge-time[data-level="5"]{border-color:#df8076}.tm-v2 .tm-challenge-time[data-level="6"]{border-color:#d86778}.tm-v2 .tm-challenge-time[data-level="7"]{border-color:#b75caf}
+@media(prefers-reduced-motion:reduce){.tm-v2 .tm-challenge-time[data-level]{transition:none}}
+
+/* Keep SVG drop shadows static; composite transforms instead of animating SVG filters. */
+.tm-v2 .tm-tile.tm-moving{will-change:transform}.tm-v2 .tm-tile.tm-burst .tm-gem{will-change:transform,opacity}
+.tm-v2 .tm-tile.tm-burst:before{content:'';position:absolute;inset:18%;z-index:1;pointer-events:none;border-radius:50%;background:radial-gradient(ellipse,#fff9dd 0%,#fff8 40%,transparent 70%);animation:tm-hit-light .14s ease-out both}
+@keyframes tm-hit-light{from{opacity:.7;scale:.8}to{opacity:0;scale:1.15}}
+@media(prefers-reduced-motion:reduce){.tm-v2 .tm-tile.tm-burst:before{display:none}.tm-v2 .tm-tile.tm-moving,.tm-v2 .tm-tile.tm-burst .tm-gem{will-change:auto}}

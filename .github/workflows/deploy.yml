@@ -25,7 +25,7 @@ jobs:
         with:
           deno-version: v2.9.6
       - name: Check Edge Function
-        run: deno check --no-config --node-modules-dir=none --lock=supabase/functions/deno.lock --frozen supabase/functions/game/index.ts
+        run: deno check --no-config --node-modules-dir=none --lock=supabase/functions/deno.lock --frozen supabase/functions/game/index.ts supabase/functions/treasure/index.ts
         env:
           DENO_NO_PACKAGE_JSON: "1"
       - run: npm run build

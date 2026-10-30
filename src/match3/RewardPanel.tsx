@@ -1,0 +1,12 @@
+import {useEffect,useRef} from 'react'
+import type {View,MatchController} from './controller'
+import {rewardFor} from './rules'
+export function RewardPanel({view,controller}:{view:View;controller:MatchController}){const count=useRef<HTMLElement>(null),confirmed=view.receipt?.coins??0
+ useEffect(()=>{if(view.rewardStatus!=='paid')return;const start=performance.now();let raf=0;const draw=(now:number)=>{const t=Math.min(1,(now-start)/650);if(count.current)count.current.textContent=Math.round(confirmed*(1-(1-t)**3)).toLocaleString();if(t<1)raf=requestAnimationFrame(draw)};raf=requestAnimationFrame(draw);return()=>cancelAnimationFrame(raf)},[view.rewardStatus,confirmed])
+ if(view.rewardStatus==='starting')return <p className="tm-reward-status" role="status">서버에서 도전을 준비하고 있어요…</p>
+ if(view.rewardStatus==='verifying')return <p className="tm-reward-status" role="status">보상 확인 중 · 교환 기록을 서버에서 검증해요…</p>
+ if(view.rewardStatus==='error')return <div className="tm-reward-status" role="alert"><p>{view.rewardError}</p>{controller.hasPendingReward&&<button onClick={()=>controller.retryReward()}>보상 다시 확인</button>} {controller.hasPendingReward&&<button onClick={()=>controller.archiveReward()}>기록 보관 후 대기 정리</button>}<small>서버 확인 전에는 코인이 지급되지 않아요.</small></div>
+ if(view.receipt){const r=view.receipt.result;return <aside className={`tm-reward-status tm-reward-paid ${confirmed>=1000?'gold':''}`} role="status"><b>💎 보상 지급 완료</b>{confirmed>=1000&&<svg className="tm-reward-chest" viewBox="0 0 100 75" role="img" aria-label="황금 보상 상자"><path d="M13 31h74v34L50 73 13 64Z" fill="#ad6b24" stroke="#e6b650" strokeWidth="4"/><path d="M13 31Q13 4 50 4T87 31L50 39Z" fill="#edb94e" stroke="#fff1aa" strokeWidth="3"/><path d="m16 36 34 8 34-8v23l-34 8-34-8Z" fill="#d99b36"/><path d="M43 7h14v62H43Z" fill="#fff0a2" opacity=".8"/><rect x="43" y="36" width="15" height="19" rx="3" fill="#fbd478" stroke="#9b641e" strokeWidth="2"/><path d="M50 41v8M21 15h9m-4-4v9m47-6h9m-5-4v9" stroke="#fff8cf" strokeWidth="3"/></svg>}<p>기본 {r.base.toLocaleString()} · 콤보 +{r.comboBonus.toLocaleString()} · 유지 +{r.maintenance.toLocaleString()}</p><strong ref={count}>{confirmed.toLocaleString()}</strong> 코인</aside>}
+ if(view.result){const expected=rewardFor(view.result.score,view.result.maxCombo,view.result.longestComboMs??0);return <p className="tm-reward-status">{view.result.ended==='quit'?'중도 종료는 보상이 없어요.':'연습 모드 · 실제 코인 보상 없음'}<small>같은 성과의 보상 공식: {expected.coins.toLocaleString()}코인</small></p>}
+ return null
+}

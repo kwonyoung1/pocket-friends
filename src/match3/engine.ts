@@ -1,4 +1,4 @@
-import {SIZE,stages,COMBOS,CHALLENGE_TIERS,directMultiplier} from './config'
+import {SIZE,stages,COMBOS,CHALLENGE_TIERS,directMultiplier} from './config.ts'
 export type Special='row'|'column'|'bomb'|'rainbow'|'lightning'
 export type Gem={readonly id:number;readonly color:number|null;readonly special?:Special}
 export type Board=(Gem|null)[]
