@@ -1,0 +1,4 @@
+export type ChallengeResult={id:string;at:number;ended:'timeout'|'quit';score:number;survivalMs:number;playMs:number;maxCombo:number;maxMoveScore:number;difficulty:number;turns:number}
+export type ChallengeRecords={bestScore:number;bestSurvivalMs:number;bestCombo:number;bestDifficulty:number;recent:ChallengeResult[]}
+export const emptyChallenge=():ChallengeRecords=>({bestScore:0,bestSurvivalMs:0,bestCombo:0,bestDifficulty:1,recent:[]})
+export function includeResult(old:ChallengeRecords,r:ChallengeResult,history=true):ChallengeRecords{return {bestScore:Math.max(old.bestScore,r.score),bestSurvivalMs:Math.max(old.bestSurvivalMs,r.survivalMs),bestCombo:Math.max(old.bestCombo,r.maxCombo),bestDifficulty:Math.max(old.bestDifficulty,r.difficulty),recent:history?[r,...old.recent.filter(p=>p.id!==r.id)].slice(0,10):old.recent}}

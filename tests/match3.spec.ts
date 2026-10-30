@@ -4,7 +4,7 @@ import {moves,validMove} from '../src/match3/engine'
 import {recordKey} from '../src/match3/records'
 test('entry, distinct SVG shapes, free hint, click swap and return preserve the original world',async({page},info)=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await expect(page.getByTestId('room-momo')).toBeVisible();const raw=await page.evaluate(()=>JSON.parse(localStorage.getItem('pocket-friends-v1')!))
- await page.getByRole('button',{name:'💎 보물 3매치',exact:true}).click();await expect(page.getByRole('gridcell')).toHaveCount(64);const bounds=await page.getByRole('grid').boundingBox();expect(bounds!.y+bounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
+ await page.getByRole('button',{name:'💎 보물 3매치',exact:true}).click();await page.getByRole('button',{name:'스테이지 모드 시작',exact:true}).click();await expect(page.getByRole('gridcell')).toHaveCount(64);const bounds=await page.getByRole('grid').boundingBox();expect(bounds!.y+bounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
  expect(await page.locator('symbol').count()).toBe(7);await page.getByRole('button',{name:'✦ 힌트',exact:true}).click();await expect(page.locator('.hinted')).toHaveCount(2)
  const m=await nextMove(page);await swap(page,m.a,m.b);await idle(page);await expect(page.getByTestId('match3-moves')).toHaveText('24');expect(Number(await page.getByLabel('현재 점수').getAttribute('data-score'))).toBeGreaterThan(0)
  await page.screenshot({path:`/tmp/pocket-match3-${info.project.name}.png`,fullPage:true});await page.getByRole('button',{name:'보물 3매치 종료',exact:true}).click();await page.getByRole('button',{name:'거실로 돌아가기',exact:true}).click();await expect(page.getByTestId('room-momo')).toBeVisible()

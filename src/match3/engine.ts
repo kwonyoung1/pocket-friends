@@ -1,18 +1,30 @@
-import {SIZE,stages,COMBOS} from './config'
+import {SIZE,stages,COMBOS,CHALLENGE_TIERS,directMultiplier} from './config'
 export type Special='row'|'column'|'bomb'|'rainbow'|'lightning'
-export type Gem={id:number;color:number|null;special?:Special}
+export type Gem={readonly id:number;readonly color:number|null;readonly special?:Special}
 export type Board=(Gem|null)[]
 export type Phase='IDLE'|'SWAPPING'|'MATCHING'|'CLEARING'|'FALLING'|'REFILLING'|'CASCADING'
 export type Effect={kind:Special|'all';from:number;targets:number[]}
 export type Motion={id:number;from:number;to:number}
-export type Frame={phase:Phase;board:Board;ice:number[];combo:number;score:number;moves:number;gain:number;removed:number[];effects:Effect[];motions:Motion[]}
-export type Game={stage:number;board:Board;ice:number[];moves:number;score:number;seed:number;nextId:number;status:'playing'|'won'|'lost';maxCombo:number;reshuffles:number}
+export type Frame={phase:Phase;board:Board;ice:number[];combo:number;score:number;moves:number;gain:number;removed:number[];effects:Effect[];motions:Motion[];directCombo?:number;multiplier?:number;created?:{at:number;kind:Special}[];impact?:number;specialPair?:boolean;flash?:boolean}
+export type Game={stage:number;board:Board;ice:number[];moves:number;score:number;seed:number;nextId:number;status:'playing'|'won'|'lost';maxCombo:number;reshuffles:number;mode?:'stage'|'challenge';difficulty?:number;difficultyMoves?:number;eligibleMs?:number}
 export type Group={cells:number[];special?:Special}
 const all=Array.from({length:SIZE*SIZE},(_,i)=>i)
 const row=(i:number)=>Math.floor(i/SIZE),col=(i:number)=>i%SIZE
 export const adjacent=(a:number,b:number)=>Number.isInteger(a)&&Number.isInteger(b)&&a>=0&&b>=0&&a<64&&b<64&&Math.abs(row(a)-row(b))+Math.abs(col(a)-col(b))===1
 function random(g:Game){g.seed=(Math.imul(g.seed,1664525)+1013904223)>>>0;return g.seed/4294967296}
-function gem(g:Game):Gem{return {id:g.nextId++,color:Math.floor(random(g)*stages[g.stage-1].colors)}}
+export const challengeTier=(g:Game)=>CHALLENGE_TIERS[(g.difficulty??1)-1]
+function gem(g:Game,at?:number):Gem{
+ const count=g.mode==='challenge'?challengeTier(g).colors:stages[g.stage-1].colors
+ let color=Math.floor(random(g)*count)
+ if(g.mode==='challenge'&&(g.difficulty??1)>1&&at!==undefined){let best=Infinity
+  for(let attempt=0;attempt<Math.min(6,g.difficulty!);attempt++){const candidate=attempt?Math.floor(random(g)*count):color
+   const population=g.board.filter(t=>t?.color===candidate).length
+   let neighbors=0;for(const offset of [-16,-8,-2,-1,1,2,8,16]){const i=at+offset;if(i>=0&&i<64&&(Math.abs(offset)>=8||row(i)===row(at))&&g.board[i]?.color===candidate)neighbors++}
+   const cost=neighbors*3+population*((g.eligibleMs??0)>=240000?.3:.15)+random(g)*2;if(cost<best){best=cost;color=candidate}
+  }
+ }
+ return {id:g.nextId++,color}
+}
 const same=(b:Board,ids:number[])=>b[ids[0]]?.color!=null&&ids.every(i=>b[i]?.color===b[ids[0]]?.color)
 export function matches(b:Board):Group[]{
  const pieces:{cells:number[];special?:Special}[]=[]
@@ -37,8 +49,12 @@ export function matches(b:Board):Group[]{
 export function validMove(b:Board,ice:number[],a:number,z:number){
  if(!adjacent(a,z)||ice[a]>0||ice[z]>0||!b[a]||!b[z])return false
  if(b[a]?.special==='rainbow'||b[z]?.special==='rainbow'||b[a]?.special&&b[z]?.special)return true
- const swapped=b.slice();[swapped[a],swapped[z]]=[swapped[z],swapped[a]]
- return matches(swapped).some(g=>g.cells.includes(a)||g.cells.includes(z))
+ const color=(i:number)=>b[i===a?z:i===z?a:i]?.color
+ for(const at of [a,z]){const wanted=color(at);if(wanted==null)continue
+  for(const step of [1,8]){let n=1;for(const sign of [-1,1])for(let distance=1;distance<8;distance++){const i=at+step*sign*distance;if(i<0||i>=64||step===1&&row(i)!==row(at)||color(i)!==wanted)break;n++}if(n>=3)return true}
+  for(const dr of [-1,0])for(const dc of [-1,0]){const r=row(at)+dr,c=col(at)+dc;if(r>=0&&r<7&&c>=0&&c<7&&[r*8+c,r*8+c+1,r*8+c+8,r*8+c+9].every(i=>color(i)===wanted))return true}
+ }
+ return false
 }
 export function moves(board:Board,ice:number[]=all.map(()=>0)):{a:number;b:number}[]{
  const result:{a:number;b:number}[]=[]
@@ -47,10 +63,17 @@ export function moves(board:Board,ice:number[]=all.map(()=>0)):{a:number;b:numbe
 }
 function shuffleArray<T>(a:T[],g:Game){for(let i=a.length-1;i>0;i--){const j=Math.floor(random(g)*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 export function shuffle(g:Game){
- for(let n=0;n<160;n++){shuffleArray(g.board,g);if(!matches(g.board).length&&moves(g.board,g.ice).length){g.reshuffles++;return}}
+ const minimum=g.mode==='challenge'?2:1,target=g.mode==='challenge'?challengeTier(g).candidates:Infinity
+ let best:Board|null=null,bestCount=Infinity
+ for(let n=0;n<120;n++){shuffleArray(g.board,g);if(matches(g.board).length)continue;const count=moves(g.board,g.ice).length;if(count>=minimum&&count<bestCount){best=g.board.slice();bestCount=count}if(count>=minimum&&count<=target){g.reshuffles++;return}}
+ if(best){g.board=best
+  if(g.mode==='challenge'&&bestCount>target){for(let attempt=0;attempt<220;attempt++){const a=Math.floor(random(g)*64),b=Math.floor(random(g)*64);[g.board[a],g.board[b]]=[g.board[b],g.board[a]];const count=matches(g.board).length?0:moves(g.board,g.ice).length
+   if(count>=minimum&&count<=bestCount){bestCount=count;if(count<=target)break}else [g.board[a],g.board[b]]=[g.board[b],g.board[a]]
+  }}
+  g.reshuffles++;return}
  // Preserve every special identity/kind even in the bounded regeneration fallback.
  const specials=g.board.flatMap((tile,at)=>tile?.special?[{tile,at}]:[])
- for(let attempt=0;attempt<160;attempt++){fillStable(g);for(const {tile,at} of specials)g.board[at]={...tile,color:tile.special==='rainbow'?null:g.board[at]!.color};if(!matches(g.board).length&&moves(g.board,g.ice).length){g.reshuffles++;return}}
+ for(let attempt=0;attempt<160;attempt++){fillStable(g);for(const {tile,at} of specials)g.board[at]={...tile,color:tile.special==='rainbow'?null:g.board[at]!.color};if(!matches(g.board).length&&moves(g.board,g.ice).length>=minimum){g.reshuffles++;return}}
  throw Error('보드를 만들지 못했어요. 다시 시작해 주세요.')
 }
 function fillStable(g:Game){
@@ -63,17 +86,29 @@ export function newGame(stage=1,seed=(Math.random()*4294967296)>>>0):Game{
  const spots=[18,21,42,45,10,13,50,53,26,29,34,37];for(const i of spots.slice(0,s.ice))g.ice[i]=s.layers
  fillStable(g);if(!moves(g.board,g.ice).length)shuffle(g);return g
 }
+export function newChallenge(seed=(Math.random()*4294967296)>>>0){const g=newGame(1,seed);g.mode='challenge';g.difficulty=1;g.difficultyMoves=0;g.moves=0;shuffle(g);return g}
 const line=(at:number,vertical:boolean)=>all.filter(i=>vertical?col(i)===col(at):row(i)===row(at))
 const square=(at:number,radius:number)=>all.filter(i=>Math.abs(row(i)-row(at))<=radius&&Math.abs(col(i)-col(at))<=radius)
+/** Choose unseen refill colors only. Never alter an already formed match, old gem or special. */
+function refineRefill(g:Game,newborn:number[]){
+ if(g.mode!=='challenge'||(g.difficulty??1)<2||matches(g.board).length)return
+ let count=moves(g.board,g.ice).length;const target=(g.eligibleMs??0)>=180000?2:challengeTier(g).candidates
+ if(count<=target)return
+ let budget=(g.eligibleMs??0)>=240000?64:40
+ for(const i of newborn){if(count<=target||budget<=0)break;const tile=g.board[i]!;let best=tile.color,bestCount=count
+  for(let color=0;color<challengeTier(g).colors&&budget-->0;color++){g.board[i]={...tile,color};if(matches(g.board).length)continue;const n=moves(g.board,g.ice).length;if(n>=2&&n<bestCount){best=color;bestCount=n}}
+  g.board[i]={...tile,color:best};count=bestCount
+ }
+}
 function seek(g:Game,excluded:Set<number>,n=3){const available=all.filter(i=>g.board[i]&&!excluded.has(i));return [...shuffleArray(available.filter(i=>!g.board[i]?.special),g),...shuffleArray(available.filter(i=>g.board[i]?.special),g)].slice(0,n)}
-export function planMove(source:Game,a:number,b:number):{game:Game;frames:Frame[];valid:boolean}{
- const g=structuredClone(source),frames:Frame[]=[];let combo=0
- const frame=(phase:Phase,extras:Partial<Frame>={})=>frames.push({phase,board:structuredClone(g.board),ice:g.ice.slice(),combo,score:g.score,moves:g.moves,gain:0,removed:[],effects:[],motions:[],...extras})
+export function planMove(source:Game,a:number,b:number,directCombo=1):{game:Game;frames:Frame[];valid:boolean}{
+ const g=structuredClone(source),frames:Frame[]=[];let combo=0,flashed=false
+ const frame=(phase:Phase,extras:Partial<Frame>={})=>frames.push({phase,board:g.board.slice(),ice:g.ice.slice(),combo,score:g.score,moves:g.moves,gain:0,removed:[],effects:[],motions:[],...extras})
  if(g.status!=='playing'||!adjacent(a,b)||g.ice[a]>0||g.ice[b]>0)return {game:g,frames,valid:false}
  const valid=validMove(g.board,g.ice,a,b);[g.board[a],g.board[b]]=[g.board[b],g.board[a]]
  frame('SWAPPING',{motions:[{id:g.board[a]!.id,from:b,to:a},{id:g.board[b]!.id,from:a,to:b}]})
  if(!valid){[g.board[a],g.board[b]]=[g.board[b],g.board[a]];frame('SWAPPING',{motions:[{id:g.board[a]!.id,from:b,to:a},{id:g.board[b]!.id,from:a,to:b}]});frame('IDLE');return {game:g,frames,valid:false}}
- g.moves--;frame('MATCHING')
+ if(g.mode!=='challenge')g.moves--;frame('MATCHING')
  const first=g.board[a]!,second=g.board[b]!,specialPair=first.special&&second.special, rainbow=first.special==='rainbow'||second.special==='rainbow'
  let initial=new Set<number>(),initialEffects:Effect[]=[],alreadyFired=new Set<number>()
  const add=(kind:Effect['kind'],from:number,targets:number[])=>{initialEffects.push({kind,from,targets});targets.forEach(i=>initial.add(i))}
@@ -101,7 +136,7 @@ export function planMove(source:Game,a:number,b:number):{game:Game;frames:Frame[
   if(!firstRound||!specialPair&&!rainbow){for(const group of groups){group.cells.forEach(i=>initial.add(i));if(group.special){const at=[b,a,...group.cells].find(i=>group.cells.includes(i)&&g.board[i]&&!g.board[i]?.special)
    if(at!==undefined){protectedCells.add(at);created.push({at,tile:{...g.board[at]!,color:group.special==='rainbow'?null:g.board[at]!.color,special:group.special},bonus:group.special==='rainbow'||group.special==='bomb'?200:100})}
   }}}
-  const removed=new Set<number>(),fired=new Set(alreadyFired),original=structuredClone(g.board)
+  const removed=new Set<number>(),fired=new Set(alreadyFired),original=g.board.slice()
   let hits=initial,effects=initialEffects,bonus=created.reduce((n,c)=>n+c.bonus,0),generation=0
   while(hits.size&&generation++<65){
    const fresh=[...hits].filter(i=>g.board[i]&&!removed.has(i)&&!protectedCells.has(i)),next=new Set<number>(),nextEffects:Effect[]=[]
@@ -112,24 +147,28 @@ export function planMove(source:Game,a:number,b:number):{game:Game;frames:Frame[
     else{const color=all.map(i=>original[i]).find(t=>t?.color!=null)?.color;targets=all.filter(i=>original[i]?.color===color)}
     nextEffects.push({kind:t.special,from:i,targets});targets.forEach(i=>next.add(i))
    }}
-   if(fresh.length||bonus){combo++;g.maxCombo=Math.max(combo,g.maxCombo);const gain=Math.round((fresh.length*50+bonus)*COMBOS[Math.min(combo-1,5)]);g.score+=gain
+   if(fresh.length||bonus){combo++;g.maxCombo=Math.max(combo,g.maxCombo);const multiplier=Math.min(8,directMultiplier(directCombo)*COMBOS[Math.min(combo-1,5)]),gain=Math.round((fresh.length*50+bonus)*multiplier);g.score+=gain
     // Clearing snapshots retain bodies so the visual layer can fracture them before dropping.
-    const visible=structuredClone(g.board);for(const i of fresh){removed.add(i);if(g.ice[i])g.ice[i]--;g.board[i]=null}
+    const visible=g.board.slice();for(const i of fresh){removed.add(i);if(g.ice[i])g.ice[i]--;g.board[i]=null}
     for(const c of created)g.board[c.at]=c.tile
-    frame('CLEARING',{board:visible,gain,removed:fresh,effects});bonus=0
+    const flash=!flashed&&(!!specialPair||created.some(c=>c.tile.special==='rainbow')||[5,10,20].includes(directCombo));if(flash)flashed=true
+    frame('CLEARING',{board:visible,gain,removed:fresh,effects,directCombo,multiplier,flash,created:bonus?created.map(c=>({at:c.at,kind:c.tile.special!})):[],impact:Math.min(5,specialPair?5:effects.some(e=>e.kind==='bomb'||e.kind==='all')?3:created.some(c=>c.tile.special==='rainbow')?2:created.length?1:0),specialPair:!!specialPair});bonus=0
    }else if(effects.length)frame('CLEARING',{effects})
    hits=next;effects=nextEffects
   }
   for(const c of created)g.board[c.at]=c.tile
-  const motions:Motion[]=[]
+  const motions:Motion[]=[],newborn:number[]=[]
   for(let c=0;c<8;c++){
    const existing=all.filter(i=>col(i)===c&&g.board[i]).map(i=>({tile:g.board[i]!,from:i}));const empty=8-existing.length
-   for(let r=7;r>=0;r--){const to=r*8+c,old=existing[r-empty];if(old){g.board[to]=old.tile;if(old.from!==to)motions.push({id:old.tile.id,from:old.from,to})}else{const tile=gem(g);g.board[to]=tile;motions.push({id:tile.id,from:(r-empty)*8+c,to})}}
+   for(let r=7;r>=0;r--){const to=r*8+c,old=existing[r-empty];if(old){g.board[to]=old.tile;if(old.from!==to)motions.push({id:old.tile.id,from:old.from,to})}else{const tile=gem(g,to);g.board[to]=tile;newborn.push(to);motions.push({id:tile.id,from:(r-empty)*8+c,to})}}
   }
+  refineRefill(g,newborn)
   frame('FALLING',{motions});frame('REFILLING');groups=matches(g.board);initial=new Set();initialEffects=[];alreadyFired=new Set();firstRound=false
   if(groups.length)frame('CASCADING')
  }
- if(matches(g.board).length||!moves(g.board,g.ice).length){shuffle(g);frame('REFILLING',{motions:g.board.map((t,i)=>({id:t!.id,from:i-64,to:i}))})}
- g.status=g.score>=stages[g.stage-1].target?'won':g.moves===0?'lost':'playing';frame('IDLE')
+ if(matches(g.board).length||moves(g.board,g.ice).length<(g.mode==='challenge'?2:1)){shuffle(g);frame('REFILLING',{motions:g.board.map((t,i)=>({id:t!.id,from:i-64,to:i}))})}
+ if(g.mode==='challenge'){g.difficultyMoves=(g.difficultyMoves??0)+1;const level=g.difficulty??1;if(level<7&&g.score>=CHALLENGE_TIERS[level].at&&g.difficultyMoves>=3){g.difficulty=level+1;g.difficultyMoves=0}g.status='playing'}
+ else g.status=g.score>=stages[g.stage-1].target?'won':g.moves===0?'lost':'playing'
+ frame('IDLE')
  return {game:g,frames,valid:true}
 }

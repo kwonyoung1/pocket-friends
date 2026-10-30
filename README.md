@@ -1,10 +1,12 @@
 # 포켓프렌즈 · 우리의 작은 집
 
-최근 업데이트: [보물 3매치 사용법·규칙](docs/TREASURE_MATCH.md) · [버튼별 웹사이트 배포 안내](docs/TREASURE_MATCH_DEPLOY.md) · [테스트·실측 결과](docs/TREASURE_MATCH_VERIFICATION.md)
+최근 업데이트: [보물 3매치 v2 사용법·규칙](docs/TREASURE_MATCH_V2.md) · [버튼별 웹사이트 배포 안내](docs/TREASURE_MATCH_V2_DEPLOY.md) · [테스트·실측 결과](docs/TREASURE_MATCH_V2_VERIFICATION.md)
 
-보물 3매치는 30개 스테이지와 특수 보석 조합을 즐기는 독립 로컬 싱글플레이입니다. 최고 기록은 각 브라우저에 저장하며 코인·경험치·아이템 보상은 없습니다. 기존 공유 월드와 사천성은 유지하며 이번에는 웹사이트만 배포합니다.
+보물 3매치는 기존 30개 스테이지에 **5초 직접 콤보·30초 생존 도전 모드·강화 이펙트**를 추가했습니다. 직접 매치당 +5초(최대 30초), 최종 점수 배율 최대 ×8이며 연출·일시정지 중 시간은 멈춥니다. 최고 기록은 브라우저별로 저장하며 코인·경험치·아이템 보상은 없습니다. 기존 공유 월드와 사천성은 유지하고 이번에는 웹사이트만 배포합니다.
 
-[보물 3매치 PC 화면](docs/screenshots/treasure-match-desktop.png) · [모바일 화면](docs/screenshots/treasure-match-mobile.png)
+[v2 PC 화면](docs/screenshots/treasure-match-v2-desktop.png) · [v2 모바일 화면](docs/screenshots/treasure-match-v2-mobile.png)
+
+이전 버전: [보물 3매치 v1 규칙](docs/TREASURE_MATCH.md) · [v1 검증](docs/TREASURE_MATCH_VERIFICATION.md)
 
 이전 업데이트: [할로윈 테마·배치 영역 확대](docs/HALLOWEEN_UPDATE.md) · [배포 안내](docs/HALLOWEEN_DEPLOY.md)
 
