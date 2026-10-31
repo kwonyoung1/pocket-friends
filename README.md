@@ -1,6 +1,10 @@
 # 포켓프렌즈 · 우리의 작은 집
 
-최근 업데이트: [보물 3매치 v4 사용법·보상·보안](docs/TREASURE_MATCH_V4.md) · [SQL·서버·웹사이트 버튼별 배포 안내](docs/TREASURE_MATCH_V4_DEPLOY.md) · [테스트·실측 결과](docs/TREASURE_MATCH_V4_VERIFICATION.md)
+최근 업데이트: [빠른 도전·일괄 관리·검증 경량화](docs/FAST_CARE_UPDATE.md) · [SQL/서버/웹사이트 배포 버튼 순서](docs/FAST_CARE_DEPLOY.md) · [검증 및 측정](docs/FAST_CARE_VERIFICATION.md)
+
+도전 점수 2배·시간 소모 ×1.5~8·/500 보정, 모두 놀아주기/모두 씻기/음식 일괄 주기를 추가했습니다. 기존 데이터를 보존하며 새 SQL과 game·treasure 서버 배포가 필요합니다.
+
+이전 업데이트: [보물 3매치 v4 사용법·보상·보안](docs/TREASURE_MATCH_V4.md) · [SQL·서버·웹사이트 버튼별 배포 안내](docs/TREASURE_MATCH_V4_DEPLOY.md) · [테스트·실측 결과](docs/TREASURE_MATCH_V4_VERIFICATION.md)
 
 보물 3매치 v4는 **3초 직접 콤보·난이도별 시간 소모 ×1~3·서버 검증 코인 보상·입체 보석과 직접 드래그**를 제공합니다. 서버에서 시작한 도전을 정상 시간 종료하면 시드·교환 기록을 재생해 점수·콤보·유지 시간에 따른 코인을 정산합니다. 스테이지·연습·중도 종료·예전 로컬 기록은 보상 대상이 아닙니다. 기존 육성 월드·사진·코인·사천성·영단어·스테이지 기록을 보존합니다.
 

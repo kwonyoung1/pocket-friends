@@ -841,3 +841,7 @@ it('new floor-edge gem placement is validated on the server and duplicate operat
  await command(mobile,{type:'place',itemId:'treasure-diamond',placementId:id,x:0,y:0})
  expect((await repo.load()).data!.world!.expansion!.placements).toEqual(row.data!.world!.expansion!.placements)
 })
+
+it('bulk care uses one atomic operation receipt: food, pet rewards and bath counters cannot replay',async()=>{
+ await reset();await login(pc);const s=freshWorld(at);s.world!.inventory.cake=3;s.friends[0].photo='data:image/png;base64,AAAA';await command(pc,{type:'initialize',source:'local',data:s});const id=crypto.randomUUID(),first=await command(pc,{type:'care-feed-all',id:'cake'},id);expect(first.response.status).toBe(200);const after=await repo.load();expect(after.data!.world!.inventory.cake).toBe(0);await command(pc,{type:'care-feed-all',id:'cake'},id);expect((await repo.load()).data).toEqual(after.data);expect(after.data!.friends[0].photo).toBe(s.friends[0].photo);const playId=crypto.randomUUID();await command(pc,{type:'care-play-all'},playId);const played=await repo.load();await command(pc,{type:'care-play-all'},playId);expect((await repo.load()).data).toEqual(played.data);const washId=crypto.randomUUID();await command(pc,{type:'care-wash-all'},washId);const washed=await repo.load();await command(pc,{type:'care-wash-all'},washId);expect((await repo.load()).data).toEqual(washed.data);expect(washed.data!.world!.coins).toBe(s.world!.coins);expect((await command(pc,{type:'care-feed-all',id:'not-food'})).response.status).toBe(400)
+})

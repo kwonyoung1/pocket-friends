@@ -1,4 +1,4 @@
-import {SIZE,stages,COMBOS,CHALLENGE_TIERS,directMultiplier} from './config.ts'
+import {SIZE,stages,COMBOS,CHALLENGE_TIERS,LEGACY_CHALLENGE_TIERS,directMultiplier} from './config.ts'
 export type Special='row'|'column'|'bomb'|'rainbow'|'lightning'
 export type Gem={readonly id:number;readonly color:number|null;readonly special?:Special}
 export type Board=(Gem|null)[]
@@ -6,13 +6,13 @@ export type Phase='IDLE'|'SWAPPING'|'MATCHING'|'CLEARING'|'FALLING'|'REFILLING'|
 export type Effect={kind:Special|'all';from:number;targets:number[]}
 export type Motion={id:number;from:number;to:number}
 export type Frame={phase:Phase;board:Board;ice:number[];combo:number;score:number;moves:number;gain:number;removed:number[];effects:Effect[];motions:Motion[];directCombo?:number;multiplier?:number;created?:{at:number;kind:Special}[];impact?:number;specialPair?:boolean;flash?:boolean}
-export type Game={stage:number;board:Board;ice:number[];moves:number;score:number;seed:number;nextId:number;status:'playing'|'won'|'lost';maxCombo:number;reshuffles:number;mode?:'stage'|'challenge';difficulty?:number;difficultyMoves?:number;eligibleMs?:number}
+export type Game={stage:number;board:Board;ice:number[];moves:number;score:number;seed:number;nextId:number;status:'playing'|'won'|'lost';maxCombo:number;reshuffles:number;mode?:'stage'|'challenge';rulesVersion?:4|5;difficulty?:number;difficultyMoves?:number;eligibleMs?:number}
 export type Group={cells:number[];special?:Special}
 const all=Array.from({length:SIZE*SIZE},(_,i)=>i)
 const row=(i:number)=>Math.floor(i/SIZE),col=(i:number)=>i%SIZE
 export const adjacent=(a:number,b:number)=>Number.isInteger(a)&&Number.isInteger(b)&&a>=0&&b>=0&&a<64&&b<64&&Math.abs(row(a)-row(b))+Math.abs(col(a)-col(b))===1
 function random(g:Game){g.seed=(Math.imul(g.seed,1664525)+1013904223)>>>0;return g.seed/4294967296}
-export const challengeTier=(g:Game)=>CHALLENGE_TIERS[(g.difficulty??1)-1]
+export const challengeTier=(g:Game)=>(g.rulesVersion===4?LEGACY_CHALLENGE_TIERS:CHALLENGE_TIERS)[(g.difficulty??1)-1]
 function gem(g:Game,at?:number):Gem{
  const count=g.mode==='challenge'?challengeTier(g).colors:stages[g.stage-1].colors
  let color=Math.floor(random(g)*count)
@@ -86,7 +86,7 @@ export function newGame(stage=1,seed=(Math.random()*4294967296)>>>0):Game{
  const spots=[18,21,42,45,10,13,50,53,26,29,34,37];for(const i of spots.slice(0,s.ice))g.ice[i]=s.layers
  fillStable(g);if(!moves(g.board,g.ice).length)shuffle(g);return g
 }
-export function newChallenge(seed=(Math.random()*4294967296)>>>0){const g=newGame(1,seed);g.mode='challenge';g.difficulty=1;g.difficultyMoves=0;g.moves=0;shuffle(g);return g}
+export function newChallenge(seed=(Math.random()*4294967296)>>>0,version:4|5=5){const g=newGame(1,seed);g.mode='challenge';g.rulesVersion=version;g.difficulty=1;g.difficultyMoves=0;g.moves=0;shuffle(g);return g}
 const line=(at:number,vertical:boolean)=>all.filter(i=>vertical?col(i)===col(at):row(i)===row(at))
 const square=(at:number,radius:number)=>all.filter(i=>Math.abs(row(i)-row(at))<=radius&&Math.abs(col(i)-col(at))<=radius)
 /** Choose unseen refill colors only. Never alter an already formed match, old gem or special. */
@@ -101,9 +101,9 @@ function refineRefill(g:Game,newborn:number[]){
  }
 }
 function seek(g:Game,excluded:Set<number>,n=3){const available=all.filter(i=>g.board[i]&&!excluded.has(i));return [...shuffleArray(available.filter(i=>!g.board[i]?.special),g),...shuffleArray(available.filter(i=>g.board[i]?.special),g)].slice(0,n)}
-export function planMove(source:Game,a:number,b:number,directCombo=1):{game:Game;frames:Frame[];valid:boolean}{
+export function planMove(source:Game,a:number,b:number,directCombo=1,visual=true):{game:Game;frames:Frame[];valid:boolean}{
  const g=structuredClone(source),frames:Frame[]=[];let combo=0,flashed=false
- const frame=(phase:Phase,extras:Partial<Frame>={})=>frames.push({phase,board:g.board.slice(),ice:g.ice.slice(),combo,score:g.score,moves:g.moves,gain:0,removed:[],effects:[],motions:[],...extras})
+ const frame=(phase:Phase,extras:Partial<Frame>={})=>frames.push({phase,combo,score:g.score,moves:g.moves,gain:0,removed:[],...extras,board:visual?(extras.board??g.board.slice()):[],ice:visual?g.ice.slice():[],effects:visual?(extras.effects??[]):[],motions:visual?(extras.motions??[]):[],created:visual?extras.created:undefined})
  if(g.status!=='playing'||!adjacent(a,b)||g.ice[a]>0||g.ice[b]>0)return {game:g,frames,valid:false}
  const valid=validMove(g.board,g.ice,a,b);[g.board[a],g.board[b]]=[g.board[b],g.board[a]]
  frame('SWAPPING',{motions:[{id:g.board[a]!.id,from:b,to:a},{id:g.board[b]!.id,from:a,to:b}]})
@@ -147,9 +147,9 @@ export function planMove(source:Game,a:number,b:number,directCombo=1):{game:Game
     else{const color=all.map(i=>original[i]).find(t=>t?.color!=null)?.color;targets=all.filter(i=>original[i]?.color===color)}
     nextEffects.push({kind:t.special,from:i,targets});targets.forEach(i=>next.add(i))
    }}
-   if(fresh.length||bonus){combo++;g.maxCombo=Math.max(combo,g.maxCombo);const multiplier=Math.min(8,directMultiplier(directCombo)*COMBOS[Math.min(combo-1,5)]),gain=Math.round((fresh.length*50+bonus)*multiplier);g.score+=gain
+   if(fresh.length||bonus){combo++;g.maxCombo=Math.max(combo,g.maxCombo);const multiplier=Math.min(8,directMultiplier(directCombo)*COMBOS[Math.min(combo-1,5)]),gain=Math.round((fresh.length*50+bonus)*(g.mode==='challenge'&&g.rulesVersion!==4?2:1)*multiplier);g.score+=gain
     // Clearing snapshots retain bodies so the visual layer can fracture them before dropping.
-    const visible=g.board.slice();for(const i of fresh){removed.add(i);if(g.ice[i])g.ice[i]--;g.board[i]=null}
+    const visible=visual?g.board.slice():[];for(const i of fresh){removed.add(i);if(g.ice[i])g.ice[i]--;g.board[i]=null}
     for(const c of created)g.board[c.at]=c.tile
     const flash=!flashed&&(!!specialPair||created.some(c=>c.tile.special==='rainbow')||[5,10,20].includes(directCombo));if(flash)flashed=true
     frame('CLEARING',{board:visible,gain,removed:fresh,effects,directCombo,multiplier,flash,created:bonus?created.map(c=>({at:c.at,kind:c.tile.special!})):[],impact:Math.min(5,specialPair?5:effects.some(e=>e.kind==='bomb'||e.kind==='all')?3:created.some(c=>c.tile.special==='rainbow')?2:created.length?1:0),specialPair:!!specialPair});bonus=0
@@ -160,14 +160,14 @@ export function planMove(source:Game,a:number,b:number,directCombo=1):{game:Game
   const motions:Motion[]=[],newborn:number[]=[]
   for(let c=0;c<8;c++){
    const existing=all.filter(i=>col(i)===c&&g.board[i]).map(i=>({tile:g.board[i]!,from:i}));const empty=8-existing.length
-   for(let r=7;r>=0;r--){const to=r*8+c,old=existing[r-empty];if(old){g.board[to]=old.tile;if(old.from!==to)motions.push({id:old.tile.id,from:old.from,to})}else{const tile=gem(g,to);g.board[to]=tile;newborn.push(to);motions.push({id:tile.id,from:(r-empty)*8+c,to})}}
+   for(let r=7;r>=0;r--){const to=r*8+c,old=existing[r-empty];if(old){g.board[to]=old.tile;if(visual&&old.from!==to)motions.push({id:old.tile.id,from:old.from,to})}else{const tile=gem(g,to);g.board[to]=tile;newborn.push(to);if(visual)motions.push({id:tile.id,from:(r-empty)*8+c,to})}}
   }
   refineRefill(g,newborn)
   frame('FALLING',{motions});frame('REFILLING');groups=matches(g.board);initial=new Set();initialEffects=[];alreadyFired=new Set();firstRound=false
   if(groups.length)frame('CASCADING')
  }
  if(matches(g.board).length||moves(g.board,g.ice).length<(g.mode==='challenge'?2:1)){shuffle(g);frame('REFILLING',{motions:g.board.map((t,i)=>({id:t!.id,from:i-64,to:i}))})}
- if(g.mode==='challenge'){g.difficultyMoves=(g.difficultyMoves??0)+1;const level=g.difficulty??1;if(level<7&&g.score>=CHALLENGE_TIERS[level].at&&g.difficultyMoves>=3){g.difficulty=level+1;g.difficultyMoves=0}g.status='playing'}
+ if(g.mode==='challenge'){g.difficultyMoves=(g.difficultyMoves??0)+1;const level=g.difficulty??1;if(g.rulesVersion===4){if(level<7&&g.score>=LEGACY_CHALLENGE_TIERS[level].at&&g.difficultyMoves>=3){g.difficulty=level+1;g.difficultyMoves=0}}else g.difficulty=CHALLENGE_TIERS.reduce((n,t,i)=>g.score>=t.at?i+1:n,1);g.status='playing'}
  else g.status=g.score>=stages[g.stage-1].target?'won':g.moves===0?'lost':'playing'
  frame('IDLE')
  return {game:g,frames,valid:true}

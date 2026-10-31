@@ -1,3 +1,4 @@
+import {BulkControls} from '../care/BulkControls'
 import {placementVisualSize,placementFloor,clampPlacement,roomPointer} from '../room/placement'
 import {EquipmentPanel} from '../equipment/UI'
 import {isGem,gemById} from '../adventure/gems'
@@ -143,7 +144,7 @@ export function LifePanel({
         </div>
         {tab === 'life' && (
           <>
-            <div className="life-profile">
+            <BulkControls save={save} command={command} busy={busy} changed={()=>{changed();refresh(n=>n+1)}} notify={notify} now={now}/><div className="life-profile">
               <Character friend={f} mini />
               <div>
                 <h3>{f.name}의 하루</h3>
