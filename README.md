@@ -1,6 +1,8 @@
 # 포켓프렌즈 · 우리의 작은 집
 
-최근 업데이트: [빠른 도전·일괄 관리·검증 경량화](docs/FAST_CARE_UPDATE.md) · [SQL/서버/웹사이트 배포 버튼 순서](docs/FAST_CARE_DEPLOY.md) · [검증 및 측정](docs/FAST_CARE_VERIFICATION.md)
+최근 업데이트: [보물 3매치 v5 · 12단계·프리즘 이펙트](docs/TREASURE_TWELVE_UPDATE.md) · [SQL/서버/웹사이트 버튼별 배포](docs/TREASURE_TWELVE_DEPLOY.md) · [검증·성능](docs/TREASURE_TWELVE_VERIFICATION.md)
+
+이전 업데이트: [빠른 도전·일괄 관리·검증 경량화](docs/FAST_CARE_UPDATE.md) · [SQL/서버/웹사이트 배포 버튼 순서](docs/FAST_CARE_DEPLOY.md) · [검증 및 측정](docs/FAST_CARE_VERIFICATION.md)
 
 도전 점수 2배·시간 소모 ×1.5~8·/500 보정, 모두 놀아주기/모두 씻기/음식 일괄 주기를 추가했습니다. 기존 데이터를 보존하며 새 SQL과 game·treasure 서버 배포가 필요합니다.
 

@@ -1,0 +1,21 @@
+{
+  "scenario": "10-chain stage fixture, Chromium, single worker, development build, screenshot excluded; mobile is emulation, not physical hardware",
+  "samples": {
+    "desktop": {
+      "durationMs": 2165.0999999046326,
+      "frames": 119,
+      "rafFps": 54.962819271738795,
+      "frameP95Ms": 33.299999999999955,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    },
+    "mobile": {
+      "durationMs": 2098.5999999046326,
+      "frames": 123,
+      "rafFps": 58.610502242251755,
+      "frameP95Ms": 16.799999999999955,
+      "longTasks": 0,
+      "longestTaskMs": 0
+    }
+  }
+}
