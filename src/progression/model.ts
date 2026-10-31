@@ -100,7 +100,7 @@ export function buy(save: Save, itemId: string, now = Date.now()): string {
   return `${item.name}을 인벤토리에 담았어요!`
 }
 export function available(f: Friend, now = Date.now()) { return !growth(f).awayJobId && !f.interaction?.gesture && !busyLife(f,now) }
-export function useItem(save: Save, itemId: string, friendId: string, now = Date.now()): string {
+export function useItem(save: Save, itemId: string, friendId: string, now = Date.now(), sharedBatch=false): string {
   const w = world(save, now), item = itemById[itemId], f = save.friends.find(p => p.id === friendId)
   if (!item || !f || !(w.inventory[itemId] > 0)) return '보유한 아이템을 선택해 주세요.'
   if (!available(f,now)) return '탐험 중이거나 교감 중인 친구는 잠시 기다려 주세요.'
@@ -108,7 +108,7 @@ export function useItem(save: Save, itemId: string, friendId: string, now = Date
   if (item.category === 'decor') return '인벤토리에서 방에 배치하기를 눌러 위치를 골라 주세요.'
   if (item.category === 'equipment') return '장비 탭에서 착용해 주세요.'
   if (item.category === 'treasure') return '사용하지 않는 수집용 보물이에요.'
-  if (now < w.useAfter || now < (growth(f).rewardAfter[item.category === 'food' ? 'feed' : 'play'] ?? 0)) return '친구가 즐기는 중이에요. 잠깐 기다려 주세요.'
+  if (!sharedBatch&&now < w.useAfter || now < (growth(f).rewardAfter[item.category === 'food' ? 'feed' : 'play'] ?? 0)) return '친구가 즐기는 중이에요. 잠깐 기다려 주세요.'
   if (item.consumable) w.inventory[itemId]--
   for (const [key, amount] of Object.entries(item.effects)) { const stat = key as keyof Friend['stats']; const taste=f.foodTaste=resolveTaste(f.id,f.foodTaste); const factor=item.category==='food'&&itemId!=='snack'&&(stat==='hunger'||stat==='happiness'||stat==='energy')&&amount>0?(taste.like===itemId?1.5:taste.dislike===itemId?.8:1):1; f.stats[stat] = Math.max(0, Math.min(100, f.stats[stat] + Math.round(amount*factor))) }
   w.useAfter = now + B.itemUseCooldownMs

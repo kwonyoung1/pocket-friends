@@ -67,3 +67,5 @@
 
 
 .need-energy .need-icons>span[aria-label="휴식이 필요해요"]{animation:care-dust-float 3s ease-in-out infinite alternate}
+
+.bulk-care{border:1px solid #e4d4d4;border-radius:12px;background:#fff9f1;padding:12px;margin:10px 0;font-size:12px;line-height:1.7}.bulk-care button{border-radius:9px;background:#ecdce9;padding:10px 12px;margin:4px;font-size:12px;min-height:42px}.bulk-care small{display:block;color:#978281}.bulk-care p{margin:6px 0;overflow-wrap:anywhere}.bulk-confirm{padding:9px;border:1px solid #d8c3d3;border-radius:10px;background:#fff}.bulk-care button:disabled{opacity:.45}

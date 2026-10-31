@@ -1,6 +1,7 @@
 import type { LifeCommand } from '../expansion/model.ts'
 import type { Save } from '../game.ts'
 export type GameCommand =
+  | import('../care/bulk.ts').BulkCommand
   | {type:'room-theme';theme:import('../room/theme.ts').RoomThemeId}
   | import('../equipment/model.ts').GearCommand
   | import('../sichuan/state.ts').SichuanCommand

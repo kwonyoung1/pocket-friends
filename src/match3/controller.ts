@@ -20,7 +20,7 @@ export class MatchController{
  get rewardsAvailable(){return !!this.rewardAPI}
  enableRewards(api:RewardAPI){this.rewardAPI=api}
  private view:View
- constructor(initial?:Game,private reduced=false){const records=readRecords(),game=initial??newGame();this.clock=new PlayClock(game.mode==='challenge',performance.now());this.time={...this.clock.value};this.view={game,frame:null,phase:'IDLE',paused:false,selected:null,hint:[],notice:'보석 두 개를 고르거나 밀어서 바꿔 보세요.',records,record:false,modeSelect:!initial,combo:0,bestCombo:0,breakId:0,bonusId:0,lastAddedMs:0,lastTurnGain:0,maxMoveScore:0,result:null,rewardStatus:'practice',rewardError:'',receipt:null}}
+ constructor(initial?:Game,private reduced=false){const records=readRecords(),game=initial??newGame();this.clock=new PlayClock(game.mode==='challenge',performance.now(),game.rulesVersion??5);this.time={...this.clock.value};this.view={game,frame:null,phase:'IDLE',paused:false,selected:null,hint:[],notice:'보석 두 개를 고르거나 밀어서 바꿔 보세요.',records,record:false,modeSelect:!initial,combo:0,bestCombo:0,breakId:0,bonusId:0,lastAddedMs:0,lastTurnGain:0,maxMoveScore:0,result:null,rewardStatus:'practice',rewardError:'',receipt:null}}
  subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>{this.listeners.delete(fn)}}
  snapshot=()=>this.view
  subscribeTime=(fn:()=>void)=>{this.timeListeners.add(fn);return()=>{this.timeListeners.delete(fn)}}
@@ -45,7 +45,7 @@ export class MatchController{
  private result(ended:ChallengeResult['ended']):ChallengeResult{return {id:this.runId,at:Date.now(),ended,score:this.final?.score??this.view.game.score,survivalMs:this.clock.value.survivalMs,playMs:this.clock.value.playMs,maxCombo:this.view.bestCombo,maxMoveScore:this.view.maxMoveScore,difficulty:this.final?.difficulty??this.view.game.difficulty??1,turns:this.turns,longestComboMs:this.clock.value.longestComboMs,continued:this.clock.value.continued}}
  private endChallenge(ended:ChallengeResult['ended']){
   if(this.completed)return;this.clock.set('stopped',performance.now());const result=this.result(ended),saved=saveRecords({...this.view.records,challenge:includeResult(this.view.records.challenge,result)})
-  if(ended==='timeout'&&this.sessionId&&this.rewardAPI){const id=this.sessionId,log={version:4 as const,turns:this.turnLog.slice(),tailMs:this.clock.value.survivalMs-this.lastIdle,elapsedMs:performance.now()-this.runStartedAt,ended:'timeout' as const};this.update({rewardStatus:'verifying',rewardError:''});void this.rewardAPI.submit(id,log).then(receipt=>this.update({rewardStatus:'paid',receipt})).catch(e=>this.update({rewardStatus:'error',rewardError:e.message}))}
+  if(ended==='timeout'&&this.sessionId&&this.rewardAPI){const id=this.sessionId,log={version:5 as const,turns:this.turnLog.slice(),tailMs:this.clock.value.survivalMs-this.lastIdle,elapsedMs:performance.now()-this.runStartedAt,ended:'timeout' as const};this.update({rewardStatus:'verifying',rewardError:''});void this.rewardAPI.submit(id,log).then(receipt=>this.update({rewardStatus:'paid',receipt})).catch(e=>this.update({rewardStatus:'error',rewardError:e.message}))}
   this.completed=true;this.frames=[];this.final=null;this.clock.break();this.update({game:{...this.view.game,status:'lost',score:result.score},frame:null,phase:'IDLE',combo:0,breakId:this.view.breakId+1,records:saved.records,result,notice:ended==='timeout'?'시간 종료! 멋진 도전이었어요.':'도전 기록을 보관했어요.'});this.publish(true)
  }
  private advance(now:number){
