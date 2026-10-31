@@ -5,7 +5,8 @@ export const CHEERS=['GOOD!','GREAT!','AMAZING!','FANTASTIC!','INCREDIBLE!','LEG
 export const DIRECT_MULTIPLIERS=[1,1.3,1.6,2,2.5,3,3.5,4,4.5,5]
 export const directMultiplier=(combo:number)=>combo>=20?8:combo>=15?7:combo>=11?6:DIRECT_MULTIPLIERS[Math.max(0,combo-1)]??1
 export const LEGACY_CHALLENGE_TIERS=[{at:0,colors:5,candidates:5},{at:5000,colors:5,candidates:5},{at:15000,colors:6,candidates:4},{at:30000,colors:6,candidates:4},{at:50000,colors:7,candidates:3},{at:80000,colors:7,candidates:3},{at:120000,colors:7,candidates:2}]
-export const CHALLENGE_TIERS=LEGACY_CHALLENGE_TIERS.map((tier,i)=>({...tier,at:[0,3000,8000,15000,25000,40000,60000][i]}))
+export const RULE5_CHALLENGE_TIERS=LEGACY_CHALLENGE_TIERS.map((tier,i)=>({...tier,at:[0,3000,8000,15000,25000,40000,60000][i]}))
+export const CHALLENGE_TIERS=[0,3000,8000,15000,25000,40000,60000,85000,115000,150000,200000,260000].map((at,i)=>({at,colors:i<3?4:i<9?5:6,candidates:i<3?5:i<6?4:i<9?3:2}))
 export const stages=Array.from({length:30},(_,i)=>{
  const n=i+1,anchors=[[1,2000],[5,5000],[10,9000],[20,18000],[30,32000]]
  const end=anchors.findIndex(([stage])=>stage>=n),[b,y]=anchors[end],[a,x]=anchors[Math.max(0,end-1)]

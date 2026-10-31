@@ -5,7 +5,7 @@ export class PlayClock{
  private at=0;private state:'idle'|'busy'|'paused'|'stopped'='stopped'
  value:ClockView={combo:0,comboMs:0,remainingMs:30000,survivalMs:0,playMs:0,expired:false,longestComboMs:0,comboRunMs:0,continued:0}
  level=1
- constructor(readonly challenge=false,now=0,readonly version=5){this.at=now}
+ constructor(readonly challenge=false,now=0,readonly version=6){this.at=now}
  tick(now:number){const dt=Math.max(0,now-this.at);this.at=Math.max(this.at,now)
   if(this.state==='stopped'||this.state==='paused')return
   this.value.playMs+=dt

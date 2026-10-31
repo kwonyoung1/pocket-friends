@@ -62,3 +62,21 @@
 @media(prefers-reduced-motion:reduce){.tm-v2 .tm-tile.tm-burst:before{display:none}.tm-v2 .tm-tile.tm-moving,.tm-v2 .tm-tile.tm-burst .tm-gem{will-change:auto}}
 
 .tm-v2 .tm-level-up{inset:auto -5px -14px;font-size:12px;background:#fff8dd;border-radius:7px;padding:3px;animation:tm-break-label 1.2s both}.tm-v2-hud:has(.tm-level-up){box-shadow:inset 0 0 0 1px #e0b58740}
+
+/* v5: transform-only interaction accents; Canvas owns fragments and beams. */
+.tm-tile.selected .tm-gem{transform:translateY(-5%) scale(1.13);filter:drop-shadow(0 7px 3px #071026a0) drop-shadow(0 0 5px #f9ecb5)}
+.tm-dragging::after{content:'✧';position:absolute;inset:14%;pointer-events:none;color:#fff4b6;border:2px solid #fff5be80;border-radius:40%;box-shadow:-8px 8px 12px #9edfff55;transform:translate(-8%,8%)}
+.tm-drag-target .tm-gem{transform:scale(.9);filter:brightness(1.2)}
+.tm-burst .tm-gem{animation:tm-prism-burst 220ms ease-out both}
+@keyframes tm-prism-burst{0%{transform:scale(1);filter:brightness(1)}35%{transform:scale(1.2);filter:brightness(2)}100%{transform:scale(.5);opacity:0}}
+.tm-combo-digits{position:relative;isolation:isolate}
+.tone-gold .tm-combo-digits::before,.tone-rainbow .tm-combo-digits::before,.tone-legend .tm-combo-digits::before{content:'';position:absolute;inset:-5px 4%;border:2px dashed #ffe6a4;border-radius:50%;z-index:-1;animation:tm-energy-orbit 2s linear infinite;pointer-events:none}
+.tone-rainbow .tm-combo-digits::before,.tone-legend .tm-combo-digits::before{border-color:#f4baff #a8dfff #fff2ad #b5f4cf}
+@keyframes tm-energy-orbit{to{transform:rotate(360deg)}}
+.tm-challenge-time[data-level='8'],.tm-challenge-time[data-level='9']{box-shadow:inset 0 0 0 2px #f4b667,0 0 12px #ef994638}
+.tm-challenge-time[data-level='10'],.tm-challenge-time[data-level='11'],.tm-challenge-time[data-level='12']{background:linear-gradient(135deg,#602249,#2f193e);color:#fff0d5;box-shadow:inset 0 0 0 2px #fa9f83,0 0 18px #e8557940}
+.tm-challenge-time[data-level='12']{border:2px solid #f2c78d}
+.tm-turn-banner strong{font-size:clamp(27px,6vw,42px)}
+.tm-board-wrap[data-intensity='low'] .tm-dragging::after{display:none}
+[data-paused='true'] .tm-combo-digits::before{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.tm-burst .tm-gem,.tm-combo-digits::before{animation:none!important}.tm-dragging::after{display:none}.tm-tile.selected .tm-gem{transform:none}}
