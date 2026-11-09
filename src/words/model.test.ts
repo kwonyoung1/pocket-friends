@@ -76,11 +76,19 @@ it('keeps old review data inert and removes mistakes manually without changing t
  expect(p.mistakes[id]).toBeUndefined();expect(p.removals?.[0].reason).toBe('manual');expect(p.round).toEqual(active);expect(p.nextStartAt).toBe(clock);expect(s.world!.coins).toBe(300);expect(wordById[id]).toBeDefined();expect(parseSave(JSON.stringify(s),at).world!.words!.review).toEqual(archived)
  expect(()=>wordCommand(s,{type:'word-start',mode:'review'} as unknown as WordCommand,at+3)).toThrow('별도 복습')
 })
-it('server ignores forged reward and correctness values and uses only its own recorded answers',()=>{
- let s=freshWorld(at),holds={};const apply=(c:WordCommand)=>{const result=applyCommand(s,holds,c,'user',at);s=result.save;holds=result.holds}
- apply({type:'word-start',mode:'reward'})
- for(let i=0;i<30;i++){const c=current(s,'word-skip');apply({...c,reward:999999,correct:true} as WordCommand)}
- expect(s.world!.coins).toBe(300);expect(wordProgress(s).round!.reward).toBe(0)
+it('retired server commands reject forged rewards and preserve archived quizzes, mistakes and coins',()=>{
+ const s=fixture();wordCommand(s,current(s,'word-reveal'),at+1)
+ const before=structuredClone(s),holds={}
+ const commands:WordCommand[]=[{type:'word-start',mode:'reward'},{type:'word-delete',ids:[wordProgress(s).round!.questions[0].wordId]},...(['word-answer','word-reveal','word-skip','word-next','word-hint','word-abandon'] as const).map(type=>current(s,type,'위조 정답'))]
+ for(const command of commands){
+  const forged={...command,reward:999999,correct:true}
+  expect(()=>applyCommand(s,holds,forged,'user',at+2)).toThrow(/운영을 종료/)
+  expect(s).toEqual(before);expect(holds).toEqual({})
+ }
+ const restored=parseSave(JSON.stringify(s),at)
+ const refreshed=applyCommand(restored,holds,{type:'refresh'},'user',at+wordRecoveryMs+1).save
+ expect(refreshed.world!.coins).toBe(before.world!.coins)
+ expect(refreshed.world!.words).toEqual(before.world!.words)
 })
 it('mixes at most two saved mistakes per stage and auto-removes only a directly entered correct answer',()=>{
  const s=freshWorld(at),p=wordProgress(s)
