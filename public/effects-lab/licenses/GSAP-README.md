@@ -8,7 +8,7 @@ No other library delivers such advanced sequencing, reliability, and tight contr
 
 GSAP is completely flexible; sprinkle it wherever you want. **Zero dependencies.**
 
-There are many optional <a href="https://gsap.com/docs/v3/Plugins">plugins</a> and <a href="https://gsap.com/docs/v3/Eases">easing</a> functions for achieving advanced effects easily like <a href="https://gsap.com/docs/v3/Plugins/ScrollTrigger/">scrolling</a>, <a href="https://gsap.com/docs/v3/Plugins/MorphSVGPlugin">morphing</a>, [text splitting](https://gsap.com/docs/v3/Plugins/SplitText), animating along a <a href="https://gsap.com/docs/v3/Plugins/MotionPathPlugin">motion path</a> or <a href="https://gsap.com/docs/v3/Plugins/Flip/">FLIP</a> animations. There's even a handy <a href="https://gsap.com/docs/v3/Plugins/Observer/">Observer</a> for normalizing event detection across browsers/devices. 
+There are many optional <a href="https://gsap.com/docs/v3/Plugins">plugins</a> and <a href="https://gsap.com/docs/v3/Eases">easing</a> functions for achieving advanced effects easily like <a href="https://gsap.com/docs/v3/Plugins/ScrollTrigger/">scrolling</a>, <a href="https://gsap.com/docs/v3/Plugins/MorphSVGPlugin">morphing</a>, [text splitting](https://gsap.com/docs/v3/Plugins/SplitText), animating along a <a href="https://gsap.com/docs/v3/Plugins/MotionPathPlugin">motion path</a> or <a href="https://gsap.com/docs/v3/Plugins/Flip/">FLIP</a> animations. There's even a handy <a href="https://gsap.com/docs/v3/Plugins/Observer/">Observer</a> for normalizing event detection across browsers/devices.
 
 ## GSAP is FREE!
 
@@ -32,7 +32,7 @@ View the <a href="https://gsap.com/docs">full documentation here</a>, including 
 
 See <a href="https://www.jsdelivr.com/gsap">JSDelivr's dedicated GSAP page</a> for quick CDN links to the core files/plugins. There are more <a href="https://gsap.com/install">installation instructions</a> at gsap.com.
 
-**Every major ad network excludes GSAP from file size calculations** and most have it on their own CDNs, so contact them for the appropriate URL(s). 
+**Every major ad network excludes GSAP from file size calculations** and most have it on their own CDNs, so contact them for the appropriate URL(s).
 
 ### NPM
 See the <a href="https://gsap.com/install">guide to using GSAP via NPM here</a>.
@@ -41,7 +41,7 @@ See the <a href="https://gsap.com/install">guide to using GSAP via NPM here</a>.
 npm install gsap
 ```
 
-GSAP's core can animate almost anything including CSS and attributes, plus it includes all of the <a href="https://gsap.com/docs/v3/GSAP/UtilityMethods">utility methods</a> like <a href="https://gsap.com/docs/v3/GSAP/UtilityMethods/interpolate()">interpolate()</a>, <a href="https://gsap.com/docs/v3/GSAP/UtilityMethods/mapRange()">mapRange()</a>, most of the <a href="https://gsap.com/docs/v3/Eases">eases</a>, and it can do snapping and modifiers. 
+GSAP's core can animate almost anything including CSS and attributes, plus it includes all of the <a href="https://gsap.com/docs/v3/GSAP/UtilityMethods">utility methods</a> like <a href="https://gsap.com/docs/v3/GSAP/UtilityMethods/interpolate()">interpolate()</a>, <a href="https://gsap.com/docs/v3/GSAP/UtilityMethods/mapRange()">mapRange()</a>, most of the <a href="https://gsap.com/docs/v3/Eases">eases</a>, and it can do snapping and modifiers.
 
 ```javascript
 // typical import
@@ -56,7 +56,7 @@ import Draggable from "gsap/Draggable";
 import { gsap, ScrollTrigger, Draggable, MotionPathPlugin } from "gsap/all";
 
 // don't forget to register plugins
-gsap.registerPlugin(ScrollTrigger, Draggable, Flip, MotionPathPlugin); 
+gsap.registerPlugin(ScrollTrigger, Draggable, Flip, MotionPathPlugin);
 ```
 
 The NPM files are ES modules, but there's also a /dist/ directory with <a href="https://www.davidbcalhoun.com/2014/what-is-amd-commonjs-and-umd/">UMD</a> files for extra compatibility.
@@ -67,7 +67,7 @@ If you're looking for scroll-driven animations, GSAP's <a href="https://gsap.com
 
 [![ScrollTrigger](https://gsap.com/_img/github/scrolltrigger.jpg)](https://gsap.com/docs/v3/Plugins/ScrollTrigger)
 
-### Using React? 
+### Using React?
 
 There's a <a href="https://www.npmjs.com/package/@gsap/react">@gsap/react</a> package that exposes a `useGSAP()` hook which is a drop-in replacement for `useEffect()`/`useLayoutEffect()`, automating cleanup tasks. Please read the <a href="https://gsap.com/react">React guide</a> for details.
 
