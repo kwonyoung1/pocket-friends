@@ -48,7 +48,10 @@ export function migrateWorld(raw: unknown, now: number): World {
     const job: Expedition = { id: text(j.id), friendId, regionId, startedAt: number(j.startedAt), endsAt: number(j.endsAt), energyCost: number(j.energyCost, 0, 100), result: { coins: number(result.coins, 0, 1e6), xp: number(result.xp, 0, 1000), items: itemIds } }
     for(const key of ['cold','hamster'] as const)if(result[key]!==undefined){if(typeof result[key]!=='boolean')throw Error('탐험 확률 기록이 올바르지 않아요.');job.result[key]=result[key]}
     if(result.eventId!==undefined){const id=text(result.eventId);if(!tripEvents.some(e=>e.id===id))throw Error('알 수 없는 탐험 이벤트');job.result.eventId=id}
-    if(j.equipmentBonus!==undefined){const b=record(j.equipmentBonus);job.equipmentBonus={time:number(b.time,0,.35,false),coins:number(b.coins,0,.8,false),rare:number(b.rare,0,8,false)};job.equippedIds=stringList(j.equippedIds??[],3)}
+    if(j.equipmentBonus!==undefined){const b=record(j.equipmentBonus);job.equipmentBonus={time:number(b.time,0,.5,false),coins:number(b.coins,0,1.5,false),rare:number(b.rare,0,12,false)};job.equippedIds=stringList(j.equippedIds??[],3)}
+    if(result.stones!==undefined)job.result.stones=number(result.stones,0,6)
+    if(j.equippedLevels!==undefined)job.equippedLevels=list(j.equippedLevels,3).map(v=>{const l=record(v);return {id:text(l.id,100),level:number(l.level,0,30)}})
+    if(j.treasureWeights!==undefined){const b=record(j.treasureWeights);job.treasureWeights={common:number(b.common,0,100,false),uncommon:number(b.uncommon,0,100,false),rare:number(b.rare,0,100,false),legendary:number(b.legendary,0,100,false)};if(Math.abs(Object.values(job.treasureWeights).reduce((a,b)=>a+b)-100)>1e-9)throw Error('탐험 확률 합계를 확인해 주세요.')}
     if(result.equipment!==undefined){const drop=record(result.equipment),itemId=text(drop.itemId);if(equipmentById[itemId]?.regionId!==regionId)throw Error('지역 전용 장비 기록이 올바르지 않아요.');job.result.equipment={id:text(drop.id,100),itemId}}
     if (job.endsAt < job.startedAt) throw Error('탐험 시간이 올바르지 않아요.')
     if (j.claimedAt !== undefined) job.claimedAt = number(j.claimedAt)

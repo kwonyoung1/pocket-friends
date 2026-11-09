@@ -12,6 +12,7 @@ export const test = base.extend<{
     secret: string
     attach: (context: BrowserContext) => Promise<void>
     row: () => ServerWorld
+    loseNextEnhanceResponse: () => void
     loseNextBuyResponse: () => void
     loseNextRewardResponse: () => void
   }
@@ -30,6 +31,7 @@ export const test = base.extend<{
         holds: {},
         updated_at: new Date().toISOString(),
       },
+      loseEnhance = false,
       loseNext = false
     const receipts = new Map<
       string,
@@ -131,8 +133,8 @@ export const test = base.extend<{
                 : {}),
             }),
           )
-          if (loseNext && ['buy','buy-many'].includes(request.postDataJSON()?.command?.type)) {
-            loseNext = false
+          if ((loseNext && ['buy','buy-many'].includes(request.postDataJSON()?.command?.type))||(loseEnhance&&request.postDataJSON()?.command?.type==='enhance')) {
+            loseNext = false;loseEnhance=false
             await route.abort('failed')
             return
           }
@@ -155,6 +157,7 @@ export const test = base.extend<{
       attach,
       row: () => structuredClone(row),
       loseNextRewardResponse:()=>{loseReward=true},
+      loseNextEnhanceResponse:()=>{loseEnhance=true},
       loseNextBuyResponse: () => {
         loseNext = true
       },

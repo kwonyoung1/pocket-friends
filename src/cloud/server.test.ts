@@ -9,7 +9,7 @@ import type { ServerWorld, Holds, GameCommand } from './protocol'
 import { applyCommand, freshWorld, importWorld } from './engine'
 import { beginGesture, endGesture } from '../interaction'
 import { tick } from '../game'
-import {wordById} from '../words/bank'
+import {wordCommand} from '../words/model'
 import { startExpedition, world } from '../progression/model'
 const pc = '10000000-0000-4000-8000-000000000001',
   mobile = '10000000-0000-4000-8000-000000000002'
@@ -321,7 +321,7 @@ describe('migration and client visual isolation', () => {
     const c={type:'sell',id:'treasure-diamond',price:999999,quantity:100}
     const [a]=await Promise.all([command(pc,c),command(mobile,c)])
     await command(pc,c,a.operation)
-    expect((await repo.load()).data!.world!.coins).toBe(3300)
+    expect((await repo.load()).data!.world!.coins).toBe(60300)
     expect((await repo.load()).data!.world!.inventory['treasure-diamond']).toBe(0)
     await Promise.all([command(pc,{type:'use',id:'strawberry-milk',friendId:'momo'}),command(mobile,{type:'use',id:'strawberry-milk',friendId:'momo'})])
     const final=(await repo.load()).data!
@@ -342,22 +342,10 @@ describe('migration and client visual isolation', () => {
     await command(pc,{type:'refresh'});expect((await db.query('select * from game_adventure_backups')).rows).toHaveLength(1)
     await db.exec('set role authenticated');await expect(db.query('select * from game_adventure_backups')).rejects.toThrow(/permission denied/);await db.exec('reset role')
   })
-  it('two devices share one quiz and grade each question once, including concurrent final payouts and retries', async () => {
-    await reset();await login(pc);await login(mobile);await command(pc,{type:'initialize',source:'fresh'})
-    await Promise.all([command(pc,{type:'word-start',mode:'reward'}),command(mobile,{type:'word-start',mode:'reward'})])
-    let r=(await repo.load()).data!.world!.words!.round!
-    const session=r.id,first=r.questions[0],answer={type:'word-answer',mode:'reward',sessionId:session,wordId:first.wordId,answer:wordById[first.wordId].acceptedAnswers[0]}
-    await Promise.all([command(pc,answer),command(mobile,answer)])
-    r=(await repo.load()).data!.world!.words!.round!;expect(r.index).toBe(1)
-    for(let i=1;i<29;i++){const q=r.questions[r.index];await command(pc,{...answer,wordId:q.wordId,answer:wordById[q.wordId].acceptedAnswers[0]});r=(await repo.load()).data!.world!.words!.round!}
-    const last=r.questions[29],c={...answer,wordId:last.wordId,answer:wordById[last.wordId].acceptedAnswers[0],reward:99999}
-    const [a,b]=await Promise.all([command(pc,c),command(mobile,c)])
-    expect(a.response.status).toBe(200);expect(b.response.status).toBe(200)
-    await command(pc,c,a.operation)
-    const final=(await repo.load()).data!
-    expect(final.world!.coins).toBe(600);expect(final.world!.words!.round!.reward).toBe(300)
-    expect(final.world!.ledger.filter(e=>e.reason==='영단어 탐험 완료')).toHaveLength(1)
-    await command(mobile,{type:'word-start',mode:'reward'});expect((await repo.load()).data!.world!.words!.round!.id).toBe(session)
+  it('retired word endpoints reject concurrent answers and starts without issuing coins or changing archives',async()=>{
+    await reset();await login(pc);await login(mobile);const source=freshWorld(now);wordCommand(source,{type:'word-start',mode:'reward'},now,()=>.5);await command(pc,{type:'initialize',source:'local',data:source});const before=await repo.load(),r=before.data!.world!.words!.round!
+    const replies=await Promise.all([command(pc,{type:'word-start',mode:'reward'}),command(mobile,{type:'word-answer',mode:'reward',sessionId:r.id,wordId:r.questions[0].wordId,answer:'tamper',reward:999999})]);expect(replies.map(r=>r.response.status)).toEqual([400,400]);expect(await repo.load()).toEqual(before)
+    at+=86400000;await command(pc,{type:'refresh'});const final=(await repo.load()).data!;expect(final.world!.words).toEqual(before.data!.world!.words);expect(final.world!.coins).toBe(before.data!.world!.coins)
   })
   it('manual rest is atomic across devices, uses server time and cannot reset through a refresh', async () => {
     await reset();await login(pc);await login(mobile)
@@ -632,7 +620,7 @@ describe.sequential('bulk transactions, notebook edits and room backup',()=>{
   const invalid=await command(pc,{type:'sell-many',lines:[{id:'leaf',quantity:10},{id:'world-seed',quantity:1}]});expect(invalid.response.status).toBe(400);expect((await repo.load()).data!.world!.inventory.leaf).toBe(15)
   const sale={type:'sell-many',lines:[{id:'leaf',quantity:10},{id:'treasure-diamond',quantity:1}],total:1e9},op=crypto.randomUUID()
   await Promise.all([command(pc,sale,op),command(mobile,sale)]);await command(pc,sale,op)
-  const w=(await repo.load()).data!.world!;expect(w.coins).toBe(3400);expect(w.inventory.leaf).toBe(5);expect(w.inventory['treasure-diamond']).toBe(0);expect(w.book).toEqual(source.world!.book);expect(w.trades).toHaveLength(1)
+  const w=(await repo.load()).data!.world!;expect(w.coins).toBe(60400);expect(w.inventory.leaf).toBe(5);expect(w.inventory['treasure-diamond']).toBe(0);expect(w.book).toEqual(source.world!.book);expect(w.trades).toHaveLength(1)
  })
  it('preserves an exact pre-room world once, protects the backup, and serializes notebook deletion with a correct answer',async()=>{
   await reset();await login(pc);await login(mobile)
@@ -645,11 +633,8 @@ describe.sequential('bulk transactions, notebook edits and room backup',()=>{
   expect(backups.rows).toHaveLength(1);expect(backups.rows[0].data).toEqual(source);expect(Number(backups.rows[0].revision)).toBe(10)
   await db.exec(readFileSync('supabase/migrations/202610160002_room_trade.sql','utf8'));expect((await repo.load()).data).toEqual(row.data)
   await db.exec('set role authenticated');await expect(db.query('select * from game_room_backups')).rejects.toThrow();await db.exec('reset role')
-  await command(pc,{type:'word-start',mode:'reward'});row=await repo.load();const r=row.data!.world!.words!.round!,q=r.questions[0],w=wordById[q.wordId]
-  await db.query("update game_worlds set data=jsonb_set(data,'{world,words,mistakes}',$1::jsonb) where id='home'",[JSON.stringify({[q.wordId]:{word:w.word,pos:w.pos,meanings:w.meanings,example:w.example,count:3,lastAt:now}})])
-  const answer={type:'word-answer',mode:'reward',sessionId:r.id,wordId:q.wordId,answer:w.acceptedAnswers[0]}
-  await Promise.all([command(pc,answer),command(mobile,{type:'word-delete',ids:[q.wordId]})]);const final=(await repo.load()).data!.world!
-  expect(final.words!.mistakes[q.wordId]).toBeUndefined();expect(final.words!.round!.questions[0].status).toBe('correct');expect(final.coins).toBe(300);expect(final.words!.previous).toEqual(r.questions.map(q=>q.wordId));expect((await db.query('select * from game_room_backups')).rows).toHaveLength(1)
+  const before=await repo.load();expect((await command(pc,{type:'word-start',mode:'reward'})).response.status).toBe(400);expect((await command(mobile,{type:'word-delete',ids:['word-issue']})).response.status).toBe(400);expect(await repo.load()).toEqual(before)
+
  })
 })
 
@@ -844,4 +829,24 @@ it('new floor-edge gem placement is validated on the server and duplicate operat
 
 it('bulk care uses one atomic operation receipt: food, pet rewards and bath counters cannot replay',async()=>{
  await reset();await login(pc);const s=freshWorld(at);s.world!.inventory.cake=3;s.friends[0].photo='data:image/png;base64,AAAA';await command(pc,{type:'initialize',source:'local',data:s});const id=crypto.randomUUID(),first=await command(pc,{type:'care-feed-all',id:'cake'},id);expect(first.response.status).toBe(200);const after=await repo.load();expect(after.data!.world!.inventory.cake).toBe(0);await command(pc,{type:'care-feed-all',id:'cake'},id);expect((await repo.load()).data).toEqual(after.data);expect(after.data!.friends[0].photo).toBe(s.friends[0].photo);const playId=crypto.randomUUID();await command(pc,{type:'care-play-all'},playId);const played=await repo.load();await command(pc,{type:'care-play-all'},playId);expect((await repo.load()).data).toEqual(played.data);const washId=crypto.randomUUID();await command(pc,{type:'care-wash-all'},washId);const washed=await repo.load();await command(pc,{type:'care-wash-all'},washId);expect((await repo.load()).data).toEqual(washed.data);expect(washed.data!.world!.coins).toBe(s.world!.coins);expect((await command(pc,{type:'care-feed-all',id:'not-food'})).response.status).toBe(400)
+})
+
+it('enhancement consumes one cost per operation across retries, preserves independent instances and persists to mobile',async()=>{
+ await reset();await login(pc);await login(mobile);const s=freshWorld(now);s.world!.coins=500000;s.friends[0].photo='data:image/png;base64,AAAA'
+ equipment(s).instances=[{id:'a',itemId:'gear-crystal-compass',regionId:'mine',foundAt:now,enhancement:19},{id:'b',itemId:'gear-crystal-compass',regionId:'mine',foundAt:now,enhancement:30}];equipment(s).stones=0
+ await command(pc,{type:'initialize',source:'local',data:s});const op=crypto.randomUUID(),c={type:'enhance',instanceId:'a',level:30,chance:100,cost:0,stones:0}
+ const results=await Promise.all([command(pc,c,op),command(pc,c,op)]);expect(results.map(r=>r.response.status)).toEqual([200,200]);const row=await repo.load(),i=row.data!.world!.equipment!.instances[0];expect([19,20]).toContain(i.enhancement);expect(row.data!.world!.coins).toBe(480000);expect(row.data!.world!.equipment!.stones).toBe(0);expect(row.data!.world!.equipment!.enhancementHistory).toHaveLength(1);expect(row.data!.world!.equipment!.instances[1].enhancement).toBe(30);expect(row.data!.friends[0].photo).toBe(s.friends[0].photo)
+ await command(pc,c,op);expect(await repo.load()).toEqual(row);const mobileState=await call(mobile,{action:'status'});expect((await mobileState.json()).row.data.world.equipment).toEqual(row.data!.world!.equipment)
+ expect((await command(pc,{type:'enhance',instanceId:'missing'})).response.status).toBe(400);expect((await command(pc,{type:'enhance',instanceId:'b'})).response.status).toBe(400);expect(await repo.load()).toEqual(row)
+})
+it('target21 charges three stones once and insufficient resources cannot partially debit',async()=>{
+ await reset();await login(pc);const s=freshWorld(now);s.world!.coins=100000;equipment(s).instances=[{id:'a',itemId:'gear-crystal-compass',regionId:'mine',foundAt:now,enhancement:20}];equipment(s).stones=3;await command(pc,{type:'initialize',source:'local',data:s})
+ const op=crypto.randomUUID(),c={type:'enhance',instanceId:'a'};await command(pc,c,op);const row=await repo.load();expect(row.data!.world!.coins).toBe(75000);expect(row.data!.world!.equipment!.stones).toBe(0);expect(row.data!.world!.equipment!.enhancementHistory).toHaveLength(1);await command(pc,c,op);expect(await repo.load()).toEqual(row);expect((await command(pc,c)).response.status).toBe(400);expect(await repo.load()).toEqual(row)
+})
+
+it('a failed enhancement commit rolls back coins, stones, level and history before the same operation retries',async()=>{
+ await reset();await login(pc);const source=freshWorld(now);source.world!.coins=1000;equipment(source).instances=[{id:'safe',itemId:'gear-crystal-hat',regionId:'mine',foundAt:now}];await command(pc,{type:'initialize',source:'local',data:source});const before=await repo.load(),op=crypto.randomUUID(),c={type:'enhance',instanceId:'safe'}
+ await db.exec("create function reject_enhancement_test() returns trigger language plpgsql as $$begin raise exception 'simulated commit error';end$$;create trigger reject_enhancement before insert on game_operations for each row execute function reject_enhancement_test();")
+ try{const r=await command(pc,c,op);expect(r.response.status).toBeGreaterThanOrEqual(400);expect(await repo.load()).toEqual(before)}finally{await db.exec('drop trigger reject_enhancement on game_operations;drop function reject_enhancement_test();')}
+ expect((await command(pc,c,op)).response.status).toBe(200);const row=await repo.load();expect(row.data!.world!.coins).toBe(900);expect(row.data!.world!.equipment!.instances[0].enhancement).toBe(1);expect(row.data!.world!.equipment!.enhancementHistory).toHaveLength(1)
 })

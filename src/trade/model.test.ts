@@ -25,7 +25,7 @@ it('sells multiple kinds atomically at server prices, keeps books and placed fur
  const s=freshWorld(at),w=world(s);acquire(w,'leaf',at);acquire(w,'treasure-diamond',at);w.inventory.leaf=15;w.inventory.plant=1;w.expansion={version:1,placements:[{id:'placed',itemId:'plant',x:649,y:477}],hamsters:[],adoptions:[],events:[],seen:[]}
  const book=structuredClone(w.book)
  trade(s,{type:'sell-many',lines:[{id:'leaf',quantity:10},{id:'treasure-diamond',quantity:1}]},at)
- expect(w.coins).toBe(3400);expect(w.inventory.leaf).toBe(5);expect(w.inventory['treasure-diamond']).toBe(0);expect(w.book).toEqual(book);expect(w.expansion.placements).toHaveLength(1)
+ expect(w.coins).toBe(60400);expect(w.inventory.leaf).toBe(5);expect(w.inventory['treasure-diamond']).toBe(0);expect(w.book).toEqual(book);expect(w.expansion.placements).toHaveLength(1)
  for(const lines of [[{id:'leaf',quantity:6}],[{id:'leaf',quantity:1},{id:'world-seed',quantity:1}],[{id:'leaf',quantity:1},{id:'leaf',quantity:1}],[{id:'plant',quantity:2}],[{id:'hamster',quantity:1}]]){const before=JSON.stringify(s);expect(()=>trade(s,{type:'sell-many',lines},at+1000)).toThrow();expect(JSON.stringify(s)).toBe(before)}
 })
 it('all-stock sales can exceed the purchase-per-request cap while respecting owned quantities',()=>{

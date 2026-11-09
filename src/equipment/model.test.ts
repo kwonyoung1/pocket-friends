@@ -60,26 +60,26 @@ describe('regions, independent equipment draws and frozen departures',()=>{
  it('locks effects and coins at departure while keeping active trait time and extra event coins separate',()=>{
   const s=fixture(),f=s.friends[0];growth(f).traits.active=100
   const head=equip(s,'gear-star-crown');equip(s,'gear-crystal-armor');equip(s,'gear-galaxy-necklace')
-  expect(gearBonus(s,'momo').coins).toBe(.8)
+  expect(gearBonus(s,'momo').coins).toBeCloseTo(.92)
   const base=regions.find(r=>r.id==='cave')!
   const sequence=[.2,.1,.99,.99,.99,.05,.99];startExpedition(s,'momo','cave',at,()=>sequence.shift()??.99)
   const job=world(s).jobs[0],locked=structuredClone(job)
   expect(job.endsAt-at).toBe(base.minutes*60000*.95)
-  expect(job.result.coins).toBe(Math.floor(base.coins*1.8)+50)
+  expect(job.result.coins).toBe(Math.floor(base.coins*1.92)+50)
   gearCommand(s,{type:'unequip',friendId:'momo',instanceId:head});gearCommand(s,{type:'equip',friendId:'bibi',instanceId:head})
   expect(world(s).jobs[0]).toEqual(locked)
   expect(world(parseSave(JSON.stringify(s),at)).jobs[0]).toEqual(locked)
  })
- it('caps all stacked bonuses and redistributes only common/uncommon while legendary stays fixed',()=>{
+ it('applies expanded caps and redistributes common/uncommon toward rare and allowed legendary',()=>{
   const s=fixture();equip(s,'gear-underground-helm');equip(s,'gear-time-robe');equip(s,'gear-crystal-compass')
   expect(gearBonus(s,'momo').time).toBeCloseTo(.35)
   growth(s.friends[0]).traits.active=100
-  expect(expeditionTerms(s.friends[0],'mine',s).duration).toBe(300*60000*.65)
+  expect(expeditionTerms(s.friends[0],'mine',s).duration).toBe(300*60000*.65*.95)
   // Legitimate head + accessory stacks exceed the rare cap.
   gearCommand(s,{type:'unequip',friendId:'momo',instanceId:equipment(s).instances[0].id});equip(s,'gear-crystal-crown')
-  expect(gearBonus(s,'momo').rare).toBe(8)
+  expect(gearBonus(s,'momo').rare).toBe(9)
   for(const weights of Object.values(regionWeights)){
-   const b=bonusWeights(weights,80);expect(b.legendary).toBe(weights.legendary);expect(b.rare).toBe(weights.rare+8);expect(Object.values(b).reduce((a,b)=>a+b)).toBeCloseTo(100,12)
+   const b=bonusWeights(weights,80);expect(b.legendary).toBeCloseTo(weights.legendary+(weights.legendary?2.4:0));expect(b.rare).toBeCloseTo(weights.rare+(weights.legendary?9.6:12));expect(Object.values(b).reduce((a,b)=>a+b)).toBeCloseTo(100,12)
    expect(b.common/b.uncommon).toBeCloseTo(weights.common/weights.uncommon,12)
   }
  })

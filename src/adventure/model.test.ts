@@ -10,8 +10,8 @@ const at=Date.parse('2026-10-16T03:00:00Z')
 it('adds exactly nine illustrated collectibles with exact sale prices without replacing old treasures or furniture',()=>{
  expect(newTreasures.filter(t=>t.rarity==='rare')).toHaveLength(4);expect(newTreasures.filter(t=>t.rarity==='legendary')).toHaveLength(5)
  expect(new Set(items.map(i=>i.id)).size).toBe(items.length);expect(collectionItems).toHaveLength(32)
- for(const t of newTreasures){expect(itemById[t.id].category).toBe('treasure');expect(salePrice(itemById[t.id])).toBe(t.salePrice);expect(itemById[t.id].sellable).toBe(true)}
- for(const id of ['leaf','mushroom','forest-gem'])expect(salePrice(itemById[id])).toBe({leaf:10,mushroom:30,'forest-gem':100}[id])
+ for(const t of newTreasures){expect(itemById[t.id].category).toBe('treasure');expect(salePrice(itemById[t.id])).toBe(t.salePrice*20);expect(itemById[t.id].sellable).toBe(true)}
+ for(const id of ['leaf','mushroom','forest-gem'])expect(salePrice(itemById[id])).toBe({leaf:10,mushroom:30,'forest-gem':2000}[id])
  expect(itemById['world-seed'].sellable).toBe(false);expect(itemById['decor-3-4'].sellable).toBe(false)
 })
 it('uses exact regional weights at 100000 stratified draws and never awards forest/beach legendary treasures',()=>{
@@ -40,8 +40,8 @@ it('draws collectible, curious extra and furniture separately; retains all locke
 })
 it('treasure sales pay once, remove only one owned item and preserve collection records',()=>{
  const s=freshWorld(at);acquire(world(s),'treasure-diamond',at,s.friends[0]);const book=structuredClone(world(s).book)
- sell(s,'treasure-diamond',at);expect(world(s).coins).toBe(3300);expect(world(s).inventory['treasure-diamond']).toBe(0)
- sell(s,'treasure-diamond',at+1000);expect(world(s).coins).toBe(3300);expect(world(s).book).toEqual(book)
+ sell(s,'treasure-diamond',at);expect(world(s).coins).toBe(60300);expect(world(s).inventory['treasure-diamond']).toBe(0)
+ sell(s,'treasure-diamond',at+1000);expect(world(s).coins).toBe(60300);expect(world(s).book).toEqual(book)
 })
 for(const id of ['strawberry-milk','cheeseburger','sushi-box','rainbow-macaron'])it(`${id} purchases one serving and applies rounded taste effects exactly once without the old bonus`,()=>{
  for(const factor of [1.5,.8,1]){
