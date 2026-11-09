@@ -1,0 +1,351 @@
+{
+  "method": "Production Vite build, Chromium SwiftShader software WebGL, one engine visible at a time, actual scene warm-up 2s + 6s sample, three paired trials alternating order, no parallel browser workloads, mass removal of 16 gems. Different visual workload, equal initial particle cap, adaptation reported. RAF timing, not GPU execution or physical mobile hardware.",
+  "summary": [
+    {
+      "profile": "desktop",
+      "engine": "Canvas",
+      "medianRafFps": 49.531281164816185,
+      "medianP95Ms": 50,
+      "totalLongTasks": 0,
+      "runs": 3
+    },
+    {
+      "profile": "desktop",
+      "engine": "Pixi",
+      "medianRafFps": 38.06262881457349,
+      "medianP95Ms": 50,
+      "totalLongTasks": 0,
+      "runs": 3
+    },
+    {
+      "profile": "mobile",
+      "engine": "Canvas",
+      "medianRafFps": 54.35143939897613,
+      "medianP95Ms": 33.30000000000018,
+      "totalLongTasks": 0,
+      "runs": 3
+    },
+    {
+      "profile": "mobile",
+      "engine": "Pixi",
+      "medianRafFps": 38.22820576747279,
+      "medianP95Ms": 50,
+      "totalLongTasks": 0,
+      "runs": 3
+    }
+  ],
+  "samples": [
+    {
+      "profile": "desktop",
+      "trial": 1,
+      "order": "before-first",
+      "environment": {
+        "width": 1440,
+        "height": 1200,
+        "devicePixelRatio": 1,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "canvasBuffer": 510,
+        "canvasCssWidth": 510
+      },
+      "date": "2026-11-09T11:07:44.599Z",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "conditions": {
+        "quality": 160,
+        "cssSize": 512,
+        "scenario": "mass",
+        "order": "before-first",
+        "note": "RAF scheduling FPS, not GPU timer queries. Same events, equal default cap; rendered art and actual live counts differ. No game data."
+      },
+      "results": [
+        {
+          "durationMs": 6016.4,
+          "frames": 290,
+          "rafFps": 48.20158234159963,
+          "p95Ms": 50,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 144,
+          "renderer": "Existing Canvas 2D",
+          "particleCap": 32,
+          "dpr": 1,
+          "reducedMotion": false,
+          "scenario": "mass"
+        },
+        {
+          "durationMs": 6016.4000000000015,
+          "frames": 229,
+          "rafFps": 38.06262881457349,
+          "p95Ms": 50,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 64,
+          "renderer": "PixiJS WebGL · webgl",
+          "particleCap": 64,
+          "dpr": 1,
+          "reducedMotion": false,
+          "scenario": "mass"
+        }
+      ]
+    },
+    {
+      "profile": "desktop",
+      "trial": 2,
+      "order": "after-first",
+      "environment": {
+        "width": 1440,
+        "height": 1200,
+        "devicePixelRatio": 1,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "canvasBuffer": 510,
+        "canvasCssWidth": 510
+      },
+      "date": "2026-11-09T11:08:02.860Z",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "conditions": {
+        "quality": 160,
+        "cssSize": 512,
+        "scenario": "mass",
+        "order": "after-first",
+        "note": "RAF scheduling FPS, not GPU timer queries. Same events, equal default cap; rendered art and actual live counts differ. No game data."
+      },
+      "results": [
+        {
+          "durationMs": 6033,
+          "frames": 230,
+          "rafFps": 38.12365324051053,
+          "p95Ms": 50,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 64,
+          "renderer": "PixiJS WebGL · webgl",
+          "particleCap": 64,
+          "dpr": 1,
+          "reducedMotion": false,
+          "scenario": "mass"
+        },
+        {
+          "durationMs": 6016.399999999998,
+          "frames": 298,
+          "rafFps": 49.531281164816185,
+          "p95Ms": 50,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 144,
+          "renderer": "Existing Canvas 2D",
+          "particleCap": 32,
+          "dpr": 1,
+          "reducedMotion": false,
+          "scenario": "mass"
+        }
+      ]
+    },
+    {
+      "profile": "desktop",
+      "trial": 3,
+      "order": "before-first",
+      "environment": {
+        "width": 1440,
+        "height": 1200,
+        "devicePixelRatio": 1,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "canvasBuffer": 510,
+        "canvasCssWidth": 510
+      },
+      "date": "2026-11-09T11:08:22.498Z",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "conditions": {
+        "quality": 160,
+        "cssSize": 512,
+        "scenario": "mass",
+        "order": "before-first",
+        "note": "RAF scheduling FPS, not GPU timer queries. Same events, equal default cap; rendered art and actual live counts differ. No game data."
+      },
+      "results": [
+        {
+          "durationMs": 6016.4,
+          "frames": 303,
+          "rafFps": 50.36234292932651,
+          "p95Ms": 33.30000000000109,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 32,
+          "renderer": "Existing Canvas 2D",
+          "particleCap": 32,
+          "dpr": 1,
+          "reducedMotion": false,
+          "scenario": "mass"
+        },
+        {
+          "durationMs": 6016.4,
+          "frames": 220,
+          "rafFps": 36.56671763845489,
+          "p95Ms": 50,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 64,
+          "renderer": "PixiJS WebGL · webgl",
+          "particleCap": 64,
+          "dpr": 1,
+          "reducedMotion": false,
+          "scenario": "mass"
+        }
+      ]
+    },
+    {
+      "profile": "mobile",
+      "trial": 1,
+      "order": "before-first",
+      "environment": {
+        "width": 390,
+        "height": 664,
+        "devicePixelRatio": 3,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "canvasBuffer": 636,
+        "canvasCssWidth": 318
+      },
+      "date": "2026-11-09T11:08:39.642Z",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1",
+      "conditions": {
+        "quality": 160,
+        "cssSize": 512,
+        "scenario": "mass",
+        "order": "before-first",
+        "note": "RAF scheduling FPS, not GPU timer queries. Same events, equal default cap; rendered art and actual live counts differ. No game data."
+      },
+      "results": [
+        {
+          "durationMs": 6016.400000000001,
+          "frames": 327,
+          "rafFps": 54.351439398976126,
+          "p95Ms": 33.30000000000018,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 72,
+          "renderer": "Existing Canvas 2D",
+          "particleCap": 32,
+          "dpr": 2,
+          "reducedMotion": false,
+          "scenario": "mass"
+        },
+        {
+          "durationMs": 6016.5,
+          "frames": 230,
+          "rafFps": 38.22820576747279,
+          "p95Ms": 50,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 64,
+          "renderer": "PixiJS WebGL · webgl",
+          "particleCap": 64,
+          "dpr": 2,
+          "reducedMotion": false,
+          "scenario": "mass"
+        }
+      ]
+    },
+    {
+      "profile": "mobile",
+      "trial": 2,
+      "order": "after-first",
+      "environment": {
+        "width": 390,
+        "height": 664,
+        "devicePixelRatio": 3,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "canvasBuffer": 636,
+        "canvasCssWidth": 318
+      },
+      "date": "2026-11-09T11:08:57.005Z",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1",
+      "conditions": {
+        "quality": 160,
+        "cssSize": 512,
+        "scenario": "mass",
+        "order": "after-first",
+        "note": "RAF scheduling FPS, not GPU timer queries. Same events, equal default cap; rendered art and actual live counts differ. No game data."
+      },
+      "results": [
+        {
+          "durationMs": 6016.4,
+          "frames": 222,
+          "rafFps": 36.899142344259026,
+          "p95Ms": 50.100000000000364,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 64,
+          "renderer": "PixiJS WebGL · webgl",
+          "particleCap": 64,
+          "dpr": 2,
+          "reducedMotion": false,
+          "scenario": "mass"
+        },
+        {
+          "durationMs": 6016.4,
+          "frames": 327,
+          "rafFps": 54.35143939897613,
+          "p95Ms": 33.29999999999927,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 32,
+          "renderer": "Existing Canvas 2D",
+          "particleCap": 32,
+          "dpr": 2,
+          "reducedMotion": false,
+          "scenario": "mass"
+        }
+      ]
+    },
+    {
+      "profile": "mobile",
+      "trial": 3,
+      "order": "before-first",
+      "environment": {
+        "width": 390,
+        "height": 664,
+        "devicePixelRatio": 3,
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "canvasBuffer": 636,
+        "canvasCssWidth": 318
+      },
+      "date": "2026-11-09T11:09:14.028Z",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1",
+      "conditions": {
+        "quality": 160,
+        "cssSize": 512,
+        "scenario": "mass",
+        "order": "before-first",
+        "note": "RAF scheduling FPS, not GPU timer queries. Same events, equal default cap; rendered art and actual live counts differ. No game data."
+      },
+      "results": [
+        {
+          "durationMs": 6016.400000000001,
+          "frames": 333,
+          "rafFps": 55.348713516388536,
+          "p95Ms": 33.30000000000018,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 72,
+          "renderer": "Existing Canvas 2D",
+          "particleCap": 32,
+          "dpr": 2,
+          "reducedMotion": false,
+          "scenario": "mass"
+        },
+        {
+          "durationMs": 6016.399999999998,
+          "frames": 244,
+          "rafFps": 40.55581410810453,
+          "p95Ms": 50,
+          "longTasks": 0,
+          "longestTaskMs": 0,
+          "peakParticles": 64,
+          "renderer": "PixiJS WebGL · webgl",
+          "particleCap": 64,
+          "dpr": 2,
+          "reducedMotion": false,
+          "scenario": "mass"
+        }
+      ]
+    }
+  ]
+}

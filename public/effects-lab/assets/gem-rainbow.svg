@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 136"><defs>
+ <linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".15" stop-color="#fff0a8"/><stop offset=".53" stop-color="#b06bf3"/><stop offset=".7" stop-color="#fff0a8"/><stop offset="1" stop-color="#b06bf3"/></linearGradient>
+ <radialGradient id="core" cx=".35" cy=".27" r=".78"><stop stop-color="#fff" stop-opacity=".8"/><stop offset=".5" stop-color="#fff0a8" stop-opacity=".3"/><stop offset="1" stop-color="#b06bf3" stop-opacity=".6"/></radialGradient>
+ <linearGradient id="prism"><stop stop-color="#96edff"/><stop offset=".5" stop-color="#f4a3ff"/><stop offset="1" stop-color="#fff2a0"/></linearGradient>
+ <clipPath id="cut"><polygon points="50,3 82,17 97,50 82,83 50,97 18,83 3,50 18,17"/></clipPath></defs>
+ <ellipse cx="64" cy="123" rx="39" ry="6" fill="#050920" opacity=".48"/>
+ <g transform="translate(14 6)"><polygon points="50,3 82,17 97,50 82,83 50,97 18,83 3,50 18,17" fill="#b06bf3" transform="translate(0 4)"/>
+ <polygon points="50,3 82,17 97,50 82,83 50,97 18,83 3,50 18,17" fill="url(#body)" stroke="#fff0a8" stroke-width="1.7"/>
+ <g clip-path="url(#cut)"><path d="M0 0 50 18 26 43 0 70Z" fill="#fff" opacity=".52"/><path d="m50 18 50-18-26 43Z" fill="#fff0a8" opacity=".85"/>
+ <path d="m26 43 24-25 24 25-8 28-16 13-18-13Z" fill="url(#core)"/>
+ <path d="m0 70 32 1 18 13V100Z" fill="#b06bf3" opacity=".86"/><path d="m66 71 34-1-50 30V84Z" fill="#b06bf3" opacity=".55"/>
+ <path d="M26 43 7 25 50 18 74 43 92 25M26 43l6 28L7 78m25-7 18 13 16-13 27 7M50 18v66M26 43h48" fill="none" stroke="#fff" stroke-opacity=".57" stroke-width="1.2"/>
+ <path d="m35 35 16-12 12 23-14 21Z" fill="#fff" opacity=".13"/><path d="m64 55 11-8-4 19-13 12Z" fill="url(#prism)" opacity=".7"/>
+ <path d="m15 32 13-13 13 1-14 15Z" fill="#fff" opacity=".93"/>
+ <path d="M0 25 100 65M0 55 100 35M20 0 80 100" stroke="url(#prism)" stroke-width="18" opacity=".6"/>
+ </g><polygon points="50,3 82,17 97,50 82,83 50,97 18,83 3,50 18,17" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width=".7"/>
+ <path d="M23 19h11m-5.5-5.5v11M73 32h7m-3.5-3.5v7" stroke="#fff" stroke-width="2" stroke-linecap="round"/></g></svg>

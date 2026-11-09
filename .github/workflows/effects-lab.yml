@@ -1,0 +1,27 @@
+name: Verify isolated effects lab
+on:
+  pull_request:
+    paths: ['effects-lab/**', 'src/effects-lab/**', 'public/effects-lab/**', 'effects-tests/**', 'scripts/*effects*', 'playwright.effects.config.ts', 'package*.json', 'vite.config.ts']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  effects-lab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test -- src/effects-lab
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:effects
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: effects-lab-diagnostics
+          path: test-results/effects-lab/
+          retention-days: 7

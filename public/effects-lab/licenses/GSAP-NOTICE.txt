@@ -1,0 +1,8 @@
+GSAP 3.15.1
+Copyright 2008-2026, GreenSock. All rights reserved.
+Subject to the terms at https://gsap.com/standard-license
+Official package README states the toolset is free, including commercial use.
+This is the GSAP Standard "no charge" license, not MIT.
+The lab JS bundle includes a copyright/license banner; this folder retains notices.
+The full terms URL was blocked (HTTP proxy 403) in this build environment;
+see the authoritative URL and bundled original README for the actual grant.

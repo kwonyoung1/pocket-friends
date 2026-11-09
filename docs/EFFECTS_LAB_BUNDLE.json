@@ -1,0 +1,67 @@
+{
+  "description": "All potentially reachable lab-only JS including dynamic renderer backends; not initial network transfer. Shared React/current Painter/GemArt chunks excluded.",
+  "files": [
+    {
+      "file": "assets/effectsLab-CEqCEqnQ.js",
+      "rawBytes": 361267,
+      "gzipBytes": 120345
+    },
+    {
+      "file": "assets/browserAll-RWHUVw7l.js",
+      "rawBytes": 44066,
+      "gzipBytes": 11470
+    },
+    {
+      "file": "assets/webworkerAll-CXTDfyGz.js",
+      "rawBytes": 15571,
+      "gzipBytes": 4934
+    },
+    {
+      "file": "assets/canvasUtils-DtBHFvto.js",
+      "rawBytes": 5714,
+      "gzipBytes": 1809
+    },
+    {
+      "file": "assets/CanvasPool-CdIhJQ_o.js",
+      "rawBytes": 1892,
+      "gzipBytes": 838
+    },
+    {
+      "file": "assets/Filter-BY-fLw5V.js",
+      "rawBytes": 909,
+      "gzipBytes": 479
+    },
+    {
+      "file": "assets/WebGPURenderer-BDrZIoJD.js",
+      "rawBytes": 55981,
+      "gzipBytes": 16039
+    },
+    {
+      "file": "assets/getTexelRangeRects-CTJceeWu.js",
+      "rawBytes": 11408,
+      "gzipBytes": 2997
+    },
+    {
+      "file": "assets/RenderTargetSystem-kLfQVIvZ.js",
+      "rawBytes": 53954,
+      "gzipBytes": 14779
+    },
+    {
+      "file": "assets/WebGLRenderer-BRaB_kkm.js",
+      "rawBytes": 73737,
+      "gzipBytes": 20200
+    },
+    {
+      "file": "assets/CanvasRenderer-CwCx707S.js",
+      "rawBytes": 17991,
+      "gzipBytes": 6051
+    },
+    {
+      "file": "assets/BitmapFont-zPl2A-zo.js",
+      "rawBytes": 33890,
+      "gzipBytes": 11486
+    }
+  ],
+  "totalRawBytes": 676380,
+  "totalGzipBytes": 211427
+}

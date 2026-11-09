@@ -1,0 +1,5 @@
+import {it,expect} from 'vitest'
+import {board,frameFor} from './scenes'
+import {summarize} from './metrics'
+it('emits only presentation events and preserves original fixtures across six rainbow target colors',()=>{const before=structuredClone(board);expect(frameFor('single').removed).toEqual([28]);expect(frameFor('mass').removed).toHaveLength(16);for(let color=0;color<6;color++){const f=frameFor('rainbow',color);expect(f.effects[0].from).toBe(27);expect(f.effects[0].targets).toEqual(f.removed);expect(f.removed).toEqual(board.flatMap((g,i)=>g.color===color?[i]:[]));expect(f.removed.length).toBeGreaterThan(0)}const combo=frameFor('combo');expect(combo.directCombo).toBe(12);expect(combo.gain).toBe(128000);expect(board).toEqual(before)})
+it('reports measured RAF intervals without inventing GPU times and handles empty samples',()=>{expect(summarize([10,20,30,40],100)).toEqual({durationMs:100,frames:4,rafFps:40,p95Ms:40});expect(summarize([],0)).toEqual({durationMs:0,frames:0,rafFps:0,p95Ms:0})})
