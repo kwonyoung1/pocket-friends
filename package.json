@@ -5,17 +5,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "node scripts/check-cloud-env.mjs && tsc -b && vite build && node scripts/check-word-bundle.mjs",
+    "build": "node scripts/check-cloud-env.mjs && tsc -b && vite build && node scripts/check-word-bundle.mjs && node scripts/check-effects-isolation.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:cloud": "playwright test --config playwright.cloud.config.ts"
+    "test:cloud": "playwright test --config playwright.cloud.config.ts",
+    "test:effects": "playwright test --config playwright.effects.config.ts",
+    "check:effects-isolation": "node scripts/check-effects-isolation.mjs",
+    "measure:effects": "node scripts/measure-effects-lab.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "^5.3.1",
     "@fontsource/gowun-dodum": "^5.3.0",
     "@supabase/supabase-js": "^2.117.3",
+    "gsap": "3.15.1",
     "lucide-react": "^0.468.0",
+    "pixi.js": "8.22.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
