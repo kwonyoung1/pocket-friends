@@ -228,31 +228,6 @@ test('free human gifts appear on both devices once and keep their names, individ
  expect(backend.row().data!.friends.filter(f=>f.id==='special-boy')).toHaveLength(1);expect(backend.row().data!.friends.filter(f=>f.id==='special-girl')).toHaveLength(1);await phone.close()
 })
 
-test('word expedition shares all thirty graded questions across devices and pays the result once',async({page,backend,browser})=>{
- test.setTimeout(120000)
- await fresh(page,backend.secret);await menu(page,'영단어 탐험');await page.getByRole('button',{name:'영단어 탐험 시작',exact:true}).click()
- const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
- try{
-  const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click()
-  const bank=await import('../src/words/bank')
-  let active=page
-  for(let i=0;i<30;i++){
-   if(i===10){await expect(page.locator('.word-stage')).toContainText('11 / 30문제');await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await menu(second,'영단어 탐험');active=second}
-   await expect(active.locator('.word-stage')).toContainText(`${i+1} / 30문제`)
-   const id=await active.getByTestId('word-play').getAttribute('data-word-id')
-   await active.getByLabel('한국어 뜻',{exact:true}).fill(bank.wordById[id!].acceptedAnswers[0]);await active.getByRole('button',{name:'정답 확인',exact:true}).click()
-   if(i===15){await expect(active.locator('.word-stage')).toContainText('17 / 30문제');await expect(active.locator('.cloud-status')).not.toContainText('처리 중');await active.reload();await active.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(active,'영단어 탐험')}
-  }
-  await expect(active.getByTestId('word-reward')).toHaveText('300코인')
-  expect(backend.row().data!.world!.coins).toBe(600)
-  expect(backend.row().data!.world!.ledger.filter(e=>e.reason==='영단어 탐험 완료')).toHaveLength(1)
-  await expect(active.locator('.cloud-status')).not.toContainText('처리 중');await active.reload();await active.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(active,'영단어 탐험')
-  await expect(active.getByTestId('word-reward')).toHaveText('300코인');await expect(active.getByRole('button',{name:'영단어 탐험 시작',exact:true})).toBeDisabled()
-  expect(backend.row().data!.world!.coins).toBe(600)
-  expect(await active.evaluate(()=>document.body.scrollWidth>innerWidth)).toBe(false)
- }finally{await phone.close()}
-})
-
 test('new favorite food and four-hour manual rest synchronize without changing the imported original',async({page,backend,browser})=>{
  const source=freshWorld(Date.parse('2026-10-15T03:00:00Z'));source.world!.coins=1000;source.friends[0].stats.hunger=0;source.friends[0].stats.happiness=0;source.friends[0].stats.energy=20
  const raw=JSON.stringify(source);await page.addInitScript(raw=>localStorage.setItem('pocket-friends-v1',raw),raw)
@@ -267,7 +242,7 @@ test('new favorite food and four-hour manual rest synchronize without changing t
  try{const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await second.getByRole('button',{name:'모모 상태 확인'}).click();await expect(second.getByTestId('rest-status')).toContainText('4시간 0분');await second.getByRole('complementary').getByRole('button',{name:/쉬게 하기/}).click();await expect(second.locator('.cloud-status')).not.toContainText('처리 중');expect(backend.row().data!.friends[0].lastRestRewardAt).toBe(stamp);expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw)}finally{await phone.close()}
 })
 
-test('bulk purchases and sales synchronize and a failed notebook deletion stays visible until its single retry commits',async({page,backend,browser})=>{
+test('bulk purchases and sales synchronize while retired notebook records remain archived',async({page,backend,browser})=>{
  test.setTimeout(90000)
  const source=freshWorld(Date.parse('2026-10-15T03:00:00Z'));source.world!.coins=2000;source.world!.inventory={leaf:15,'treasure-diamond':1}
  source.world!.words={version:1,nextStartAt:0,used:{},previous:[],mistakes:{'word-issue':{word:'issue',pos:'명사·동사',meanings:['문제','쟁점','발행하다','발행'],example:'We discussed the issue.',count:3,lastAt:source.savedAt}}}
@@ -277,13 +252,10 @@ test('bulk purchases and sales synchronize and a failed notebook deletion stays 
  const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
  try{
   const second=await phone.newPage();await enter(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(second,'인벤토리');await expect(second.getByTestId('item-snack')).toContainText('보유 10개')
-  await second.getByRole('button',{name:'일괄 판매',exact:true}).click();const list=second.locator('.bulk-sale-list');await list.getByRole('checkbox',{name:/행운의 나뭇잎/}).check();await second.getByLabel('행운의 나뭇잎 판매 수량',{exact:true}).fill('10');await list.getByRole('checkbox',{name:/다이아몬드/}).check();await second.getByRole('button',{name:'선택한 아이템 판매',exact:true}).click();await second.getByRole('button',{name:'확인하고 일괄 판매',exact:true}).click();await expect(second.getByRole('button',{name:'보유 코인 4950'})).toBeVisible();expect(backend.row().data!.world!.inventory.leaf).toBe(5)
-  await menu(page,'영단어 탐험');await page.getByRole('button',{name:'오답 노트 (1)',exact:true}).click()
-  await page.route('**/functions/v1/game',async route=>{if(route.request().postDataJSON()?.command?.type==='word-delete')await route.abort('failed');else await route.fallback()})
-  await page.getByRole('button',{name:'issue 삭제',exact:true}).click();await page.getByRole('button',{name:'확인하고 삭제',exact:true}).click();await expect(page.getByRole('alert')).toContainText('동기화에 실패');await expect(page.locator('.wrong-notes article')).toHaveCount(1);expect(backend.row().data!.world!.words!.mistakes['word-issue']).toBeTruthy()
-  await page.unroute('**/functions/v1/game');await page.getByRole('button',{name:'같은 작업 다시 시도',exact:true}).click();await expect.poll(()=>Object.keys(backend.row().data!.world!.words!.mistakes).length).toBe(0)
-  await second.getByRole('button',{name:'메뉴 닫기'}).click();await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await menu(second,'영단어 탐험');await second.getByRole('button',{name:'오답 노트 (0)',exact:true}).click();await expect(second.locator('.wrong-notes article')).toHaveCount(0)
-  expect(backend.row().data!.world!.coins).toBe(4950);expect(backend.row().data!.world!.trades).toHaveLength(2);expect(backend.row().data!.world!.words!.removals).toHaveLength(1);expect(await page.evaluate(()=>localStorage.getItem('pocket-friends-v1'))).toBe(raw)
+  await second.getByRole('button',{name:'일괄 판매',exact:true}).click();const list=second.locator('.bulk-sale-list');await list.getByRole('checkbox',{name:/행운의 나뭇잎/}).check();await second.getByLabel('행운의 나뭇잎 판매 수량',{exact:true}).fill('10');await list.getByRole('checkbox',{name:/다이아몬드/}).check();await second.getByRole('button',{name:'선택한 아이템 판매',exact:true}).click();await second.getByRole('button',{name:'확인하고 일괄 판매',exact:true}).click();await expect(second.getByRole('button',{name:'보유 코인 61950'})).toBeVisible();expect(backend.row().data!.world!.inventory.leaf).toBe(5)
+  await expect(page.getByRole('button',{name:'영단어 탐험',exact:true})).toHaveCount(0);expect(backend.row().data!.world!.words).toEqual(source.world!.words)
+  await second.getByRole('button',{name:'메뉴 닫기'}).click();await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await expect(second.getByTestId('room-momo')).toBeVisible();expect(backend.row().data!.world!.words).toEqual(source.world!.words)
+
  }finally{await phone.close()}
 })
 

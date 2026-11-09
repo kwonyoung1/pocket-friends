@@ -34,4 +34,4 @@ export const equipmentOdds:Record<string,{chance:number;weights:Record<Rarity,nu
  temple:{chance:.15,weights:{common:25,uncommon:40,rare:31,legendary:4}},
  sanctuary:{chance:.18,weights:{common:15,uncommon:35,rare:42,legendary:8}},
 }
-export function bonusText(b:GearBonus){return [b.time?`탐험 시간 -${Math.round(b.time*100)}%`:'',b.coins?`기본 탐험 코인 +${Math.round(b.coins*100)}%`:'',b.rare?`희귀 보물 +${b.rare}%p`:''].filter(Boolean).join(' · ')||'장비 효과 없음'}
+export function bonusText(b:GearBonus){return [b.time?`탐험 시간 -${Number((b.time*100).toFixed(2))}%`:'',b.coins?`기본 탐험 코인 +${Number((b.coins*100).toFixed(2))}%`:'',b.rare?`희귀·전설 보물 합산 확률 +${Number(b.rare.toFixed(2))}%p`:''].filter(Boolean).join(' · ')||'장비 효과 없음'}

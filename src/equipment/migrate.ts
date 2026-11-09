@@ -13,7 +13,10 @@ export function migrateEquipment(raw:unknown,friendIds?:string[]):GearState|unde
    if(typeof v.equippedBy!=='string'||(friendIds&&!friendIds.includes(v.equippedBy))||slots.has(`${v.equippedBy}:${d.slot}`))throw Error('장비 착용 기록이 중복되거나 올바르지 않아요.')
    slots.add(`${v.equippedBy}:${d.slot}`)
   }
-  return {id:v.id,itemId:v.itemId,regionId:v.regionId,foundAt:v.foundAt,...(v.equippedBy!==undefined?{equippedBy:v.equippedBy}:{})}
+  for(const [n,max] of [[v.enhancement,30],[v.failures,1000000]])if(n!==undefined&&(!Number.isSafeInteger(n)||n<0||n>max!))throw Error('강화 기록이 올바르지 않아요.')
+  return {id:v.id,itemId:v.itemId,regionId:v.regionId,foundAt:v.foundAt,...(v.enhancement!==undefined?{enhancement:v.enhancement}:{}),...(v.failures!==undefined?{failures:v.failures}:{}),...(v.equippedBy!==undefined?{equippedBy:v.equippedBy}:{})}
  })
- return {version:1,instances}
+ if(r.stones!==undefined&&(!Number.isSafeInteger(r.stones)||r.stones<0||r.stones>10000000))throw Error('강화석 기록이 올바르지 않아요.')
+ if(r.enhancementHistory!==undefined&&(!Array.isArray(r.enhancementHistory)||r.enhancementHistory.length>100||r.enhancementHistory.some(e=>!e||typeof e.id!=='string'||typeof e.instanceId!=='string'||!Number.isInteger(e.target)||e.target<1||e.target>30||typeof e.success!=='boolean'||!Number.isFinite(e.chance)||e.chance<0||e.chance>100||[e.coins,e.stones,e.at].some(n=>!Number.isSafeInteger(n)||n<0))))throw Error('강화 이력이 올바르지 않아요.')
+ return {version:1,instances,...(r.stones!==undefined?{stones:r.stones}:{}),...(r.enhancementHistory!==undefined?{enhancementHistory:structuredClone(r.enhancementHistory)}:{})}
 }

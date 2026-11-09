@@ -17,7 +17,7 @@ test('equipment ownership, overlapping gems and layer recovery sync to mobile wi
  const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await backend.attach(phone)
  try{
   const second=await phone.newPage();await login(second,backend.secret);await second.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(second,'캐릭터 성장');await second.getByRole('button',{name:'장비',exact:true}).click();await expect(second.getByTestId('gear-slot-head')).toContainText('수정 광부모')
-  await second.getByLabel('메뉴 캐릭터 선택').selectOption('bibi');await expect(second.getByTestId('gear-only-hat').getByRole('button')).toBeDisabled();await second.getByRole('button',{name:'메뉴 닫기'}).click()
+  await second.getByLabel('메뉴 캐릭터 선택').selectOption('bibi');await expect(second.getByTestId('gear-only-hat').getByRole('button',{name:'다른 친구 착용 중',exact:true})).toBeDisabled();await second.getByRole('button',{name:'메뉴 닫기'}).click()
   const place=async()=>{await menu(page,'인벤토리');await page.getByTestId('item-treasure-diamond').getByRole('button',{name:'방에 배치하기'}).click();await page.getByRole('button',{name:'여기에 놓기'}).click();await expect(page.getByRole('button',{name:'새로 동기화',exact:true})).toBeEnabled()}
   await place();await place();await expect.poll(()=>backend.row().data!.world!.expansion!.placements.length).toBe(3)
   await sync(second);await expect(second.locator('.placed-gem')).toHaveCount(2)

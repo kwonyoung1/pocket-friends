@@ -6,8 +6,6 @@ import {sichuanCommand,expireSichuan,progress as sichuanProgress} from '../sichu
 import type {SichuanCommand} from '../sichuan/state.ts'
 import {upgradeRoom} from '../room/migrate.ts'
 import {trade,quantity,tradeLimits} from '../trade/model.ts'
-import {wordCommand,expireWords} from '../words/model.ts'
-import type {WordCommand} from '../words/state.ts'
 import {resolveTaste} from '../adventure/catalog.ts'
 import { settleCareAlerts } from '../careNeeds.ts'
 import { specialIds } from '../humans/config.ts'
@@ -67,20 +65,10 @@ export function validateCommand(value: unknown): GameCommand {
     case 'sell-many':
       if(!Array.isArray(c.lines)||!c.lines.length||c.lines.length>tradeLimits.lines||c.lines.some(l=>!l||!string(l.id)||!quantity(l.quantity,tradeLimits.inventory)))throw Error('판매 항목과 수량을 확인해 주세요.')
       break
-    case 'word-delete':
-      if(!Array.isArray(c.ids)||!c.ids.length||c.ids.length>5000||c.ids.some(id=>!string(id,100)))throw Error('삭제할 단어를 선택해 주세요.')
-      break
-    case 'word-start':
-      if(c.mode!=='reward')throw Error('게임 모드를 확인해 주세요.')
-      break
-    case 'word-answer':
-    case 'word-reveal':
-    case 'word-skip':
-    case 'word-next':
-    case 'word-hint':
-    case 'word-abandon':
-      if(c.mode!=='reward'||!string(c.sessionId,36)||!string(c.wordId,100)||(c.type==='word-answer'&&(typeof c.answer!=='string'||c.answer.length>120)))throw Error('단어 문제 정보를 확인해 주세요.')
-      break
+    case 'word-delete': case 'word-start': case 'word-answer': case 'word-reveal': case 'word-skip': case 'word-next': case 'word-hint': case 'word-abandon':
+      throw Error('영단어 미니게임은 운영을 종료했어요. 기존 기록은 보관되어 있어요.')
+    case 'enhance':
+      if(!string(c.instanceId))throw Error('강화할 장비를 확인해 주세요.');break
     case 'bath':
     case 'medicine':
       if (!friendIds.includes(String(c.friendId)))
@@ -213,7 +201,6 @@ export function applyCommand(
   }
   for (const id of Object.keys(holds))
     if (now - holds[id].at > 60000) delete holds[id]
-  expireWords(save,now)
   expireSichuan(save,now)
   settleLife(save, now)
   attachNavigation(save)
@@ -231,9 +218,9 @@ export function applyCommand(
     case 'sichuan-start': case 'sichuan-match': case 'sichuan-hint': case 'sichuan-shuffle': case 'sichuan-next': case 'sichuan-stop': message=sichuanCommand(save,c as SichuanCommand,user,now);break
     case 'buy-many': case 'sell-many': message=trade(save,c,now);break
     case 'word-delete': case 'word-start': case 'word-answer': case 'word-reveal': case 'word-skip': case 'word-next': case 'word-hint': case 'word-abandon':
-      message=wordCommand(save,c as WordCommand,now);break
+      throw Error('영단어 미니게임은 운영을 종료했어요. 기존 기록은 보관되어 있어요.')
     case 'claim-special-friends': message=grantSpecialFriends(save,now)?'남자아이와 여자아이가 새 가족이 되었어요! 특별 친구는 무료예요.':'특별 친구들과 함께하고 있어요.';break
-    case 'equip': case 'unequip': message=gearCommand(save,c);break
+    case 'enhance': case 'equip': case 'unequip': message=gearCommand(save,c,now);break
     case 'layer': message=lifeCommand(save,c,now);break
     case 'bath':
     case 'medicine':

@@ -1,6 +1,10 @@
 # 포켓프렌즈 · 우리의 작은 집
 
-최근 업데이트: [보물 3매치 v5 · 12단계·프리즘 이펙트](docs/TREASURE_TWELVE_UPDATE.md) · [SQL/서버/웹사이트 버튼별 배포](docs/TREASURE_TWELVE_DEPLOY.md) · [검증·성능](docs/TREASURE_TWELVE_VERIFICATION.md)
+최근 업데이트: [장비 +30강·보물 보상 개선·영단어 운영 종료](docs/ENHANCEMENT_30_UPDATE.md) · [서버/웹사이트 배포 버튼 순서](docs/ENHANCEMENT_30_DEPLOY.md) · [검증 결과](docs/ENHANCEMENT_30_VERIFICATION.md)
+
+새 SQL 실행은 필요 없으며 서버와 웹사이트 배포가 필요합니다. 기존 학습 기록을 포함한 저장 데이터는 보존합니다.
+
+이전 업데이트: [보물 3매치 v5 · 12단계·프리즘 이펙트](docs/TREASURE_TWELVE_UPDATE.md) · [SQL/서버/웹사이트 버튼별 배포](docs/TREASURE_TWELVE_DEPLOY.md) · [검증·성능](docs/TREASURE_TWELVE_VERIFICATION.md)
 
 이전 업데이트: [빠른 도전·일괄 관리·검증 경량화](docs/FAST_CARE_UPDATE.md) · [SQL/서버/웹사이트 배포 버튼 순서](docs/FAST_CARE_DEPLOY.md) · [검증 및 측정](docs/FAST_CARE_VERIFICATION.md)
 
