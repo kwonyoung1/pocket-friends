@@ -61,9 +61,21 @@ test('largest 12x10 board fits portrait and landscape and maintains readable non
  const {createBoard}=await import('../src/sichuan/board'),r=s.world!.sichuan!.adventure!;r.stage=5;r.completed=4;r.board=createBoard(5);r.stageEndsAt=epoch+300000
  await seed(page,s)
  for(const viewport of [{width:390,height:844},{width:844,height:390}]){
-  await page.setViewportSize(viewport);await expect(page.locator('.sichuan-board button')).toHaveCount(120)
-  const dims=await page.getByTestId('sichuan-board').evaluate(el=>({scroll:el.scrollWidth,width:el.clientWidth,touch:getComputedStyle(el).touchAction,font:parseFloat(getComputedStyle(el.querySelector('button')!).fontSize)}))
-  expect(dims.scroll).toBeLessThanOrEqual(dims.width);expect(dims.touch).toBe('none');expect(dims.font).toBeGreaterThanOrEqual(14)
-  expect(await page.evaluate(()=>document.body.scrollWidth>document.documentElement.clientWidth)).toBe(false)
+  await page.setViewportSize(viewport)
+  await page.evaluate(()=>document.fonts.ready)
+  // Resize can replace the board between separate locator reads. Poll the whole
+  // readiness/layout contract; never call getComputedStyle on a missing tile.
+  await expect(async()=>{
+   const dims=await page.getByTestId('sichuan-board').evaluate(el=>{
+    const tiles=el.querySelectorAll('button'),first=tiles.item(0)
+    if(!el.isConnected||tiles.length!==120||!first)return null
+    const bounds=el.getBoundingClientRect()
+    return {count:tiles.length,scroll:el.scrollWidth,width:el.clientWidth,height:bounds.height,touch:getComputedStyle(el).touchAction,font:parseFloat(getComputedStyle(first).fontSize),pageOverflow:document.body.scrollWidth>document.documentElement.clientWidth}
+   })
+   expect(dims,'120 mounted tiles must be ready after resize').not.toBeNull()
+   expect(dims!.count).toBe(120);expect(dims!.width).toBeGreaterThan(0);expect(dims!.height).toBeGreaterThan(0)
+   expect(dims!.scroll).toBeLessThanOrEqual(dims!.width);expect(dims!.touch).toBe('none');expect(dims!.font).toBeGreaterThanOrEqual(14)
+   expect(dims!.pageOverflow).toBe(false)
+  }).toPass({timeout:5000,intervals:[100,250,500]})
  }
 })
