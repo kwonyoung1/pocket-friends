@@ -1,3 +1,4 @@
+import {visibleEmotion} from './emotions/model'
 import {activityItem} from './art/activity'
 import {HomeTools} from './cozy/HomeTools'
 import {RoomAtmosphere} from './cozy/RoomAtmosphere'
@@ -150,7 +151,7 @@ function App({ cloud, suspended=false, openTreasureMatch }: { cloud?: CloudGame;
   }, [cloud?.row.revision])
   useEffect(() => {
     if(suspended){persist();return}
-    let frame = 0, previous = performance.now(), lastRender = 0, lastWorldCheck = -1000
+    let frame = 0, previous = performance.now(), lastRender = 0, lastWorldCheck = -1000, lastFeedback = ''
     const loop = (stamp: number) => {
       const dt = Math.min(Math.max((stamp - previous) / 1000, 0), .15)
       previous = stamp
@@ -165,7 +166,11 @@ function App({ cloud, suspended=false, openTreasureMatch }: { cloud?: CloudGame;
       tick(model.current.friends, Date.now(), dt, cloudRef.current ? () => {} : remember, bonded, !!cloudRef.current)
       const gesture=model.current.friends.some(f=>f.interaction?.gesture)
       const renderEvery=model.current.friends.some(f=>f.moving)?80:300
-      if (gesture || stamp - lastRender > renderEvery) { render(v => v + 1); lastRender = stamp }
+      // Quiet idle frames can wait, but visible feedback transitions cannot.
+      const now=Date.now()
+      const feedback=model.current.friends.map(f=>{const e=visibleEmotion(f,now);return `${f.id}:${f.interaction?.phase??'idle'}:${f.bubbleUntil>now?f.bubble:''}:${e?`${e.kind}:${e.at}`:''}:${(f.growth?.levelUpUntil??0)>now?f.growth?.level:''}`}).join('|')
+      const feedbackChanged=feedback!==lastFeedback;lastFeedback=feedback
+      if (gesture || feedbackChanged || stamp - lastRender > renderEvery) { render(v => v + 1); lastRender = stamp }
       frame = requestAnimationFrame(loop)
     }
     frame = requestAnimationFrame(loop)

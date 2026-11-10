@@ -37,3 +37,21 @@ it('autonomous travel stops before an occupied spot without relocating either sa
  for(let t=100;t<=10000;t+=100){tick(peers,at+t,.1,()=>{});expect(Math.hypot(f.x-p.x,f.y-p.y)).toBeGreaterThanOrEqual(38)}
  expect(f.x).toBeGreaterThan(540);expect(p.x).toBe(600);expect(f.restingUntil).toBeGreaterThan(at+10000)
 })
+it('confirmed level-up and care results bypass ambient cooldown and stay queued until displayed',async()=>{
+ const {growth,useItem,acquire}=await import('../progression/model')
+ const s=freshWorld(at),f=s.friends[0],g=growth(f,at);g.level=4;g.xp=59
+ speak(f,'조용히 쉬고 있어~',at,2.5)
+ acquire(s.world!,'snack',at);useItem(s,'snack',f.id,at+1)
+ tick(s.friends,at+100,.1,()=>{})
+ expect(f.bubble).toContain('레벨 5');expect(f.bubblePriority).toBe(4);expect(displayedSpeech(f,s.friends,at+100)).toBe(true)
+ expect(g.events).toHaveLength(1);const xp=g.xp
+ tick(s.friends,at+200,.1,()=>{});expect(g.events).toHaveLength(1)
+ tick(s.friends,at+6700,.1,()=>{});expect(f.bubble).toContain('잘 먹었어');expect(g.events).toHaveLength(0);expect(g.xp).toBe(xp)
+})
+it('pending action feedback is retained throughout a captured gesture',()=>{
+ const s=freshWorld(at),f=s.friends[0];f.growth!.events.push('장비를 장착했어!')
+ beginGesture(f,3,{x:0,y:0},'body',at,'touch');tick(s.friends,at+100,.1,()=>{})
+ expect(f.growth!.events).toEqual(['장비를 장착했어!'])
+ endGesture(f,3,at+100,true);tick(s.friends,at+2000,.1,()=>{})
+ expect(f.bubble).toBe('장비를 장착했어!');expect(f.growth!.events).toHaveLength(0)
+})

@@ -1,3 +1,4 @@
+import {meaningfulSpeech} from './ambient/speech.ts'
 import {quietMovement,restDuration,nearbyDestination,travelStep,stopTravel,mayStart,started} from './ambient/movement.ts'
 import {naturalChange} from './status/balance.ts'
 import {settleEmotions,migrateEmotion} from './emotions/model.ts'
@@ -79,7 +80,12 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
         f.careAlertAfter ??= {}; f.careAlertAfter[need] = now + careAlertMs; f.lastCareLine = text
       }
     }
-    if (g?.events.length && (!(f.bubbleUntil > now) || (f.bubblePriority ?? 0) < 2.5) && freeSpeech()) speak(f, g.events.shift()!, now, 2.5)
+    // Confirmed action results are important feedback, not ambient dialogue.
+    // Keep a queued result until accepted; ambient cooldown must never discard it.
+    if (g?.events.length && (!(f.bubbleUntil > now) || (f.bubblePriority ?? 0) < 4)) {
+      const text=g.events[0]
+      if(!meaningfulSpeech(text)||speak(f,text,now,4))g.events.shift()
+    }
     if (g && now >= g.specialAfter) {
       g.specialAfter = now + between(25000, 50000) * (1 - g.traits.active / 300)
       if (Math.random() < .1 + g.traits[dominant(f)] / 160) { g.specialUntil = now + 2000; f.restingUntil = Math.max(f.restingUntil, now + 1600) }

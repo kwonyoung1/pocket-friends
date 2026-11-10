@@ -69,7 +69,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
   const now=Date.now(),mood=feeling(f,now),neighbor=nearbyFriend(f,peers,now)
   const needs = careNeeds(f)
   const emote=visibleEmotion(f,Date.now())
-  const speech=displayedSpeech(f,peers,now)
+  const speech=displayedSpeech(f,peers,now)&&(!emote||(f.bubblePriority??0)>=4)
   const phase = f.interaction?.phase ?? 'idle'
   const held = phase === 'petting' || phase === 'bonding'
   const asleep=sleeping(f),bathing=!!f.life?.bath

@@ -55,8 +55,11 @@ test('pastel need icons appear one at a time, avoid the speech bubble, cycle to 
  const f=s.friends[0];f.stats.hunger=5;f.stats.hygiene=5;f.stateEmotion={nextAt:epoch+121000,cycle:['hunger'],lastKind:'hunger',variant:0,active:{kind:'hunger',at:epoch+1000,until:epoch+2800,variant:0}}
  await seed(page,s);await page.clock.runFor(100);const actor=page.getByTestId('room-momo')
  await expect(actor.locator('.state-emote')).toHaveCount(1);await expect(actor.getByRole('img',{name:'음식이 필요해요'})).toBeVisible();await expect(actor.locator('.pastel-emotion')).toBeVisible()
- const icon=await actor.locator('.state-emote').boundingBox(),bubble=await actor.locator('.speech').boundingBox();expect(icon!.y).toBeGreaterThan(bubble!.y+bubble!.height)
- await page.clock.fastForward(120000);await page.clock.runFor(100)
+ // The quiet room deliberately shows an icon OR a bubble, never both.
+ await expect(actor.locator('.speech')).toHaveCount(0)
+ await page.clock.runFor(1800);await expect(actor.locator('.state-emote')).toHaveCount(0)
+ await expect(actor.locator('.speech')).toBeVisible()
+ await page.clock.fastForward(118200);await page.clock.runFor(100)
  await expect(actor.getByRole('img',{name:'목욕이 필요해요'})).toBeVisible();await expect(actor.locator('.care-dust i')).toHaveCount(5);await expect(actor.getByRole('img',{name:'음식이 필요해요'})).toHaveCount(0)
  await page.screenshot({path:`/tmp/pocket-effects-emotion-${test.info().project.name}.png`,fullPage:true})
  await page.getByRole('button',{name:'모모 상태 확인'}).click();await page.getByRole('button',{name:/씻기 \(0\/4\)/}).click();await page.getByRole('dialog',{name:'생활과 새 식구'}).getByRole('button',{name:'씻기 (0/4)',exact:true}).click();await page.clock.runFor(100)
