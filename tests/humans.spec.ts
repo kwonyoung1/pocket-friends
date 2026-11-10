@@ -5,7 +5,7 @@ import type { Save } from '../src/game'
 import { world } from '../src/progression/model'
 import { lifeCommand } from '../src/expansion/model'
 import { grantSpecialFriends } from '../src/humans/model'
-import { expectFriendsToWalk } from './movement'
+import { expectFriendsToWalk,expectAutomaticSpeech } from './movement'
 const epoch = Date.parse('2026-10-15T03:00:00Z')
 function fixture(): Save {
   const s: Save = {
@@ -114,7 +114,7 @@ test('both gifts independently walk, pause, and automatically speak Korean', asy
 }) => {
   await seed(page, fixture())
   await expectFriendsToWalk(page, ['special-boy', 'special-girl'])
-  await page.clock.runFor(51000)
+  await expectAutomaticSpeech(page,['special-boy','special-girl'])
   const saved = await data(page)
   for (const id of ['special-boy', 'special-girl'])
     expect(

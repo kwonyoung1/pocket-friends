@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { expectFriendsToWalk } from './movement'
+import { expectFriendsToWalk,expectAutomaticSpeech } from './movement'
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-15T03:00:00Z') })
   await page.clock.pauseAt(new Date('2026-10-15T03:00:01Z'))
@@ -27,7 +27,7 @@ test('four friends walk across the room, talk, respond to care and persist after
   await page.reload()
   await page.getByRole('button', { name: '코코 상태 확인' }).click()
   await expect(page.locator('.affection strong')).toHaveText(affection!)
-  await page.clock.runFor(51000)
+  await expectAutomaticSpeech(page,['special-boy','special-girl'])
   const raw = await page.evaluate(() => JSON.parse(localStorage.getItem('pocket-friends-v1')!))
   expect(raw.friends.every((f: { nextSpeech: number }) => f.nextSpeech > raw.savedAt && f.nextSpeech <= raw.savedAt + 50000)).toBe(true)
   // Persisted bubble text proves the automatic scheduler executed, even after the bubble fades.
@@ -59,7 +59,7 @@ test('uploads a character photo, crops it, stores it locally and restores it', a
   await page.locator('.friend-card').nth(1).getByRole('button', { name: /내 사진으로 등록/ }).click()
   await page.getByLabel('캐릭터 사진 선택').setInputFiles({ name: 'second.png', mimeType: 'image/png', buffer: Buffer.from(data, 'base64') })
   await page.getByRole('button', { name: '이 모습으로 등록하기' }).click()
-  await expect(page.getByTestId('room-bibi').getByRole('img')).toBeVisible()
+  await expect(page.getByTestId('room-bibi').getByRole('img', {name:'비비의 등록 사진',exact:true})).toBeVisible()
   await expect(page.getByTestId('room-momo').getByRole('img', { name: '모모의 등록 사진' })).toBeVisible()
 })
 test('rejects invalid photos and explains storage failures without crashing', async ({ page }) => {

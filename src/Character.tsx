@@ -1,12 +1,17 @@
 import { HumanSprite } from './humans/HumanSprite'
+import type {Feeling} from './cozy/presence'
+import {useId} from 'react'
 import type { Friend } from './game'
-export function Character({ friend, mini = false, emotion = 'normal' }: { friend: Pick<Friend, 'kind' | 'color' | 'photo' | 'name'> & Partial<Friend>; mini?: boolean; emotion?: 'normal' | 'smile' | 'closed' }) {
+export function Character({ friend, mini = false, emotion = 'normal',feeling }: { friend: Pick<Friend, 'kind' | 'color' | 'photo' | 'name'> & Partial<Friend>; mini?: boolean; emotion?: 'normal' | 'smile' | 'closed';feeling?:Feeling }) {
+  const artId=useId().replaceAll(':','')
   if(friend.kind==='boy'||friend.kind==='girl')return <HumanSprite friend={friend} emotion={emotion} mini={mini}/>
   if (friend.photo) return <div className={`photo-character ${mini ? 'mini' : ''}`}><img src={friend.photo} alt={`${friend.name}의 등록 사진`} draggable={false} /><span className="photo-feet" /></div>
   const { kind, color } = friend
-  return <svg className="character-art" viewBox="0 0 120 140" aria-hidden="true">
+  const relaxed=feeling==='rest'||feeling==='content',joyful=feeling==='joy'||feeling==='excited'
+  const eyes=emotion==='closed'?'closed':joyful||relaxed?'smile':emotion
+  return <svg className="character-art" viewBox="0 0 120 140" aria-hidden="true"><defs><radialGradient id={artId}><stop stopColor="#fff" stopOpacity=".38"/><stop offset="1" stopColor="#fff" stopOpacity="0"/></radialGradient></defs>
     <ellipse cx="60" cy="128" rx="31" ry="7" fill="#654d3c" opacity=".09" />
-    <path d="M83 93q35-10 25 11-8 11-21 3" fill={color} stroke="#936f55" strokeWidth="2" />
+    <path className="character-tail" d="M83 93q35-10 25 11-8 11-21 3" fill={color} stroke="#936f55" strokeWidth="2" />
     <ellipse cx="60" cy="101" rx="29" ry="29" fill={color} />
     <ellipse cx="60" cy="107" rx="18" ry="18" fill="#fff9ec" opacity=".7" />
     <ellipse cx="42" cy="123" rx="12" ry="6" fill={color} />
@@ -17,9 +22,11 @@ export function Character({ friend, mini = false, emotion = 'normal' }: { friend
     {kind === 'cat' && <><path d="m48 36 4 13m8-14v13m11-12-4 13" stroke="#cc946c" strokeWidth="4" strokeLinecap="round" /><path d="m24 72 11 3m-10 5 10-1m61-7-11 3m10 5-10-1" stroke="#ad7f61" strokeWidth="1.5" strokeLinecap="round" /></>}
     {color === '#c4afe4' && <><path d="M66 42a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" fill="#fff0af"/><path d="m88 100 2 4 5 1-4 3 1 5-4-3-5 3 2-5-4-3 5-1Z" fill="#fff0af"/></>}
     {kind === 'bear' && <ellipse cx="60" cy="76" rx="17" ry="13" fill="#eee1ca" />}
-    {emotion === 'normal' ? <g data-expression="normal"><ellipse cx="42" cy="66" rx="3.1" ry="4.4" fill="#624b42" /><ellipse cx="78" cy="66" rx="3.1" ry="4.4" fill="#624b42" /></g> : <g data-expression={emotion} fill="none" stroke="#624b42" strokeWidth="2.6" strokeLinecap="round">{emotion === 'closed' ? <path d="M36 66q6 7 12 0m24 0q6 7 12 0" /> : <path d="M36 68q6-9 12 0m24 0q6-9 12 0" />}</g>}
+    {feeling==='surprised'?<g className="character-eyes"><ellipse cx="42" cy="66" rx="4" ry="5.5" fill="#624b42"/><ellipse cx="78" cy="66" rx="4" ry="5.5" fill="#624b42"/></g>:eyes === 'normal' ? <g className="character-eyes" data-expression="normal"><ellipse cx="42" cy="66" rx="3.1" ry="4.4" fill="#624b42" /><ellipse cx="78" cy="66" rx="3.1" ry="4.4" fill="#624b42" /><circle cx="42.7" cy="64.7" r="1.1" fill="#fff"/><circle cx="78.7" cy="64.7" r="1.1" fill="#fff"/></g> : <g className="character-eyes" data-expression={eyes} fill="none" stroke="#624b42" strokeWidth="2.6" strokeLinecap="round">{eyes === 'closed' ? <path d="M36 66q6 7 12 0m24 0q6 7 12 0" /> : <path d="M36 68q6-9 12 0m24 0q6-9 12 0" />}</g>}
+    <ellipse cx="53" cy="53" rx="31" ry="20" fill={`url(#${artId})`} pointerEvents="none"/>
     <circle cx="33" cy="77" r="7" fill="#e78d8b" opacity=".45" /><circle cx="87" cy="77" r="7" fill="#e78d8b" opacity=".45" />
-    <path d="m56 74 4 3 4-3" fill="#936856" /><path d="M60 77v4m-6-1q3 5 6 1 3 4 6-1" fill="none" stroke="#795748" strokeWidth="1.8" strokeLinecap="round" />
+    {feeling==='lonely'&&<path d="m36 56 10-3m28 0 10 3" stroke="#98745d" strokeWidth="1.7" strokeLinecap="round"/>}
+    <path d="m56 74 4 3 4-3" fill="#936856" />{feeling==='hungry'||feeling==='surprised'?<ellipse cx="60" cy="83" rx="3" ry="4" fill="#936856"/>:joyful?<path d="M52 79q8 15 16 0Z" fill="#a76e68" stroke="#795748" strokeWidth="1.2"/>:<path d="M60 77v4m-6-1q3 5 6 1 3 4 6-1" fill="none" stroke="#795748" strokeWidth="1.8" strokeLinecap="round"/>}
     <path d="m31 98-7 8m65-8 7 8" stroke={color} strokeWidth="11" strokeLinecap="round" />
     <path d="m50 94 10 5 10-5-2 12-8-5-8 5Z" fill={kind === 'bunny' ? '#b8899b' : kind === 'bear' ? '#89a28a' : kind === 'fox' ? '#829dab' : '#d69787'} />
   </svg>

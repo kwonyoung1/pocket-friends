@@ -18,3 +18,21 @@ export async function expectFriendsToWalk(page: Page, ids: string[]) {
   }
   expect([...waiting], 'Every requested friend must travel at least 5 room units within 15 seconds').toEqual([])
 }
+
+/** Ambient speech shares one bubble slot. A social reply may legitimately delay
+ * the second speaker; wait for recorded speech, not a fixed frame count.
+ * Walking is already verified above with actual requestAnimationFrame samples.
+ */
+export async function expectAutomaticSpeech(page:Page,ids:string[]){
+ await page.clock.fastForward(51000)
+ let missing=[...ids]
+ for(let attempt=0;attempt<6;attempt++){
+  await page.clock.runFor(1200)
+  const spoken=await page.evaluate(()=>JSON.parse(localStorage.getItem('pocket-friends-v1')!).friends.map((f:{id:string;bubble:string})=>({id:f.id,bubble:f.bubble})))
+  missing=ids.filter(id=>!spoken.some((f:{id:string;bubble:string})=>f.id===id&&/[가-힣]/.test(f.bubble)))
+  if(!missing.length)return
+  // Allow an existing 6.5-second bubble to finish and the autosave to run.
+  await page.clock.fastForward(8000)
+ }
+ expect(missing,'Every requested automatic speaker must have a saved Korean line').toEqual([])
+}

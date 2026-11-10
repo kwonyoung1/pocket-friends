@@ -1,3 +1,5 @@
+import {LivingMotion} from './cozy/LivingMotion'
+import {feeling,feelings,nearbyFriend} from './cozy/presence'
 import {visibleEmotion} from './emotions/model'
 import {Emotion} from './emotions/Emotion'
 import {room,leftPercent,topPercent} from './room/config'
@@ -12,8 +14,8 @@ import { affinity, beginGesture, bodyZone, endGesture, normalPet, moveGesture } 
 import type { GameCommand } from './cloud/protocol'
 import { interactionBalance } from './balance'
 
-type Props = { friend: Friend; selected: boolean; select: () => void; changed: () => void; bonded: (friend: Friend) => void; remote?: { busy: boolean; send: (c: GameCommand) => Promise<void> } }
-export function InteractiveFriend({ friend: f, selected, select, changed, bonded, remote }: Props) {
+type Props = { friend: Friend; selected: boolean; select: () => void; changed: () => void; bonded: (friend: Friend) => void; reducedLiving?:boolean; peers?:Friend[]; remote?: { busy: boolean; send: (c: GameCommand) => Promise<void> } }
+export function InteractiveFriend({ friend: f, selected, select, changed, bonded, remote,peers=[],reducedLiving=false }: Props) {
   const button = useRef<HTMLButtonElement>(null)
   const finish = useCallback((pointerId: number, cancel = false) => {
     if (f.interaction?.gesture?.pointerId !== pointerId) return
@@ -62,6 +64,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     const rect = e.currentTarget.closest('.room')!.getBoundingClientRect()
     moveGesture(f, e.pointerId, { x: e.clientX, y: e.clientY }, { x: (e.clientX - gesture.start.x) / rect.width * room.width, y: (e.clientY - gesture.start.y) / rect.height * room.height }, Date.now())
   }
+  const now=Date.now(),mood=feeling(f,now),neighbor=nearbyFriend(f,peers,now)
   const needs = careNeeds(f)
   const emote=visibleEmotion(f,Date.now())
   const phase = f.interaction?.phase ?? 'idle'
@@ -78,9 +81,9 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
   const elapsed = Date.now() - (f.interaction?.startedAt ?? Date.now())
   return <button ref={button}
     className={`room-friend ${emote?`state-motion-${emote.kind}`:''} ${f.bubbleUntil>Date.now()?'has-speech':''} ${f.foodReaction&&f.foodReaction.until>Date.now()?`food-${f.foodReaction.kind}`:''} ${needs.map(n => `need-${n}`).join(' ')} ${f.stats.hygiene <= 10 ? 'very-dusty' : ''} ${f.stats.hunger <= 10 ? 'very-hungry' : ''} ${(f.socialUntil ?? 0) > Date.now() ? 'social-greeting' : ''} ${!f.moving&&(f.furnitureUntil??0)>Date.now()&&/휴식|쉬기|햄스터/.test(f.furnitureActivity??'')?'furniture-relax':''} ${(f.eatingUntil??0)>Date.now()?'eating':''} ${asleep?'life-sleep':''} ${bathing?'life-bath':''} ${f.life?.coldAt?'life-cold':''} ${selected ? 'selected' : ''} ${f.moving ? 'walking' : ''} interaction-${phase} ${head ? 'head-pet' : ''} ${close ? 'close-friend' : ''} ${(f.growth?.specialUntil ?? 0) > Date.now() ? 'personality-action' : ''}`}
-    aria-label={`${f.name} 쓰다듬기 또는 끌어서 이동`} aria-pressed={selected} aria-describedby="interaction-help"
+    aria-label={`${f.name} 쓰다듬기 또는 끌어서 이동`} aria-pressed={selected} aria-describedby={`interaction-help feeling-${f.id}`}
     data-testid={`room-${f.id}`} data-x={f.x.toFixed(1)} data-y={f.y.toFixed(1)} data-moving={f.moving}
-    data-phase={phase} data-zone={f.interaction?.zone ?? 'body'} data-affinity={affinity(f)}
+    data-feeling={mood} data-kind={f.kind} data-neighbor={neighbor?.name??''} data-phase={phase} data-zone={f.interaction?.zone ?? 'body'} data-affinity={affinity(f)}
     style={{ left: leftPercent(f.x), top: topPercent(f.y), zIndex: f.interaction?.gesture ? 1500 : Math.round(f.y), '--reaction-scale': intensity } as CSSProperties}
     onPointerDown={onDown} onPointerMove={onMove}
     onPointerUp={e => { e.preventDefault(); finish(e.pointerId) }}
@@ -94,7 +97,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     {f.bubbleUntil > Date.now() && <span className="speech" role="status" style={f.x < 200 ? { left: 0, transform: 'none' } : f.x > room.width-200 ? { left: 'auto', right: 0, transform: 'none' } : undefined}>{f.bubble}</span>}
     <span className="interaction-shadow" aria-hidden="true" />
     <span className="friend-lift" style={phase === 'dragging' ? { transform: `translateY(-16%) rotate(${f.interaction?.tilt ?? 0}deg)` } : undefined}>
-      <span className="friend-emotion"><span className="friend-figure" style={{ transform: `scaleX(${f.facing})` }}><Character friend={f} emotion={held || asleep || f.life?.coldAt || emote?.kind==='hunger' || f.stats.energy <= 30 || (f.foodReaction?.kind==='disliked'&&f.foodReaction.until>Date.now()) ? 'closed' : happy || recovering || foodHappy ? 'smile' : 'normal'} /></span></span>
+      <LivingMotion id={f.id} quiet={reducedLiving||asleep||bathing||f.moving||phase!=='idle'||(f.restingUntil??0)>now}><span className="friend-emotion"><span className="friend-figure" style={{ transform: `scaleX(${f.facing})` }}><Character friend={f} feeling={mood} emotion={held || asleep || f.life?.coldAt || emote?.kind==='hunger' || f.stats.energy <= 30 || (f.foodReaction?.kind==='disliked'&&f.foodReaction.until>Date.now()) ? 'closed' : happy || recovering || foodHappy || neighbor || mood==='joy' ? 'smile' : 'normal'} /></span></span></LivingMotion>
     </span>
     {(f.growth?.levelUpUntil ?? 0) > Date.now() && <span className="level-up-effect" role="status">✦ LEVEL UP · Lv.{f.growth?.level} ✦</span>}
     {effect && <span className={`pet-particles ${phase === 'bonding' ? 'many-hearts' : ''}`} aria-hidden="true">
@@ -106,6 +109,9 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     {(f.furnitureUntil??0)>Date.now()&&<span className="friend-activity">{f.furnitureActivity}</span>}
     {emote&&<span key={`${emote.at}-${emote.kind}`} className="state-emote" role="img" aria-label={emote.kind==='happy'?'행복해요':needLabels[emote.kind]} data-emotion={emote.kind} data-variant={emote.variant}><Emotion kind={emote.kind} variant={emote.variant}/></span>}
     {emote?.kind==='hygiene'&&<span className="care-dust" aria-hidden="true"><i>·</i><i>✧</i><i>·</i>{f.stats.hygiene<=10&&<><i>·</i><i>✧</i></>}</span>}
+    {!emote&&!asleep&&!bathing&&<span className={`living-feeling feeling-${mood}`} aria-hidden="true">{neighbor&&mood==='smile'?'♪':feelings[mood].symbol}</span>}
+    {neighbor&&!asleep&&phase==='idle'&&<span className="living-company" aria-hidden="true">{neighbor.name}와 함께 ♡</span>}
+    <span className="sr-only" id={`feeling-${f.id}`}>{feelings[mood].label}</span>
     <span className="friend-name">{selected && <Heart size={10} fill="currentColor" aria-hidden="true" />} {f.name}</span>
   </button>
 }
