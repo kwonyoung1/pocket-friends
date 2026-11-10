@@ -11,7 +11,7 @@ export function LivingMotion({id,quiet,children}:{id:string;quiet:boolean;childr
   const media=matchMedia('(prefers-reduced-motion:reduce)')
   const clear=()=>{clearTimeout(timer);clearTimeout(blinkTimer);setMotion('still');setBlink(false)}
   const blinkLater=()=>{if(stopped||quiet||!visible||document.hidden||media.matches)return;blinkTimer=setTimeout(()=>{setBlink(true);blinkTimer=setTimeout(()=>{setBlink(false);blinkLater()},160)},2500+visualRandom()*4500)}
-  const schedule=()=>{clear();if(stopped||quiet||!visible||document.hidden||media.matches)return;blinkLater();timer=setTimeout(()=>{setMotion(motions[Math.floor(visualRandom()*motions.length)]);timer=setTimeout(schedule,1700)},3000+visualRandom()*5000)}
+  const schedule=()=>{setOnScreen(visible&&!document.hidden);clear();if(stopped||quiet||!visible||document.hidden||media.matches)return;blinkLater();timer=setTimeout(()=>{setMotion(motions[Math.floor(visualRandom()*motions.length)]);timer=setTimeout(schedule,1700)},3000+visualRandom()*5000)}
   const observer=new IntersectionObserver(entries=>{visible=entries.some(e=>e.isIntersecting);setOnScreen(visible);schedule()})
   if(ref.current)observer.observe(ref.current)
   document.addEventListener('visibilitychange',schedule);media.addEventListener('change',schedule)

@@ -1,0 +1,21 @@
+/* Square, padded masters share a foot anchor at (256,476). Never squash faces. */
+.painted-art{display:block;position:relative;width:100%;height:100%;line-height:0;isolation:isolate;transform-origin:50% 93%}.painted-frame{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;object-position:center bottom;pointer-events:none;user-select:none;filter:var(--paint-palette,none)}
+.painted-art .frame-blink{visibility:hidden}.living-motion[data-blink=true] .painted-art[data-art-frame=idle] .frame-primary{visibility:hidden}.living-motion[data-blink=true] .painted-art[data-art-frame=idle] .frame-blink{visibility:visible}
+.painted-art[data-art-pose=walk] .frame-primary{animation:paint-stride .88s steps(1,end) infinite}.painted-art .frame-passing{animation:paint-passing .88s steps(1,end) infinite}
+@keyframes paint-stride{0%,100%{visibility:visible}50%{visibility:hidden}}@keyframes paint-passing{0%,100%{visibility:hidden}50%{visibility:visible}}
+/* Only the art grows: saved positions, hit areas, drag math and collision paths stay intact. */
+.illustrated-home .room-friend .painted-art{position:absolute;width:auto;height:100%;aspect-ratio:1;left:50%;translate:-50% 0;transform:scale(1.35);filter:drop-shadow(0 3px 2px #88613d17)}
+.illustrated-home .room-friend .human-motion{animation:none!important}.illustrated-home .room-friend .friend-emotion,.illustrated-home .room-friend[data-feeling=rest] .living-motion{transform:none;animation:none}
+.illustrated-home .living-motion[data-idle=tilt] .painted-art,.illustrated-home .living-motion[data-idle=look] .painted-art{rotate:var(--paint-look,1.2deg);transition:rotate .7s ease-in-out}.illustrated-home .living-motion[data-idle=bounce] .painted-art{animation:paint-joy 1.7s ease-out}.illustrated-home .room-friend.interaction-delighted .painted-art{animation:paint-joy 1.7s ease-out}
+@keyframes paint-joy{25%{translate:-50% -4%}50%,100%{translate:-50% 0}}
+.illustrated-home .room-friend .friend-name{translate:0 5px;z-index:5}.illustrated-home .room-friend .speech{z-index:8}.illustrated-home .living-feeling{z-index:6;right:-10%;top:-12%}.illustrated-home .room-scene{filter:saturate(.9)}
+.illustrated-home .profile-portrait{width:110px;height:118px}.illustrated-home .dock-portrait{width:52px;height:60px}.illustrated-home .card-avatar{width:72px;height:82px}.illustrated-home .profile-portrait .painted-art,.illustrated-home .dock-portrait .painted-art,.illustrated-home .card-avatar .painted-art{transform:scale(1.12);transform-origin:50% 93%}
+@media(max-width:600px){.illustrated-home .room-friend .painted-art{transform:scale(1.45)}.illustrated-home .profile-portrait{width:84px;height:96px}.illustrated-home .dock-portrait{width:48px;height:58px}.illustrated-home .card-avatar{width:58px;height:68px}}
+/* No timers or canvas per character. Existing observer pauses offscreen motion. */
+.living-motion[data-visible=false] .painted-art *,.cozy-home[data-living-motion=reduced] .painted-art *{animation:none!important}.living-motion[data-visible=false] .painted-art .frame-passing,.cozy-home[data-living-motion=reduced] .painted-art .frame-passing{visibility:hidden}.living-motion[data-visible=false] .painted-art .frame-primary,.cozy-home[data-living-motion=reduced] .painted-art .frame-primary{visibility:visible}
+@media(prefers-reduced-motion:reduce){.painted-art,.painted-art *{animation:none!important;transition:none!important}.painted-art .frame-passing{visibility:hidden}.painted-art .frame-primary{visibility:visible}}
+
+.illustrated-home .living-motion[data-idle=tilt] .painted-art{rotate:2deg}
+.illustrated-home .room-friend:not(.walking) .painted-art .frame-primary{animation:paint-breathe var(--living-rhythm,6s) ease-in-out var(--living-delay,0s) infinite;transform-origin:50% 93%}
+@keyframes paint-breathe{50%{scale:1.004}}
+@media(prefers-reduced-motion:reduce){.illustrated-home .room-friend .painted-art .painted-frame{animation:none!important}}

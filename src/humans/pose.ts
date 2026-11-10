@@ -35,11 +35,11 @@ export function humanPose(
   if ((f.restingUntil ?? 0) > now) return 'rest'
   return 'idle'
 }
-/** Original SVG layers, newly authored from the existing hair and outfit identity. */
+/** AI-painted frames made with the existing hairstyle/outfit references. */
 export const humanAssetManifest={
- source:'New original layered SVG artwork. Existing seated PNGs are retained as historical sources; poses are not extracted from them.',
- images:{boy:'src/assets/characters-v2/boy.svg',girl:'src/assets/characters-v2/girl.svg'},
- authored:['standing','smile','happy','sleepy','surprised','seated','blanket-sleep'],
- extracted:[],missing:['side-view','rear-view','hand-drawn-walk-frame-sheet'],
- fallback:'Walking articulates the new separate standing legs/arms. Sleep uses a new pillow/blanket layer, not an extracted lying photograph.',
+ source:'Image generation: new painted PNG/WebP art, not poses extracted from the original seated pictures.',
+ images:{boy:'src/assets/characters/boy/idle.png',girl:'src/assets/characters/girl/idle.png'},
+ authored:['standing','happy','closed-eyes','stride','passing-step','blanket-sleep'],
+ extracted:[],missing:['side-view','rear-view','seated','surprised-face','separate-limb-layers'],
+ fallback:'Two distinct painted leg poses cycle during walking. Rest uses closed eyes; surprise uses the existing exclamation effect. Original seated references are retained.',
 }

@@ -40,7 +40,7 @@ async function data(page: Page) {
     JSON.parse(localStorage.getItem('pocket-friends-v1')!),
   )
 }
-test('legacy eight friends, pictures, inventory and progress remain; gifts arrive once and have separate layered SVGs with real alpha', async ({
+test('legacy eight friends, pictures, inventory and progress remain; gifts arrive once and have separate painted frames with real alpha', async ({
   page,
 }, info) => {
   const s = fixture()
@@ -66,8 +66,8 @@ test('legacy eight friends, pictures, inventory and progress remain; gifts arriv
     const img = page.getByTestId(`room-special-${kind}`).locator('.human-art')
     await expect(img).toBeVisible()
     await expect(img).toHaveAttribute('data-art-kind',kind)
-    await expect(img).toHaveAttribute('data-art-version','2')
-    await expect(img.locator('svg')).toHaveCount(1)
+    await expect(img).toHaveAttribute('data-art-version','3')
+    await expect(img.locator('.painted-frame.frame-primary')).toBeVisible()
     const alpha = await img.evaluate(async (node) => {
       const img = new Image();img.src=node.getAttribute('data-art-source')!
       await img.decode()
@@ -101,7 +101,7 @@ test('legacy eight friends, pictures, inventory and progress remain; gifts arriv
     expect(alpha.transparent).toBeGreaterThan(10000)
     expect(alpha.opaque).toBeGreaterThan(10000)
     expect(alpha.edgeOpaque).toBe(0)
-    expect(alpha.width).toBe(240);expect(alpha.height).toBe(280)
+    expect(alpha.width).toBe(512);expect(alpha.height).toBe(512)
   }
   await page.reload()
   await expect(page.locator('.room-friend')).toHaveCount(10)
@@ -227,7 +227,7 @@ test('special friend rename and real pointer dragging persist, without replacing
     saved.friends.filter((f: { id: string }) => f.id === 'special-boy'),
   ).toHaveLength(1)
 })
-test('sleep mode uses new anchored SVG sleep layers and wakes without a pet reward', async ({
+test('sleep mode uses new anchored painted sleep frames and wakes without a pet reward', async ({
   page,
 }) => {
   const time = Date.parse('2026-10-15T16:00:00Z'),

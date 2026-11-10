@@ -1,22 +1,18 @@
 import {test,expect} from '@playwright/test'
-test('seven new masters have transparent margins, shaded pixels and unique instance IDs',async({page})=>{
- await page.goto('/tests/fixtures/artwork.html');await expect(page.locator('.illustrated-art')).toHaveCount(56)
- const inspected=await page.evaluate(async()=>{
-  const roots=Array.from(document.querySelectorAll<HTMLElement>('.illustrated-art'))
-  const kinds=[...new Set(roots.map(r=>r.dataset.artKind))]
-  return Promise.all(kinds.map(async kind=>{const node=roots.find(r=>r.dataset.artKind===kind)!,img=new Image();img.src=node.dataset.artSource!;await img.decode();const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;const ctx=canvas.getContext('2d')!;ctx.drawImage(img,0,0);const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;let opaque=0,transparent=0,edge=0;const colors=new Set<string>();for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){const i=(y*canvas.width+x)*4,a=data[i+3];if(!a)transparent++;if(a>128){opaque++;colors.add(`${data[i]},${data[i+1]},${data[i+2]}`);if(!x||!y||x===canvas.width-1||y===canvas.height-1)edge++}}return{kind,width:canvas.width,height:canvas.height,opaque,transparent,edge,colors:colors.size}}))
- })
- expect(inspected).toHaveLength(7);for(const art of inspected){expect(art.width).toBe(240);expect(art.height).toBe(280);expect(art.opaque,art.kind).toBeGreaterThan(10000);expect(art.transparent,art.kind).toBeGreaterThan(10000);expect(art.edge,art.kind).toBe(0);expect(art.colors,art.kind).toBeGreaterThan(500)}
- const ids=await page.locator('svg [id]').evaluateAll(els=>els.map(e=>e.id));expect(new Set(ids).size).toBe(ids.length)
+test('seven painted masters have transparent margins and rich shaded pixels',async({page})=>{
+ await page.goto('/tests/fixtures/artwork.html');await expect(page.locator('.painted-art')).toHaveCount(56)
+ const inspected=await page.evaluate(async()=>Promise.all([...new Set(Array.from(document.querySelectorAll<HTMLElement>('.painted-art')).map(r=>r.dataset.artKind))].map(async kind=>{const node=document.querySelector<HTMLElement>(`.painted-art[data-art-kind=${kind}]`)!,img=new Image();img.src=node.dataset.artSource!;await img.decode();const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;const ctx=c.getContext('2d')!;ctx.drawImage(img,0,0);const p=ctx.getImageData(0,0,c.width,c.height).data;let opaque=0,transparent=0,edge=0;const colors=new Set<string>();for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){let i=(y*c.width+x)*4;if(!p[i+3])transparent++;if(p[i+3]>128){opaque++;colors.add(`${p[i]},${p[i+1]},${p[i+2]}`);if(!x||!y||x===c.width-1||y===c.height-1)edge++}}return{kind,width:c.width,height:c.height,opaque,transparent,edge,colors:colors.size}})))
+ expect(inspected).toHaveLength(7);for(const a of inspected){expect(a.width).toBe(512);expect(a.height).toBe(512);expect(a.opaque,a.kind).toBeGreaterThan(10000);expect(a.transparent,a.kind).toBeGreaterThan(10000);expect(a.edge,a.kind).toBe(0);expect(a.colors,a.kind).toBeGreaterThan(10000)}
 })
-test('authored human standing, seated and sleep geometry switches without stretching the face',async({page})=>{
+test('walking uses distinct painted leg poses, sleep selects its own art, reduced motion stops cycling',async({page})=>{
  await page.goto('/tests/fixtures/artwork.html')
- for(const kind of ['boy','girl']){const idle=page.locator(`[data-kind=${kind}][data-pose=idle]`),rest=page.locator(`[data-kind=${kind}][data-pose=rest]`),sleep=page.locator(`[data-kind=${kind}][data-pose=sleep]`),happy=page.locator(`[data-kind=${kind}][data-pose=happy]`),walk=page.locator(`[data-kind=${kind}][data-pose=walk]`)
-  await expect(idle.locator('.stand-legs')).toBeVisible();await expect(idle.locator('.seated-legs')).toBeHidden();await expect(rest.locator('.seated-legs')).toBeVisible();await expect(rest.locator('.stand-legs')).toBeHidden();await expect(sleep.locator('.sleep-scene')).toBeVisible();await expect(sleep.locator('.awake-scene')).toBeHidden()
-  expect(await happy.locator('.illustrated-art').evaluate(el=>getComputedStyle(el).getPropertyValue('--mouth-joy'))).toBe('block')
-  expect(await walk.locator('.art-leg-left').evaluate(el=>getComputedStyle(el).animationName)).toBe('art-step')
+ for(const kind of ['cat','bunny','dog','bear','fox','boy','girl']){
+  const walk=page.locator(`[data-kind=${kind}][data-pose=walk]`),sleep=page.locator(`[data-kind=${kind}][data-pose=sleep]`)
+  const a=walk.locator('[data-frame=walk-a]'),b=walk.locator('[data-frame=walk-b]');expect(await a.getAttribute('src')).not.toBe(await b.getAttribute('src'))
+  const diff=await walk.evaluate(async root=>{const imgs=[...root.querySelectorAll('img')];await Promise.all(imgs.map(i=>i.decode()));const c=document.createElement('canvas');c.width=c.height=512;const ctx=c.getContext('2d')!;ctx.drawImage(imgs[0],0,0);const a=ctx.getImageData(0,0,512,512).data;ctx.clearRect(0,0,512,512);ctx.drawImage(imgs[1],0,0);const b=ctx.getImageData(0,0,512,512).data;let delta=0;for(let i=512*300*4;i<a.length;i+=4)if(Math.abs(a[i+3]-b[i+3])>100)delta++;return delta});expect(diff,kind).toBeGreaterThan(1000)
+  await expect(sleep.locator('.sleep-scene')).toBeVisible();expect(await a.evaluate(el=>getComputedStyle(el).animationName)).toBe('paint-stride')
  }
- await page.emulateMedia({reducedMotion:'reduce'});expect(await page.locator('[data-kind=boy][data-pose=walk] .art-leg-left').evaluate(el=>getComputedStyle(el).animationName)).toBe('none')
+ await page.emulateMedia({reducedMotion:'reduce'});expect(await page.locator('[data-kind=boy][data-pose=walk] .frame-primary').evaluate(el=>getComputedStyle(el).animationName)).toBe('none');await expect(page.locator('[data-kind=boy][data-pose=walk] .frame-passing')).toBeHidden()
 })
 
 test('a real reusable toy selects its own reaction without extra coins or pet rewards',async({page})=>{

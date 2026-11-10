@@ -1,5 +1,6 @@
 # 포켓프렌즈 · 우리의 작은 집
 
+최신 캐릭터 원화: [실제 PNG/WebP 교체·구현 범위·화면·배포 안내](docs/PAINTED_CHARACTERS.md)
 새 캐릭터 원화 7종·레이어 애니메이션·방 리디자인: [구현 및 검증 보고](docs/ILLUSTRATED_REDESIGN.md)
 
 독립 실험 화면: [이펙트 비교 연구실](docs/EFFECTS_LAB_REVIEW.md) · [열기/배포 방법](docs/EFFECTS_LAB_DEPLOY.md) · [실측 결과](docs/EFFECTS_LAB_RESULTS.md). 기존 게임 엔진은 교체하지 않습니다.

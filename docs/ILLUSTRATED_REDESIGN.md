@@ -1,5 +1,7 @@
 # 캐릭터 원화·방 리디자인 실제 구현 보고
 
+> 이 문서는 이전 SVG 버전의 제작 기록입니다. 현재 기본 원화는 [PNG/WebP 교체 보고](PAINTED_CHARACTERS.md)를 확인하세요.
+
 ## 참고자료와 제작 방식
 
 `01_room_style_reference.png`, `02_character_expression_reference.png`, `03_room_ui_reference.png`는 접근 가능한 작업 폴더에서 찾지 못했습니다. 따라서 시안과의 정확한 일치도를 검수하지 않았습니다. 기존 `boy.png`, `girl.png`를 직접 확인하고 갈색 머리, 남자의 회색 니트, 여자의 앞머리·긴 머리·검은 재킷, 청바지·흰 운동화라는 기존 특징을 기준으로 새 SD 벡터 원화를 그렸습니다.

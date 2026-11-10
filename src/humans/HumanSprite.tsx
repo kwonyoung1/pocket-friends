@@ -1,4 +1,4 @@
-import {IllustratedSprite} from '../art/IllustratedSprite'
+import {PaintedSprite} from '../art/PaintedSprite'
 import type { Friend } from '../game'
 import { humanPose } from './pose'
 import './styles.css'
@@ -21,7 +21,7 @@ export function HumanSprite({
       data-human-pose={pose}
     >
       <span className="human-motion">
-        <IllustratedSprite kind={friend.kind==='boy'?'boy':'girl'} human gaze={gaze} pose={pose} expression={pose==='surprised'?'surprised':pose==='happy'?'happy':['sleep','sleepy','rest'].includes(pose)?'closed':pose==='smile'?'smile':emotion==='closed'?'closed':'normal'}/>
+        <PaintedSprite kind={friend.kind==='boy'?'boy':'girl'} human gaze={gaze} pose={pose} expression={pose==='surprised'?'surprised':pose==='happy'?'happy':['sleep','sleepy','rest'].includes(pose)?'closed':pose==='smile'?'smile':emotion==='closed'?'closed':'normal'}/>
       </span>
       {pose === 'surprised' && (
         <span className="human-expression" aria-hidden="true">
