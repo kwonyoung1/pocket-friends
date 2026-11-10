@@ -179,6 +179,8 @@ test('special friend rename and real pointer dragging persist, without replacing
   await page.getByLabel('새 이름').fill('다정한 소년')
   await page.getByRole('button', { name: '이름 저장' }).click()
   await page.getByRole('button', { name: '생활 메뉴 닫기' }).click()
+  // Rename feedback remains visible while the player starts a room gesture.
+  await expect(page.locator('.toast')).toBeVisible()
   const actor = page.getByTestId('room-special-boy')
   await actor.scrollIntoViewIfNeeded()
   const p = await actor.locator('.friend-figure').boundingBox(),
@@ -211,7 +213,11 @@ test('special friend rename and real pointer dragging persist, without replacing
     await page.mouse.up()
   }
   expect(await actor.getAttribute('data-x')).not.toBe(before)
+  const droppedX = await actor.getAttribute('data-x')
+  await page.getByRole('button', { name: '알림 닫기' }).click()
+  await expect(page.locator('.toast')).toHaveCount(0)
   await page.reload()
+  await expect(actor).toHaveAttribute('data-x', droppedX!)
   await expect(
     page.getByRole('button', { name: '다정한 소년 상태 확인' }),
   ).toBeVisible()

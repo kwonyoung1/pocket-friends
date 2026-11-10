@@ -1,4 +1,4 @@
-import {memo,useEffect,useRef} from 'react'
+import {memo,useEffect,useLayoutEffect,useRef} from 'react'
 import type {CSSProperties} from 'react'
 import type {Friend} from '../game'
 import type {Feeling} from '../cozy/presence'
@@ -17,6 +17,10 @@ type Props={friend:Pick<Friend,'kind'|'color'|'name'>&Partial<Friend>;mini?:bool
 export const AnimalSprite=memo(function AnimalSprite({friend,mini=false,emotion='normal',feeling}:Props){
  const expression=emotion==='closed'?'closed':['joy','excited'].includes(feeling??'')?'happy':emotion
  const kind=friend.kind as AnimalKind,art=animalArt[kind],root=useRef<HTMLSpanElement>(null),live=useRef({friend,emotion:expression,feeling});live.current={friend,emotion:expression,feeling}
+ const refreshExpression=useRef<(()=>void)|null>(null)
+ // Care can commit after the shared animation frame. Paint its expression in
+ // the same commit, without advancing gait time or starting another RAF loop.
+ useLayoutEffect(()=>{refreshExpression.current?.()},[expression])
  const palette=friend.color==='#f4dfb8'?'saturate(.55) brightness(1.1)':friend.color==='#b48c71'?'brightness(.85)':friend.color==='#c4afe4'?'hue-rotate(325deg) saturate(1.15)':'none'
  useEffect(()=>{
   const el=root.current;if(!el||mini)return
@@ -48,8 +52,9 @@ export const AnimalSprite=memo(function AnimalSprite({friend,mini=false,emotion=
    previous.style.opacity=String((1-blend)*(1-walkVisible));life.style.opacity=String(blend*(1-walkVisible));life.style.backgroundPosition=`${lifeIndex/7*100}% 100%`
   }
   function updateVisibility(){dispose?.();dispose=undefined;if(removed)return;if(visible){draw(performance.now(),0);dispose=animateAnimal(draw)}}
+  refreshExpression.current=()=>{if(visible&&!document.hidden&&!el.closest('[hidden],[data-suspended=true]'))draw(performance.now(),0)}
   const observer=new IntersectionObserver(entries=>{visible=entries.some(e=>e.isIntersecting);el.dataset.animationVisible=String(visible);updateVisibility()});observer.observe(el);media.addEventListener('change',updateVisibility)
-  return()=>{removed=true;dispose?.();observer.disconnect();media.removeEventListener('change',updateVisibility)}
+  return()=>{removed=true;refreshExpression.current=null;dispose?.();observer.disconnect();media.removeEventListener('change',updateVisibility)}
  },[kind,mini,art])
  return <span ref={root} className={`animal-art character-art animal-${kind} ${mini?'animal-mini':''}`} data-art-version="4" data-art-kind={kind} data-art-source={art.png} data-expression={expression==='happy'?'smile':expression} data-art-expression={expression} aria-hidden="true" style={{'--animal-life':`url("${art.life}")`,'--animal-walk':`url("${art.walk}")`,'--animal-palette':palette} as CSSProperties}>
   <span className="animal-previous"/><span className="animal-life"/><span className="animal-walk"/>
