@@ -1,0 +1,50 @@
+{
+  "environment": "Mobile viewport in headless Chromium, not a physical Android/iOS test",
+  "durationSeconds": 15,
+  "rafHz": 59.12829479955961,
+  "start": {
+    "heapBytes": 17002680,
+    "nodes": 1910,
+    "listeners": 310
+  },
+  "end": {
+    "heapBytes": 68216548,
+    "nodes": 999,
+    "listeners": 4235
+  },
+  "states": {
+    "room-special-boy": [
+      "idle",
+      "walking",
+      "walk-start",
+      "walk-stop"
+    ],
+    "room-special-girl": [
+      null,
+      "walking"
+    ]
+  },
+  "frames": {
+    "room-special-boy": [
+      "0",
+      "5",
+      "4",
+      "3",
+      "2",
+      "1",
+      "7"
+    ],
+    "room-special-girl": [
+      null,
+      "5",
+      "3",
+      "1",
+      "0",
+      "7",
+      "6",
+      "4",
+      "2"
+    ]
+  },
+  "pageErrors": []
+}

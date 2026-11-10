@@ -26,9 +26,9 @@ describe('room theme is a free visual preference',()=>{
   expect(s.friends).toEqual(before.friends);expect(s.world!.equipment).toEqual(before.world!.equipment);expect(expansion(s)).toEqual(expansion(before));expect(furnitureObstacles(s)).toEqual(obstacles)
  })
  it('rejects invalid theme commands and saved versions without mutating the source',()=>{
-  expect(()=>validateCommand({type:'room-theme',theme:'winter'})).toThrow()
+  expect(()=>validateCommand({type:'room-theme',theme:'unknown-season'})).toThrow()
   const s=fixture(),raw=JSON.stringify(s)
-  for(const patch of [{roomTheme:{id:'winter',changedAt:at}},{roomTheme:{id:'halloween',changedAt:-1}},{placementBoundsVersion:999}]){const bad=JSON.parse(raw);Object.assign(bad.world,patch);expect(()=>parseSave(JSON.stringify(bad),at)).toThrow()}
+  for(const patch of [{roomTheme:{id:'unknown-season',changedAt:at}},{roomTheme:{id:'halloween',changedAt:-1}},{placementBoundsVersion:999}]){const bad=JSON.parse(raw);Object.assign(bad.world,patch);expect(()=>parseSave(JSON.stringify(bad),at)).toThrow()}
   expect(JSON.stringify(s)).toBe(raw)
  })
 })

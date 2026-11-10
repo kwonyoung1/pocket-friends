@@ -9,6 +9,8 @@
     "check:character-art": "node scripts/check-painted-art.mjs",
     "prepare:animal-art": "node scripts/prepare-animal-art.mjs",
     "check:animal-art": "node scripts/check-animal-art.mjs",
+    "prepare:mobile-art": "node scripts/prepare-mobile-winter.mjs --archived",
+    "check:mobile-art": "node scripts/check-mobile-winter-art.mjs",
     "build": "node scripts/check-cloud-env.mjs && tsc -b && vite build && node scripts/check-word-bundle.mjs && node scripts/check-effects-isolation.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",

@@ -1,6 +1,7 @@
 # 포켓프렌즈 · 우리의 작은 집
 
-최신 동물·배경: [4족 보행·토끼 도약·수채화 거실 및 상세 배포 안내](docs/WOODLAND_ANIMALS.md)
+최신 모바일 업데이트: [겨울 테마·영이/찬미 산책·터치 안정화·서버/웹 배포 순서](docs/MOBILE_WINTER.md)
+기존 동물·배경: [4족 보행·토끼 도약·수채화 거실 및 상세 배포 안내](docs/WOODLAND_ANIMALS.md)
 이전 사람/동물 페인팅 원화: [실제 PNG/WebP 교체·구현 범위·화면·배포 안내](docs/PAINTED_CHARACTERS.md)
 새 캐릭터 원화 7종·레이어 애니메이션·방 리디자인: [구현 및 검증 보고](docs/ILLUSTRATED_REDESIGN.md)
 

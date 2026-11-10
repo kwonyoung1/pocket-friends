@@ -1,0 +1,19 @@
+{
+  "environment": "390x844 mobile emulation in headless Chromium; forced garbage collection for comparable samples",
+  "durationSeconds": 30,
+  "before": {
+    "JSEventListeners": 312,
+    "Nodes": 992,
+    "JSHeapUsedSize": 12060044
+  },
+  "rawEnd": {
+    "JSEventListeners": 585,
+    "Nodes": 999,
+    "JSHeapUsedSize": 28868752
+  },
+  "after": {
+    "JSEventListeners": 303,
+    "Nodes": 998,
+    "JSHeapUsedSize": 12410548
+  }
+}

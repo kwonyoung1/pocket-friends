@@ -1,3 +1,4 @@
+import {CalmWalk} from './calm/CalmWalk'
 import {PaintedSprite} from '../art/PaintedSprite'
 import type { Friend } from '../game'
 import { humanPose } from './pose'
@@ -21,7 +22,7 @@ export function HumanSprite({
       data-human-pose={pose}
     >
       <span className="human-motion">
-        <PaintedSprite kind={friend.kind==='boy'?'boy':'girl'} human gaze={gaze} pose={pose} expression={pose==='surprised'?'surprised':pose==='happy'?'happy':['sleep','sleepy','rest'].includes(pose)?'closed':pose==='smile'?'smile':emotion==='closed'?'closed':'normal'}/>
+        <CalmWalk friend={friend} mini={mini}><PaintedSprite kind={friend.kind==='boy'?'boy':'girl'} human gaze={gaze} pose={pose==='walk'?'idle':pose} expression={pose==='surprised'?'surprised':pose==='happy'?'happy':['sleep','sleepy','rest'].includes(pose)?'closed':pose==='smile'?'smile':emotion==='closed'?'closed':'normal'}/></CalmWalk>
       </span>
       {pose === 'surprised' && (
         <span className="human-expression" aria-hidden="true">

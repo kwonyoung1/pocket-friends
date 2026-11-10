@@ -1,0 +1,7 @@
+import {it,expect} from 'vitest'
+import {freshWorld,validateCommand} from '../cloud/engine'
+import {parseSave} from '../game'
+import {roomTheme,changeRoomTheme} from './theme'
+import {winterDaypart} from './WinterDecor'
+it('adds winter without resetting possessions, friends or the old selected theme',()=>{const at=Date.parse('2026-11-10T03:00:00Z'),s=parseSave(JSON.stringify(freshWorld(at)),at);s.world!.coins=7654;s.world!.inventory.cake=3;const before=structuredClone(s);expect(roomTheme(s)).toBe('default');expect(()=>validateCommand({type:'room-theme',theme:'winter'})).not.toThrow();changeRoomTheme(s,'winter',at);const loaded=parseSave(JSON.stringify(s),at);expect(roomTheme(loaded)).toBe('winter');expect(s.friends).toEqual(before.friends);const persistent=(friends:typeof s.friends)=>friends.map(({restingUntil:_rest,...friend})=>friend);expect(persistent(loaded.friends)).toEqual(persistent(before.friends));expect(loaded.world!.coins).toBe(7654);expect(loaded.world!.inventory).toEqual(before.world!.inventory);changeRoomTheme(s,'halloween',at);expect(roomTheme(s)).toBe('halloween');changeRoomTheme(s,'default',at);expect(roomTheme(s)).toBe('default')})
+it('uses Korean local game time for morning/day/evening/night without weather requests',()=>{for(const[hour,phase]of [[7,'morning'],[12,'day'],[18,'evening'],[23,'night']] as const)expect(winterDaypart(Date.parse(`2026-11-10T${hour.toString().padStart(2,'0')}:00:00+09:00`))).toBe(phase)})
