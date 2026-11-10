@@ -26,7 +26,18 @@ test('expanded room has a separate scrolling camera, ten actors and three hamste
  const surface=page.locator('.room'),camera=page.getByRole('region',{name:'확장된 방 카메라'})
  await expect(surface).toHaveAttribute('data-world-width',String(room.width));const r=await surface.boundingBox(),actor=await page.getByTestId('room-momo').boundingBox();expect(actor!.width/r!.width*room.width).toBeCloseTo(100,0)
  await camera.evaluate(el=>{el.scrollLeft=el.scrollWidth;el.scrollTop=el.scrollHeight});expect(await camera.evaluate(el=>el.scrollLeft)).toBeGreaterThan(0)
- await page.clock.runFor(20000);expect(await page.evaluate(()=>document.body.scrollWidth>innerWidth)).toBe(false)
+ await test.step('camera remains bounded after twenty seconds with ten actors',async()=>{
+  const before=await page.evaluate(()=>Date.now())
+  // This checks camera/layout over elapsed time, not every walking frame.
+  // Replay a short live interval; skip the rest without executing every rAF.
+  // Dedicated movement/animal tests cover continuous walking and gait frames.
+  await page.clock.fastForward(18800)
+  await page.clock.runFor(1200)
+  expect(await page.evaluate(()=>Date.now())-before).toBe(20000)
+  await expect(page.locator('.room-friend')).toHaveCount(10)
+  await expect(page.locator('.room-hamster')).toHaveCount(3)
+  expect(await page.evaluate(()=>document.body.scrollWidth>innerWidth)).toBe(false)
+ })
  if(isMobile)expect(await camera.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true)
  const discovery=page.getByRole('button',{name:'새 발견 알림 닫기',exact:true});if(await discovery.isVisible())await discovery.click()
  await page.getByRole('navigation').getByRole('button',{name:'인벤토리',exact:true}).click();await page.getByTestId('item-plant').getByRole('button',{name:'방에 배치하기'}).click();await page.clock.runFor(500)

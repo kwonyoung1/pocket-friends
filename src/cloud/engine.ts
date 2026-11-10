@@ -54,7 +54,7 @@ export function validateCommand(value: unknown): GameCommand {
     case 'care-play-all': case 'care-wash-all': break
     case 'care-feed-all': if(!string(c.id))throw Error('음식을 선택해 주세요.');break
     case 'room-theme':
-      if(c.theme!=='default'&&c.theme!=='halloween')throw Error('방 테마를 확인해 주세요.')
+      if(c.theme!=='default'&&c.theme!=='halloween'&&c.theme!=='winter')throw Error('방 테마를 확인해 주세요.')
       break
     case 'sichuan-start': case 'sichuan-match': case 'sichuan-hint': case 'sichuan-shuffle': case 'sichuan-next': case 'sichuan-stop':
       if(!['adventure','competition'].includes(String(c.mode))||(c.type==='sichuan-start'?(c.nickname!==undefined&&(typeof c.nickname!=='string'||c.nickname.length>48)):(!string(c.sessionId,36)||!Number.isSafeInteger(c.turn)||Number(c.turn)<0))||(c.type==='sichuan-match'&&(!Number.isInteger(c.a)||!Number.isInteger(c.b)||Number(c.a)<0||Number(c.b)<0||Number(c.a)>119||Number(c.b)>119)))throw Error('사천성 조작 정보를 확인해 주세요.')

@@ -23,39 +23,23 @@ export function humanPose(
   if (
     p === 'petting' ||
     p === 'delighted' ||
-    p === 'settling' ||
-    emotion === 'smile'
+    p === 'settling'
   )
     return 'smile'
+  if(f.moving)return 'walk'
   if ((f.furnitureUntil ?? 0) > now && f.furnitureActivity?.includes('놀이'))
     return 'play'
   if ((f.stats?.energy ?? 100) <= 30 || f.life?.coldAt) return 'sleepy'
-  if (f.moving) return 'walk'
-  if (f.life?.coldAt) return 'sleepy'
+  if (emotion==='smile')return 'smile'
   if ((f.bubbleUntil ?? 0) > now && f.bubblePriority === 2) return 'smile'
   if ((f.restingUntil ?? 0) > now) return 'rest'
   return 'idle'
 }
-/** One seated illustration per character. Missing camera views are never fabricated. */
-export const humanAssetManifest = {
-  source:
-    'User supplied single seated couple illustration; background removal and small occluded clothing contours repaired with image editing.',
-  images: {
-    boy: 'src/assets/humans/boy.png',
-    girl: 'src/assets/humans/girl.png',
-  },
-  extracted: ['seated', 'smiling-front-three-quarter'],
-  missing: [
-    'neutral-standing',
-    'exact-front',
-    'side',
-    'rear',
-    'surprised-face',
-    'sleepy-face',
-    'walk-frames',
-    'play-pose',
-    'lying-sleep',
-  ],
-  fallback:
-    'Fixed size/foot anchor; CSS motion and overlays reuse each original seated face without face warping.',
+/** AI-painted frames made with the existing hairstyle/outfit references. */
+export const humanAssetManifest={
+ source:'Image generation: new painted PNG/WebP art, not poses extracted from the original seated pictures.',
+ images:{boy:'src/assets/characters/boy/idle.png',girl:'src/assets/characters/girl/idle.png'},
+ authored:['standing','happy','closed-eyes','stride','passing-step','blanket-sleep'],
+ extracted:[],missing:['side-view','rear-view','seated','surprised-face','separate-limb-layers'],
+ fallback:'Two distinct painted leg poses cycle during walking. Rest uses closed eyes; surprise uses the existing exclamation effect. Original seated references are retained.',
 }

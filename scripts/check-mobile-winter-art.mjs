@@ -1,0 +1,7 @@
+import sharp from 'sharp'
+import{readFile,stat}from'node:fs/promises'
+import assert from'node:assert/strict'
+import{createHash}from'node:crypto'
+const meta=JSON.parse(await readFile('art-source/mobile-winter/metadata.json','utf8'));let count=0,bytes=0
+for(const[kind,record]of Object.entries(meta)){const silhouettes=[];for(const f of record.frames){const input=await readFile(`src/assets/humans/calm/${kind}/walk-${f.index}.webp`);assert.equal(createHash('sha256').update(input).digest('hex'),f.sha256);const{data,info}=await sharp(input).raw().toBuffer({resolveWithObject:true});assert.equal(info.width,512);assert.equal(info.height,512);let clear=0,solid=0;const alpha=[];for(let y=0;y<512;y++)for(let x=0;x<512;x++){const a=data[(y*512+x)*4+3];if(!a)clear++;if(a>128)solid++;if(!x||!y||x===511||y===511)assert.equal(a,0);if(y>320)alpha.push(a>128?1:0)}assert(clear>10000);assert(solid>10000);silhouettes.push(alpha);count++}for(let n=0;n<8;n++){let difference=0;for(let p=0;p<silhouettes[n].length;p++)if(silhouettes[n][p]!==silhouettes[(n+1)%8][p])difference++;assert(difference>80,`${kind} leg phases ${n}/${(n+1)%8} indistinct`)}const path=`src/assets/humans/calm/${kind}/walk-atlas.webp`,size=await sharp(path).metadata();assert.equal(size.width,2048);assert.equal(size.height,256);bytes+=(await stat(path)).size}
+console.log(`Verified ${count} transparent human walking cells with distinct adjacent leg silhouettes; ${(bytes/1024).toFixed(0)} KiB runtime atlases.`)

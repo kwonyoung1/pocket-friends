@@ -1,0 +1,5 @@
+// Development-only source art viewer. Does not simulate or change the game world.
+import {createRoot} from 'react-dom/client'
+const files=import.meta.glob('../../src/assets/animals/*/*.webp',{eager:true,query:'?url',import:'default'}) as Record<string,string>
+const kinds=['cat','bunny','dog','bear','fox'],frames=['idle','blink','sit','sleep','stretch','groom','yawn','look',...Array.from({length:8},(_,i)=>`walk-${i}`)]
+createRoot(document.getElementById('root')!).render(<main style={{padding:24,fontFamily:'sans-serif'}}><h1>실제 동물 원화·8프레임 보행 검사</h1><p>게임 화면이 아닌 제작 원화 검사 화면입니다. 실제 이동은 거실 동영상으로 확인합니다.</p>{kinds.map(kind=><section key={kind}><h2>{kind}</h2><div style={{display:'grid',gridTemplateColumns:'repeat(8,minmax(90px,1fr))',gap:10}}>{frames.map(frame=><figure key={frame} style={{margin:0,textAlign:'center'}}><img alt={`${kind} ${frame}`} src={files[`../../src/assets/animals/${kind}/${frame}.webp`]} style={{width:'100%',background:'#e6dfcc',borderRadius:14}}/><figcaption>{frame}</figcaption></figure>)}</div></section>)}</main>)

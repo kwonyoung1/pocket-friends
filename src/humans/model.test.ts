@@ -189,3 +189,8 @@ it('the two human friends exchange their own short conversation when they meet',
   expect(girl.bubblePriority).toBe(2)
   expect(humanPose(boy, 'normal', noon)).toBe('smile')
 })
+
+it('keeps new articulated walking visible even when a moving friend is smiling',()=>{
+ const s=game();grantSpecialFriends(s,noon);const f=s.friends.find(f=>f.id==='special-boy')!;f.moving=true
+ expect(humanPose(f,'smile',noon)).toBe('walk');f.stats.energy=20;expect(humanPose(f,'closed',noon)).toBe('walk');f.stats.energy=90;f.moving=false;expect(humanPose(f,'smile',noon)).toBe('smile')
+})

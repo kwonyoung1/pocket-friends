@@ -26,7 +26,7 @@ async function snapshot(page:Page){return page.evaluate(()=>JSON.parse(localStor
 
 test('halloween is persistent, gentle and decorative without changing saved possessions or blocking touch',async({page},info)=>{
  await seed(page);const before=await snapshot(page),size=await page.locator('.room').evaluate(e=>[e.getAttribute('data-world-width'),e.getAttribute('data-world-height')])
- await page.getByRole('button',{name:'🎃 할로윈 테마로 변경',exact:true}).click();await expect(page.locator('.room')).toHaveAttribute('data-theme','halloween');await expect(page.getByTestId('halloween-decor')).toBeVisible()
+ await page.getByLabel('방 테마 선택',{exact:true}).selectOption('halloween');await expect(page.locator('.room')).toHaveAttribute('data-theme','halloween');await expect(page.getByTestId('halloween-decor')).toBeVisible()
  const toolbar=await page.locator('.room-toolbar').boundingBox()
  for(const child of await page.locator('.room-toolbar > *').all()){const b=await child.boundingBox();expect(b!.y).toBeGreaterThanOrEqual(toolbar!.y);expect(b!.y+b!.height).toBeLessThanOrEqual(toolbar!.y+toolbar!.height+.1)}
  await expect(page.getByRole('timer',{name:'한국 시간 시계'})).toBeVisible()
@@ -40,7 +40,7 @@ test('halloween is persistent, gentle and decorative without changing saved poss
  await page.emulateMedia({reducedMotion:'reduce'});for(const cls of ['.halloween-ghost','.halloween-star','.halloween-bat'])expect(await page.locator(cls).first().evaluate(e=>getComputedStyle(e).animationName)).toBe('none')
  await page.locator('.room-panel').screenshot({path:`/tmp/pocket-halloween-${info.project.name}.png`})
  await page.reload();await expect(page.locator('.room')).toHaveAttribute('data-theme','halloween')
- await page.getByRole('button',{name:'🌿 기본 테마로 변경',exact:true}).click();await expect(page.locator('.room')).toHaveAttribute('data-theme','default');await expect(page.getByTestId('halloween-decor')).toHaveCount(0)
+ await page.getByLabel('방 테마 선택',{exact:true}).selectOption('default');await expect(page.locator('.room')).toHaveAttribute('data-theme','default');await expect(page.getByTestId('halloween-decor')).toHaveCount(0)
 })
 
 test('four floor corners clamp native touch to visible body bounds on every screen size',async({page})=>{

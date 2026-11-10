@@ -1,0 +1,223 @@
+{
+  "desktop": {
+    "environment": "Headless Chromium on development host; not a physical phone/GPU benchmark",
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "rafHz": 46.17245043794573,
+    "p95FrameMs": 33.5,
+    "pageErrors": [],
+    "animals": {
+      "room-momo": {
+        "frames": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ],
+        "states": [
+          "Idle",
+          "WalkStart",
+          "Walk",
+          "WalkStop"
+        ],
+        "worldDistance": 432.95951550283655
+      },
+      "room-bibi": {
+        "frames": [
+          "0",
+          "1",
+          "2",
+          "4",
+          "5",
+          "6",
+          "3",
+          "7"
+        ],
+        "states": [
+          "Idle",
+          "WalkStart",
+          "Walk",
+          "WalkStop",
+          "Turn"
+        ],
+        "worldDistance": 444.8159382348707
+      },
+      "room-coco": {
+        "frames": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ],
+        "states": [
+          "Idle",
+          "WalkStart",
+          "Turn",
+          "Walk",
+          "WalkStop"
+        ],
+        "worldDistance": 347.9023866026148
+      },
+      "room-dudu": {
+        "frames": [
+          "0",
+          "2",
+          "3",
+          "4",
+          "6",
+          "7",
+          "1",
+          "5"
+        ],
+        "states": [
+          "Idle",
+          "Turn",
+          "Walk",
+          "WalkStart",
+          "WalkStop"
+        ],
+        "worldDistance": 524.9873724449606
+      },
+      "room-mungchi": {
+        "frames": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "6",
+          "5",
+          "7"
+        ],
+        "states": [
+          "Idle",
+          "Turn",
+          "WalkStop",
+          "WalkStart",
+          "Walk"
+        ],
+        "worldDistance": 462.7339269459283
+      }
+    }
+  },
+  "mobile": {
+    "environment": "Headless Chromium on development host; not a physical phone/GPU benchmark",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "rafHz": 59.90830535336892,
+    "p95FrameMs": 16.700000000000728,
+    "pageErrors": [],
+    "animals": {
+      "room-momo": {
+        "frames": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ],
+        "states": [
+          "Idle",
+          "WalkStart",
+          "Walk"
+        ],
+        "worldDistance": 352.5040598336865
+      },
+      "room-bibi": {
+        "frames": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ],
+        "states": [
+          "Idle",
+          "WalkStart",
+          "Walk",
+          "Turn",
+          "WalkStop"
+        ],
+        "worldDistance": 338.025567885029
+      },
+      "room-coco": {
+        "frames": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ],
+        "states": [
+          "Idle",
+          "WalkStart",
+          "Walk"
+        ],
+        "worldDistance": 305.49534631898297
+      },
+      "room-dudu": {
+        "frames": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ],
+        "states": [
+          null,
+          "Idle",
+          "Turn",
+          "Walk",
+          "WalkStart",
+          "WalkStop"
+        ],
+        "worldDistance": 462.6832759821517
+      },
+      "room-mungchi": {
+        "frames": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ],
+        "states": [
+          null,
+          "Idle",
+          "Turn",
+          "Walk",
+          "WalkStart",
+          "WalkStop"
+        ],
+        "worldDistance": 353.4323160050686
+      }
+    }
+  }
+}

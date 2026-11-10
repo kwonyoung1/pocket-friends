@@ -1,0 +1,12 @@
+.animal-art{display:block;position:relative;width:100%;height:100%;line-height:0;isolation:isolate}.animal-art>span{display:block;position:absolute;inset:0;width:100%;height:100%;background-repeat:no-repeat;background-size:800% 100%;background-position:0 100%;pointer-events:none;filter:var(--animal-palette,none)}.animal-life,.animal-previous{background-image:var(--animal-life)}.animal-previous{opacity:0}.animal-walk{background-image:var(--animal-walk);opacity:0}
+.illustrated-home .room-friend .animal-art{position:absolute;aspect-ratio:1;width:auto;height:100%;left:50%;translate:-50% 0;transform:scale(1.35);transform-origin:50% 93%;filter:drop-shadow(0 3px 2px #79624620)}
+.illustrated-home .room-friend:has(.animal-art) .friend-emotion,.illustrated-home .room-friend:has(.animal-art) .friend-lift,.illustrated-home .room-friend:has(.animal-art) .friend-figure,.illustrated-home .room-friend:has(.animal-art) .living-motion{animation:none!important}.illustrated-home .room-friend:has(.animal-art) .living-motion{transform:none!important}
+.illustrated-home .profile-portrait .animal-art,.illustrated-home .dock-portrait .animal-art,.illustrated-home .card-avatar .animal-art{transform:scale(1.12);transform-origin:50% 93%}.animal-mini>span{background-size:800% 100%}
+@media(max-width:600px){.illustrated-home .room-friend .animal-art{transform:scale(1.45)}}
+@media(prefers-reduced-motion:reduce){.animal-walk{opacity:0!important}.animal-life{opacity:1!important}}
+.cozy-home[data-living-motion=reduced] .animal-walk{opacity:0!important}.cozy-home[data-living-motion=reduced] .animal-life{opacity:1!important}
+/* Quiet uniform breathing preserves face proportions; locomotion uses drawings. */
+.animal-art[data-motion-state=Idle]>.animal-life,.animal-art[data-motion-state=Sit]>.animal-life,.animal-art[data-motion-state=Rest]>.animal-life,.animal-art[data-motion-state=Sleep]>.animal-life{animation:animal-quiet-breath var(--living-rhythm,6s) ease-in-out var(--living-delay,0s) infinite;transform-origin:50% 93%}
+@keyframes animal-quiet-breath{50%{scale:1.004}}
+.animal-art[data-animation-visible=false]>span,.living-motion[data-visible=false] .animal-art>span,.cozy-home[data-living-motion=reduced] .animal-art>span{animation:none!important}
+@media(prefers-reduced-motion:reduce){.animal-art>span{animation:none!important}}

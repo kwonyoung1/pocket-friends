@@ -1,5 +1,5 @@
-import boy from '../assets/humans/boy.png'
-import girl from '../assets/humans/girl.png'
+import {CalmWalk} from './calm/CalmWalk'
+import {PaintedSprite} from '../art/PaintedSprite'
 import type { Friend } from '../game'
 import { humanPose } from './pose'
 import './styles.css'
@@ -7,10 +7,12 @@ export function HumanSprite({
   friend,
   emotion,
   mini,
+  gaze=0,
 }: {
   friend: Pick<Friend, 'kind' | 'name'> & Partial<Friend>
   emotion: string
   mini: boolean
+  gaze?:number
 }) {
   const pose = humanPose(friend, emotion, Date.now())
   return (
@@ -20,12 +22,7 @@ export function HumanSprite({
       data-human-pose={pose}
     >
       <span className="human-motion">
-        <img
-          className="human-art"
-          src={friend.kind === 'boy' ? boy : girl}
-          alt={`${friend.name} · ${friend.kind === 'boy' ? '회색 니트 남자' : '검은 재킷 여자'} 캐릭터`}
-          draggable={false}
-        />
+        <CalmWalk friend={friend} mini={mini}><PaintedSprite kind={friend.kind==='boy'?'boy':'girl'} human gaze={gaze} pose={pose==='walk'?'idle':pose} expression={pose==='surprised'?'surprised':pose==='happy'?'happy':['sleep','sleepy','rest'].includes(pose)?'closed':pose==='smile'?'smile':emotion==='closed'?'closed':'normal'}/></CalmWalk>
       </span>
       {pose === 'surprised' && (
         <span className="human-expression" aria-hidden="true">
@@ -39,7 +36,7 @@ export function HumanSprite({
       )}
       {pose === 'sleep' && (
         <>
-          <span className="human-blanket" aria-hidden="true" />
+
           <span className="human-dream" aria-hidden="true">
             ☾ z z
           </span>

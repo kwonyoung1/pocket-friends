@@ -40,7 +40,7 @@ async function data(page: Page) {
     JSON.parse(localStorage.getItem('pocket-friends-v1')!),
   )
 }
-test('legacy eight friends, pictures, inventory and progress remain; gifts arrive once and have separate PNGs with real alpha', async ({
+test('legacy eight friends, pictures, inventory and progress remain; gifts arrive once and have separate painted frames with real alpha', async ({
   page,
 }, info) => {
   const s = fixture()
@@ -65,9 +65,11 @@ test('legacy eight friends, pictures, inventory and progress remain; gifts arriv
   for (const kind of ['boy', 'girl']) {
     const img = page.getByTestId(`room-special-${kind}`).locator('.human-art')
     await expect(img).toBeVisible()
-    await expect(img).toHaveAttribute('src', new RegExp(kind))
+    await expect(img).toHaveAttribute('data-art-kind',kind)
+    await expect(img).toHaveAttribute('data-art-version','3')
+    await expect(img.locator('.painted-frame.frame-primary')).toBeVisible()
     const alpha = await img.evaluate(async (node) => {
-      const img = node as HTMLImageElement
+      const img = new Image();img.src=node.getAttribute('data-art-source')!
       await img.decode()
       const c = document.createElement('canvas')
       c.width = img.naturalWidth
@@ -99,13 +101,13 @@ test('legacy eight friends, pictures, inventory and progress remain; gifts arriv
     expect(alpha.transparent).toBeGreaterThan(10000)
     expect(alpha.opaque).toBeGreaterThan(10000)
     expect(alpha.edgeOpaque).toBe(0)
-    expect(alpha.width).toBe(alpha.height)
+    expect(alpha.width).toBe(512);expect(alpha.height).toBe(512)
   }
   await page.reload()
   await expect(page.locator('.room-friend')).toHaveCount(10)
   expect((await data(page)).world.coins).toBe(0)
   await page.screenshot({
-    path: `docs/screenshots/human-friends-${info.project.name}.png`,
+    path: info.outputPath('illustrated-friends.png'),
     fullPage: true,
   })
 })
@@ -177,6 +179,8 @@ test('special friend rename and real pointer dragging persist, without replacing
   await page.getByLabel('새 이름').fill('다정한 소년')
   await page.getByRole('button', { name: '이름 저장' }).click()
   await page.getByRole('button', { name: '생활 메뉴 닫기' }).click()
+  // Rename feedback remains visible while the player starts a room gesture.
+  await expect(page.locator('.toast')).toBeVisible()
   const actor = page.getByTestId('room-special-boy')
   await actor.scrollIntoViewIfNeeded()
   const p = await actor.locator('.friend-figure').boundingBox(),
@@ -209,7 +213,11 @@ test('special friend rename and real pointer dragging persist, without replacing
     await page.mouse.up()
   }
   expect(await actor.getAttribute('data-x')).not.toBe(before)
+  const droppedX = await actor.getAttribute('data-x')
+  await page.getByRole('button', { name: '알림 닫기' }).click()
+  await expect(page.locator('.toast')).toHaveCount(0)
   await page.reload()
+  await expect(actor).toHaveAttribute('data-x', droppedX!)
   await expect(
     page.getByRole('button', { name: '다정한 소년 상태 확인' }),
   ).toBeVisible()
@@ -225,7 +233,7 @@ test('special friend rename and real pointer dragging persist, without replacing
     saved.friends.filter((f: { id: string }) => f.id === 'special-boy'),
   ).toHaveLength(1)
 })
-test('sleep mode uses the same anchored artwork and wakes naturally without a pet reward', async ({
+test('sleep mode uses new anchored painted sleep frames and wakes without a pet reward', async ({
   page,
 }) => {
   const time = Date.parse('2026-10-15T16:00:00Z'),
@@ -238,8 +246,8 @@ test('sleep mode uses the same anchored artwork and wakes naturally without a pe
     'data-human-pose',
     'sleep',
   )
-  await expect(actor.locator('.human-blanket')).toBeVisible()
-  const src = await actor.locator('img').getAttribute('src')
+  await expect(actor.locator('.sleep-scene')).toBeVisible()
+  const src = await actor.locator('.human-art').getAttribute('data-art-source')
   await actor.click()
   await page.clock.runFor(100)
   expect(
@@ -253,5 +261,5 @@ test('sleep mode uses the same anchored artwork and wakes naturally without a pe
     'data-human-pose',
     'sleep',
   )
-  expect(await actor.locator('img').getAttribute('src')).toBe(src)
+  expect(await actor.locator('.human-art').getAttribute('data-art-source')).toBe(src)
 })

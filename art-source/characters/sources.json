@@ -1,0 +1,37 @@
+{
+  "boy": {
+    "atlas": "art-source/characters/boy-atlas.png",
+    "stride": "art-source/characters/boy-stride.png",
+    "passing": "art-source/characters/boy-passing.png"
+  },
+  "girl": {
+    "atlas": "art-source/characters/girl-atlas.png",
+    "stride": "art-source/characters/girl-stride.png",
+    "passing": "art-source/characters/girl-passing.png"
+  },
+  "cat": {
+    "atlas": "art-source/characters/cat-atlas.png",
+    "stride": "art-source/characters/cat-stride.png",
+    "passing": "art-source/characters/cat-passing.png"
+  },
+  "bunny": {
+    "atlas": "art-source/characters/bunny-atlas.png",
+    "stride": "art-source/characters/bunny-stride.png",
+    "passing": "art-source/characters/bunny-passing.png"
+  },
+  "dog": {
+    "atlas": "art-source/characters/dog-atlas.png",
+    "stride": "art-source/characters/dog-stride.png",
+    "passing": "art-source/characters/dog-passing.png"
+  },
+  "bear": {
+    "atlas": "art-source/characters/bear-atlas.png",
+    "stride": "art-source/characters/bear-stride.png",
+    "passing": "art-source/characters/bear-passing.png"
+  },
+  "fox": {
+    "atlas": "art-source/characters/fox-atlas.png",
+    "stride": "art-source/characters/fox-stride.png",
+    "passing": "art-source/characters/fox-passing.png"
+  }
+}

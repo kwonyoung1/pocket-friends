@@ -1,0 +1,268 @@
+{
+  "boy": {
+    "idle": {
+      "width": 512,
+      "height": 512,
+      "bytes": 37484,
+      "sha256": "d56845e8d2eefd73bc5728c26b6d99f1ebd46e8be1744ca66e3c9a29fdb0510c"
+    },
+    "happy": {
+      "width": 512,
+      "height": 512,
+      "bytes": 36692,
+      "sha256": "4d4623e4d423d6c1179c91e06550e34d9d4381a779b3a58b70a610a0483d631d"
+    },
+    "closed": {
+      "width": 512,
+      "height": 512,
+      "bytes": 36634,
+      "sha256": "bb9c1133ce1cf16e8e277661d3b0a8790da55b10469b97ec0c5c14be1739f588"
+    },
+    "walk-a": {
+      "width": 512,
+      "height": 512,
+      "bytes": 40066,
+      "sha256": "fae221e60f589ecd27d945c19443639470a3e22dd81b75cd9fb7094c1ac0a589"
+    },
+    "walk-b": {
+      "width": 512,
+      "height": 512,
+      "bytes": 33564,
+      "sha256": "44a64ffc5edce10ed06d93844b63e7fae6884183d59b68679fe50222a5e4c011"
+    },
+    "sleep": {
+      "width": 512,
+      "height": 512,
+      "bytes": 58066,
+      "sha256": "31c7a6836ed1c417c368519cbb518a64c1faf95618b11d97672acab76dab78ba"
+    }
+  },
+  "girl": {
+    "idle": {
+      "width": 512,
+      "height": 512,
+      "bytes": 40014,
+      "sha256": "5e6d1a436c6f8a1a6c010acebfd7e5a8b7d031e125946209861eb1a7441ba14e"
+    },
+    "happy": {
+      "width": 512,
+      "height": 512,
+      "bytes": 39650,
+      "sha256": "1b0fed0dc7ba27981298c0e8812a6b9abb32cd2319e191aad75290e0fe53c615"
+    },
+    "closed": {
+      "width": 512,
+      "height": 512,
+      "bytes": 39772,
+      "sha256": "2001a29cc1e8c6cc552f0acbcab7e3b3ce07c06cc4e0dfa2e1769ff594e0d7fd"
+    },
+    "walk-a": {
+      "width": 512,
+      "height": 512,
+      "bytes": 45150,
+      "sha256": "3a5417e26b5141f4e1e53226396875cfd210fb6931f0637f72b6eae78ac08224"
+    },
+    "walk-b": {
+      "width": 512,
+      "height": 512,
+      "bytes": 33960,
+      "sha256": "1bceaf7f9af3d1b6340da525ce9b19399493ab2783d8f3f65e3adf88c9cd14d8"
+    },
+    "sleep": {
+      "width": 512,
+      "height": 512,
+      "bytes": 56982,
+      "sha256": "d81a9afdba9b919c0a1b08a154339c5e0a7c4c2096c68572c7728aa98cdfceda"
+    }
+  },
+  "cat": {
+    "idle": {
+      "width": 512,
+      "height": 512,
+      "bytes": 42934,
+      "sha256": "2adc6dff22b913320232d640e35b70f8788a8b38daaa51120e8206acce9ed8ff"
+    },
+    "happy": {
+      "width": 512,
+      "height": 512,
+      "bytes": 42196,
+      "sha256": "c4f03024a7d890e2040afd81ee999634f725d0518f64e6cbf6e16ac42cbc34e8"
+    },
+    "closed": {
+      "width": 512,
+      "height": 512,
+      "bytes": 42042,
+      "sha256": "437b297e5f155ba917dc957cc56589757a28f0bb7376fb9a0f7af54284d0b8d7"
+    },
+    "walk-a": {
+      "width": 512,
+      "height": 512,
+      "bytes": 51784,
+      "sha256": "10c1286a8f04b8dad0a59143ba05a6071a219c1dfcaac1eee5789109ab2e6b52"
+    },
+    "walk-b": {
+      "width": 512,
+      "height": 512,
+      "bytes": 43598,
+      "sha256": "126e471fd8dba337ae1d5c0f5e3602bd980bbc1ad5fc16016f31f3a4d72b1044"
+    },
+    "sleep": {
+      "width": 512,
+      "height": 512,
+      "bytes": 37474,
+      "sha256": "4767f86c399e4b470c1a370e1f0ccc222d4f2079b3ed46cd55c73cf770f50951"
+    }
+  },
+  "bunny": {
+    "idle": {
+      "width": 512,
+      "height": 512,
+      "bytes": 30480,
+      "sha256": "da6ab6632192be61898e643293188daa0d3f81b5153d0a874d4b9c79b5aa33d6"
+    },
+    "happy": {
+      "width": 512,
+      "height": 512,
+      "bytes": 29932,
+      "sha256": "6591456517b04e46681339cda739f5598ee493905e1abd6a1dd33aeb134dbe87"
+    },
+    "closed": {
+      "width": 512,
+      "height": 512,
+      "bytes": 29792,
+      "sha256": "85b30f4da06327be3193902f48127701a9195e62e455f39c316727b1ebc78cd7"
+    },
+    "walk-a": {
+      "width": 512,
+      "height": 512,
+      "bytes": 37792,
+      "sha256": "15b912c0cb1a53c03a0276327264527bac63361530800e452504e25f812e4be1"
+    },
+    "walk-b": {
+      "width": 512,
+      "height": 512,
+      "bytes": 30544,
+      "sha256": "7919f308743012a38caa9941e777bcd3e8f73ec4225a43972029ed4e99c3461b"
+    },
+    "sleep": {
+      "width": 512,
+      "height": 512,
+      "bytes": 34446,
+      "sha256": "b3b2dba44a6635592f024631808c56a90d431916a0d571bd26f6dea4ea6065c6"
+    }
+  },
+  "dog": {
+    "idle": {
+      "width": 512,
+      "height": 512,
+      "bytes": 38848,
+      "sha256": "dc482405232ef76a3c1add9d461afbb6af3a47f1e4910e7221684117d14ec97c"
+    },
+    "happy": {
+      "width": 512,
+      "height": 512,
+      "bytes": 38106,
+      "sha256": "2091ce6faed279cb4cb3e07e6efadeb077d26e688394e890dc2236a44194e81a"
+    },
+    "closed": {
+      "width": 512,
+      "height": 512,
+      "bytes": 37770,
+      "sha256": "dc1a003c226820a49b07bc9a57ffb6d243fc60a3469678e8d583fb2237c3bd96"
+    },
+    "walk-a": {
+      "width": 512,
+      "height": 512,
+      "bytes": 56744,
+      "sha256": "0850f0f5fb90059880045356822f9f635f321e4194197efa95df0fb2d0ae21e1"
+    },
+    "walk-b": {
+      "width": 512,
+      "height": 512,
+      "bytes": 42540,
+      "sha256": "4601ff05e28066a6d25333acffcbe40e54db70942c15b8977fab1d51498afa23"
+    },
+    "sleep": {
+      "width": 512,
+      "height": 512,
+      "bytes": 38032,
+      "sha256": "46bae29380a33040017d6d8042c7a489b2fdf6dd010e694013a0424c7937bc33"
+    }
+  },
+  "bear": {
+    "idle": {
+      "width": 512,
+      "height": 512,
+      "bytes": 33486,
+      "sha256": "d68291b51771a2c09ebaf1b96bfc1a042141c839fb6263291a969888ffbfdd96"
+    },
+    "happy": {
+      "width": 512,
+      "height": 512,
+      "bytes": 31054,
+      "sha256": "fff914bf875043a23ef995845658bf15f28cbef25d320ce64830352db2940439"
+    },
+    "closed": {
+      "width": 512,
+      "height": 512,
+      "bytes": 32348,
+      "sha256": "5c322f7895610165385d5278c2de47fe473ee3cbe09df71a329cd95bfa5ee314"
+    },
+    "walk-a": {
+      "width": 512,
+      "height": 512,
+      "bytes": 45020,
+      "sha256": "971bbb62c799a6ddd705cd5d80adf6741eabb7164f6f509edc23adb70fa729d3"
+    },
+    "walk-b": {
+      "width": 512,
+      "height": 512,
+      "bytes": 37462,
+      "sha256": "434d04f328d82b105f94cef4fa3a0ec13b3c43b47e8881836c1b47c6d142760a"
+    },
+    "sleep": {
+      "width": 512,
+      "height": 512,
+      "bytes": 33530,
+      "sha256": "542e7a5f98102815ed6cd6b885a424e9ed9d4e40809451bceb00254967d37532"
+    }
+  },
+  "fox": {
+    "idle": {
+      "width": 512,
+      "height": 512,
+      "bytes": 41632,
+      "sha256": "74e7f39a14506a8dbe38a1eca033002a3ee8b5f1188dac3d622e44adfacea7ed"
+    },
+    "happy": {
+      "width": 512,
+      "height": 512,
+      "bytes": 42314,
+      "sha256": "b8d4de8f735522d786b8a12643fb7c864ea8a8ca030a49abd9e4fb82d517847d"
+    },
+    "closed": {
+      "width": 512,
+      "height": 512,
+      "bytes": 41388,
+      "sha256": "103849d856f58d75189f877c4f5de56129aea74ef2538fbcaae720a7c0c48e5b"
+    },
+    "walk-a": {
+      "width": 512,
+      "height": 512,
+      "bytes": 50244,
+      "sha256": "ff6c972232c64b952cf98f76abae33fc882bfe9afda0659c4c81a61b5ce82658"
+    },
+    "walk-b": {
+      "width": 512,
+      "height": 512,
+      "bytes": 41164,
+      "sha256": "b57a2e7642e1cffc42eaf10e7824df397867a46d3f65116b6e39f1437ceedd94"
+    },
+    "sleep": {
+      "width": 512,
+      "height": 512,
+      "bytes": 38188,
+      "sha256": "9eb58c3b1a9efae48ec712d360ba8368f9c04f218ce31b451d3321ef04db4108"
+    }
+  }
+}
