@@ -81,7 +81,7 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
   const elapsed = Date.now() - (f.interaction?.startedAt ?? Date.now())
   return <button ref={button}
     className={`room-friend ${emote?`state-motion-${emote.kind}`:''} ${f.bubbleUntil>Date.now()?'has-speech':''} ${f.foodReaction&&f.foodReaction.until>Date.now()?`food-${f.foodReaction.kind}`:''} ${needs.map(n => `need-${n}`).join(' ')} ${f.stats.hygiene <= 10 ? 'very-dusty' : ''} ${f.stats.hunger <= 10 ? 'very-hungry' : ''} ${(f.socialUntil ?? 0) > Date.now() ? 'social-greeting' : ''} ${!f.moving&&(f.furnitureUntil??0)>Date.now()&&/휴식|쉬기|햄스터/.test(f.furnitureActivity??'')?'furniture-relax':''} ${(f.eatingUntil??0)>Date.now()?'eating':''} ${asleep?'life-sleep':''} ${bathing?'life-bath':''} ${f.life?.coldAt?'life-cold':''} ${selected ? 'selected' : ''} ${f.moving ? 'walking' : ''} interaction-${phase} ${head ? 'head-pet' : ''} ${close ? 'close-friend' : ''} ${(f.growth?.specialUntil ?? 0) > Date.now() ? 'personality-action' : ''}`}
-    aria-label={`${f.name} 쓰다듬기 또는 끌어서 이동`} aria-pressed={selected} aria-describedby="interaction-help"
+    aria-label={`${f.name} 쓰다듬기 또는 끌어서 이동`} aria-pressed={selected} aria-describedby={`interaction-help feeling-${f.id}`}
     data-testid={`room-${f.id}`} data-x={f.x.toFixed(1)} data-y={f.y.toFixed(1)} data-moving={f.moving}
     data-feeling={mood} data-kind={f.kind} data-neighbor={neighbor?.name??''} data-phase={phase} data-zone={f.interaction?.zone ?? 'body'} data-affinity={affinity(f)}
     style={{ left: leftPercent(f.x), top: topPercent(f.y), zIndex: f.interaction?.gesture ? 1500 : Math.round(f.y), '--reaction-scale': intensity } as CSSProperties}
@@ -109,8 +109,9 @@ export function InteractiveFriend({ friend: f, selected, select, changed, bonded
     {(f.furnitureUntil??0)>Date.now()&&<span className="friend-activity">{f.furnitureActivity}</span>}
     {emote&&<span key={`${emote.at}-${emote.kind}`} className="state-emote" role="img" aria-label={emote.kind==='happy'?'행복해요':needLabels[emote.kind]} data-emotion={emote.kind} data-variant={emote.variant}><Emotion kind={emote.kind} variant={emote.variant}/></span>}
     {emote?.kind==='hygiene'&&<span className="care-dust" aria-hidden="true"><i>·</i><i>✧</i><i>·</i>{f.stats.hygiene<=10&&<><i>·</i><i>✧</i></>}</span>}
-    {!emote&&!asleep&&!bathing&&<span className={`living-feeling feeling-${mood}`} role="img" aria-label={feelings[mood].label}>{neighbor&&mood==='smile'?'♪':feelings[mood].symbol}</span>}
+    {!emote&&!asleep&&!bathing&&<span className={`living-feeling feeling-${mood}`} aria-hidden="true">{neighbor&&mood==='smile'?'♪':feelings[mood].symbol}</span>}
     {neighbor&&!asleep&&phase==='idle'&&<span className="living-company" aria-hidden="true">{neighbor.name}와 함께 ♡</span>}
+    <span className="sr-only" id={`feeling-${f.id}`}>{feelings[mood].label}</span>
     <span className="friend-name">{selected && <Heart size={10} fill="currentColor" aria-hidden="true" />} {f.name}</span>
   </button>
 }

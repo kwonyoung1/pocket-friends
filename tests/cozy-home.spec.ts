@@ -6,6 +6,7 @@ test('cozy home keeps the economy, needs, selection and accessible tools through
  const errors:string[]=[],requests:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()))
  const initial=await seed(page)
  await expect(page.getByTestId('room-momo')).toHaveAttribute('data-feeling','hungry')
+ await expect(page.getByTestId('room-momo')).toHaveAccessibleDescription(/배가 고파요/)
  await expect(page.getByRole('timer',{name:'한국 시간 시계'})).toBeVisible()
  const clock=await page.getByRole('timer').boundingBox();expect(clock!.x).toBeGreaterThanOrEqual(0);expect(clock!.x+clock!.width).toBeLessThanOrEqual(page.viewportSize()!.width)
  await page.getByRole('button',{name:'우리 모모 상태 확인',exact:true}).click()

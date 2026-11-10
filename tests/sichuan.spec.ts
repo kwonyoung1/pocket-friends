@@ -38,10 +38,21 @@ test('a cleared stage can continue then timeout or stop with its last reward pai
  await page.reload();await page.getByRole('button',{name:'사천성',exact:true}).click();await expect(page.getByTestId('sichuan-reward')).toContainText('60코인');expect((await snapshot(page)).world.coins).toBe(360)
 })
 test('competition plays an entire random 8x8 board, freezes time, displays one best and restarts',async({page})=>{
+ // This case performs 64 actual pointer inputs; allow slower CI hardware while
+ // keeping all elapsed game-time, tile-count, reward and restart assertions.
+ test.setTimeout(90000)
  await seed(page);await page.getByRole('button',{name:'경쟁모드',exact:true}).click();await page.getByLabel('사천성 닉네임').fill('찬미');await page.getByRole('button',{name:'경쟁 시작',exact:true}).click()
  const first=await board(page)
  for(let i=0;i<32;i++){
-  const b=await board(page),found=pair(b);expect(found).not.toBeNull();await tap(page,found![0]);await tap(page,found![1]);await page.clock.runFor(600);if(i<31&&await page.getByTestId('sichuan-board').evaluate(el=>el.classList.contains('shuffling')))await page.clock.runFor(500);if(i<31)expect((await board(page)).tiles.filter(Boolean)).toHaveLength(64-(i+1)*2)
+  const b=await board(page),found=pair(b);expect(found).not.toBeNull()
+  await tap(page,found![0]);await tap(page,found![1])
+  await expect(page.locator('.sichuan-board .tile-popping')).toHaveCount(2)
+  // Advance the same elapsed game time without rendering 600ms of background
+  // room frames for each pair. Keep two frames to flush the match presentation.
+  await page.clock.fastForward(600);await page.clock.runFor(32)
+  await expect(page.locator('.sichuan-board .tile-popping')).toHaveCount(0)
+  if(i<31&&await page.getByTestId('sichuan-board').evaluate(el=>el.classList.contains('shuffling'))){await page.clock.fastForward(500);await page.clock.runFor(32)}
+  if(i<31)expect((await board(page)).tiles.filter(Boolean)).toHaveLength(64-(i+1)*2)
  }
  await expect(page.getByText('🎉 경쟁모드 완료!')).toBeVisible();const saved=await snapshot(page),record=saved.world.sichuan.bests[0]
  expect(saved.world.coins).toBe(300);expect(record.nickname).toBe('찬미');expect(record.elapsedMs).toBeGreaterThanOrEqual(31*600);expect(record.elapsedMs).toBeLessThan(32*1100)
