@@ -1,3 +1,4 @@
+import {quietMovement,restDuration,nearbyDestination,travelStep,stopTravel,mayStart,started} from './ambient/movement.ts'
 import {naturalChange} from './status/balance.ts'
 import {settleEmotions,migrateEmotion} from './emotions/model.ts'
 import {roomScale} from './room/config.ts'
@@ -14,7 +15,7 @@ import { growth, dominant } from './progression/model.ts'
 import type { Growth, World } from './progression/model.ts'
 import { growthBalance } from './progression/config.ts'
 import { migrateProgress } from './progression/migrate.ts'
-import { cells, findRoute } from './navigation.ts'
+import { findRoute } from './navigation.ts'
 import { advanceInteraction, controlled, normalPet, speak } from './interaction.ts'
 import type { Interaction } from './interaction.ts'
 import { interactionBalance } from './balance.ts'
@@ -49,7 +50,7 @@ const definitions: [string, string, Kind, string, string, number, number][] = [
 export function createFriends(now = Date.now()): Friend[] {
   return definitions.map(([id, name, kind, color, description, x, y]) => ({
     id, name, kind, color, description, x:x*roomScale, y:y*roomScale, stats: { hunger: 78, happiness: 85, energy: 90, hygiene: 82, affection: 20 },
-    facing: 1, route: [], restingUntil: now + between(500, 2500), nextSpeech: now + between(20000, 50000),
+    facing: 1, route: [], restingUntil: now + restDuration(), nextSpeech: now + between(30000, 60000),
     bubble: '', bubbleUntil: 0, socialAfter: now + 12000, careAfter: 0, moving: false,
   }))
 }
@@ -60,11 +61,13 @@ export const decay=naturalChange
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 export function tick(friends: Friend[], now: number, dt: number, onMeeting: (text: string) => void, onBond: (friend: Friend) => void = () => {}, visualOnly = false) {
   if(!visualOnly)settleEmotions(friends,now)
-  for (const f of friends) {
-    if (f.growth?.awayJobId || busyLife(f,now)) { f.moving = false; continue }
+  const walkers=new Set(friends.filter(f=>f.moving&&!controlled(f)&&!busyLife(f,now)&&!f.growth?.awayJobId).slice(0,quietMovement.maxMoving))
+  // Longest-waiting friends get the next slot; array order cannot starve later adoptions.
+  for (const f of [...friends].sort((a,b)=>a.restingUntil-b.restingUntil)) {
+    if (f.growth?.awayJobId || busyLife(f,now)) { f.moving = false;stopTravel(f);continue }
     advanceInteraction(f, now, dt, () => onBond(f))
     f.moving = false
-    if (controlled(f)) continue
+    if (controlled(f)) {stopTravel(f);continue}
     const g = f.growth
     const freeSpeech = () => !friends.some(p => p !== f && p.bubbleUntil > now)
     const need = careNeeds(f)[0]
@@ -85,17 +88,18 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
     if (now >= f.nextSpeech) {
       if (isSpecialCharacter(f) && freeSpeech()) {
         speak(f, specialAmbient(f, now, friends), now, 1)
-        f.nextSpeech = now + between(20000, 50000)
-      } else f.nextSpeech = now + (isSpecialCharacter(f) ? 2000 : between(20000, 50000))
+        f.nextSpeech = now + between(30000, 60000)
+      } else f.nextSpeech = now + (isSpecialCharacter(f) ? 2000 : between(30000, 60000))
     }
     f.moving = false
-    if (now < f.restingUntil) continue
+    if (now < f.restingUntil) {walkers.delete(f);stopTravel(f);continue}
+    if(!walkers.has(f)){if(walkers.size>=quietMovement.maxMoving||!mayStart(friends,now))continue;walkers.add(f);started(friends,now)}
     if (!f.route.length) {
       const peers = friends.filter(p => p.id !== f.id && !controlled(p) && !p.growth?.awayJobId && !busyLife(p,now))
       const other = peers[Math.floor(Math.random() * peers.length)]
-      const social = !!other && now > f.socialAfter && Math.random() < (f.growth ? .25 + growth(f).traits.affectionate / 250 : .4)
-      const furnitureSpots = [{ x: 330, y: 270 }, { x: 770, y: 310 }, { x: 630, y: 470 }, { x: 170, y: 510 }]
-      const target = social ? other : Math.random() < (f.growth ? .6 - growth(f).traits.curious / 250 : .45) ? furnitureSpots[Math.floor(Math.random() * furnitureSpots.length)] : cells[Math.floor(Math.random() * cells.length)]
+      const social = !!other && distance(f,other)<300 && now > f.socialAfter && Math.random() < (f.growth ? .25 + growth(f).traits.affectionate / 250 : .4)
+      const target = social ? other : nearbyDestination(f,Math.random,friends)
+      if(!target){walkers.delete(f);stopTravel(f);f.restingUntil=now+restDuration();continue}
       f.route = findRoute(f, target, f.navObstacles)
       f.meeting = social ? other.id : undefined
     }
@@ -104,20 +108,24 @@ export function tick(friends: Friend[], now: number, dt: number, onMeeting: (tex
       const greeting=humanLine(f.kind,'social',f.bubble),reply=humanLine(peer.kind,'social',peer.bubble)
       if (isSpecialCharacter(f) && freeSpeech()) speak(f, greeting?`${peer.name}, ${greeting}`:`${peer.name}야, 안녕! 같이 놀자 ♡`, now, 2)
       if (isSpecialCharacter(peer) && !isSpecialCharacter(f) && freeSpeech()) speak(peer, reply?`${f.name}, ${reply}`:`${f.name}야~ 만나서 반가워!`, now, 2)
-      if (isSpecialCharacter(f) && isSpecialCharacter(peer)) peer.pendingGreeting = { text: `${f.name}, ${reply}`, at: now + 6500 }
+      if (isSpecialCharacter(f) && isSpecialCharacter(peer)) peer.pendingGreeting = { text: `${f.name}, ${reply}`, at: now + 3000 }
       for (const p of [f, peer]) {
         if (!visualOnly) { p.stats.happiness = clamp(p.stats.happiness + 4); p.stats.affection = clamp(p.stats.affection + (p.growth && dominant(p) === 'affectionate' ? 1 + growthBalance.bonuses.affectionateSocial : 1)) }
-        p.socialUntil = now + 7000; p.restingUntil = now + 7000; p.socialAfter = now + 30000; p.route = []; p.meeting = undefined; p.moving = false
+        p.socialUntil = now + 7000; p.restingUntil = now + restDuration(); p.socialAfter = now + 30000; p.route = []; p.meeting = undefined; p.moving = false
       }
       onMeeting(`${f.name}와 ${peer.name}, 반갑게 인사했어요`)
       continue
     }
     const target = f.route[0]
-    if (!target) { f.restingUntil = now + between(2000, 6000) * (f.stats.energy <= 10 ? 2 : 1) * (f.growth ? 1 + (growth(f).traits.calm - growth(f).traits.active) / 100 : 1); continue }
-    const d = distance(f, target), step = (f.kind === 'bear' ? 29 : f.kind === 'fox' ? 42 : 35) * dt * careSpeed(f) * (f.life?.coldAt ? .6 : 1)
+    if (!target) { f.restingUntil = now + restDuration(); continue }
+    const d = distance(f, target), step = travelStep(f,dt,d,f.route.length===1) * careSpeed(f) * (f.life?.coldAt ? .6 : 1)
+    const next={x:f.x+(target.x-f.x)/Math.max(d,.001)*Math.min(step,d),y:f.y+(target.y-f.y)/Math.max(d,.001)*Math.min(step,d)}
+    if(friends.some(p=>p!==f&&!p.growth?.awayJobId&&distance(next,p)<38&&distance(next,p)<distance(f,p)-.01)){
+      f.route=[];f.meeting=undefined;f.restingUntil=now+restDuration();walkers.delete(f);stopTravel(f);continue
+    }
     if (d <= step) {
       f.x = target.x; f.y = target.y; f.route.shift()
-      if (!f.route.length) { f.restingUntil = now + between(2000, 6000) * (f.stats.energy <= 10 ? 2 : 1) * (f.growth ? 1 + (growth(f).traits.calm - growth(f).traits.active) / 100 : 1); f.meeting = undefined }
+      if (!f.route.length) { f.restingUntil = now + restDuration(); f.meeting = undefined;walkers.delete(f);stopTravel(f) }
     } else {
       const dx = target.x - f.x
       if (Math.abs(dx) > .1) f.facing = dx > 0 ? 1 : -1

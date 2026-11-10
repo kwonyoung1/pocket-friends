@@ -1,7 +1,7 @@
 import type {Friend} from '../game'
 import {sleeping} from '../expansion/model'
 export type Feeling='smile'|'joy'|'sleepy'|'excited'|'hungry'|'dusty'|'lonely'|'content'|'surprised'|'rest'
-export const feelings:Record<Feeling,{label:string;symbol:string}>={smile:{label:'오늘도 반가워요',symbol:'✿'},joy:{label:'정말 행복해요',symbol:'♡'},sleepy:{label:'포근한 꿈나라',symbol:'☾'},excited:{label:'같이 놀아서 신나요',symbol:'♪'},hungry:{label:'배가 고파요',symbol:'🍽'},dusty:{label:'보송하게 씻고 싶어요',symbol:'🫧'},lonely:{label:'함께 놀고 싶어요',symbol:'…'},content:{label:'마음이 포근해요',symbol:'✧'},surprised:{label:'와, 놀라워요!',symbol:'!'},rest:{label:'잠깐 쉬어 가요',symbol:'☁'}}
+export const feelings:Record<Feeling,{label:string;symbol:string}>={smile:{label:'오늘도 반가워요',symbol:'✿'},joy:{label:'정말 행복해요',symbol:'♡'},sleepy:{label:'포근한 꿈나라',symbol:'☾'},excited:{label:'같이 놀아서 신나요',symbol:'♪'},hungry:{label:'배가 고파요',symbol:'🍽'},dusty:{label:'보송하게 씻고 싶어요',symbol:'🫧'},lonely:{label:'함께 놀고 싶어요',symbol:''},content:{label:'마음이 포근해요',symbol:'✧'},surprised:{label:'와, 놀라워요!',symbol:'!'},rest:{label:'잠깐 쉬어 가요',symbol:'☁'}}
 /** Read-only presentation; no saved fields, rewards or simulation changes. */
 export function feeling(f:Friend,now:number):Feeling{
  if(sleeping(f,now))return 'sleepy'

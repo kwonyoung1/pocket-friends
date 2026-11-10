@@ -93,7 +93,7 @@ describe('special human friends preserve the existing household', () => {
     grantSpecialFriends(s, noon)
     const humans = s.friends.slice(4)
     const travel = [0, 0]
-    for (let i = 1; i <= 600; i++) {
+    for (let i = 1; i <= 1800; i++) {
       const before = humans.map((f) => ({ x: f.x, y: f.y }))
       tick(s.friends, noon + i * 100, 0.1, () => {})
       humans.forEach((f, j) => {

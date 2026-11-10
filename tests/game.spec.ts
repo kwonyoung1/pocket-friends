@@ -29,7 +29,7 @@ test('four friends walk across the room, talk, respond to care and persist after
   await expect(page.locator('.affection strong')).toHaveText(affection!)
   await expectAutomaticSpeech(page,['special-boy','special-girl'])
   const raw = await page.evaluate(() => JSON.parse(localStorage.getItem('pocket-friends-v1')!))
-  expect(raw.friends.every((f: { nextSpeech: number }) => f.nextSpeech > raw.savedAt && f.nextSpeech <= raw.savedAt + 50000)).toBe(true)
+  expect(raw.friends.every((f: { nextSpeech: number }) => f.nextSpeech > raw.savedAt && f.nextSpeech <= raw.savedAt + 60000)).toBe(true)
   // Persisted bubble text proves the automatic scheduler executed, even after the bubble fades.
   expect(raw.friends.filter((f: {id: string}) => f.id.startsWith('special-')).every((f: { bubble: string }) => /[가-힣]/.test(f.bubble))).toBe(true)
   expect(raw.friends.filter((f: {id: string}) => ['momo', 'bibi', 'dudu'].includes(f.id)).every((f: { bubble: string }) => !f.bubble)).toBe(true)

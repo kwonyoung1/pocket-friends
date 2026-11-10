@@ -92,7 +92,8 @@ test('drag from a pending long pet cancels pet rewards, avoids furniture and per
   expect(Number(await actor.getAttribute('data-y'))).toBeCloseTo(data.y, 0)
   await page.clock.runFor(4500)
   const moved = Number(await actor.getAttribute('data-x')) !== Number(data.x.toFixed(1)) || Number(await actor.getAttribute('data-y')) !== Number(data.y.toFixed(1))
-  expect(moved).toBe(true)
+  expect(moved).toBe(false) // New quiet schedule preserves at least 15 seconds of rest.
+  await expectFriendsToWalk(page,['momo'])
 })
 test('native touch long press and cancellation work without page scrolling or sticky capture', async ({ page }) => {
   const session = await page.context().newCDPSession(page)

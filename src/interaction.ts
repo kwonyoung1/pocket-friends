@@ -1,3 +1,4 @@
+import {meaningfulSpeech,allowAmbientSpeech} from './ambient/speech.ts'
 import { humanLine } from './humans/config.ts'
 import { isSpecialCharacter, needLine } from './careNeeds.ts'
 import { busyLife } from './expansion/model.ts'
@@ -40,9 +41,12 @@ export function reactionLine(f: Friend, special: boolean) {
 }
 /** Priority: direct player (4) > urgent state (3) > friends (2) > ambient (1). */
 export function speak(f: Friend, text: string, now: number, priority: number, duration = 6500) {
+  text=text.trim()
+  if(!meaningfulSpeech(text))return false
   if (priority <= 2 && !isSpecialCharacter(f)) return false
   if (priority < 4 && (controlled(f) || (f.bubbleUntil > now && (f.bubblePriority ?? 0) > priority))) return false
-  f.bubble = text; f.bubbleUntil = now + duration; f.bubblePriority = priority
+  if(priority<=2.5&&!allowAmbientSpeech(f,text,now))return false
+  f.bubble = text; f.bubbleUntil = now + (priority<4?Math.min(duration,2700):duration); f.bubblePriority = priority
   return true
 }
 function interaction(phase: Phase, now: number, zone: Zone): Interaction {
