@@ -1,5 +1,7 @@
 # 포켓프렌즈 · 우리의 작은 집
 
+새 캐릭터 원화 7종·레이어 애니메이션·방 리디자인: [구현 및 검증 보고](docs/ILLUSTRATED_REDESIGN.md)
+
 독립 실험 화면: [이펙트 비교 연구실](docs/EFFECTS_LAB_REVIEW.md) · [열기/배포 방법](docs/EFFECTS_LAB_DEPLOY.md) · [실측 결과](docs/EFFECTS_LAB_RESULTS.md). 기존 게임 엔진은 교체하지 않습니다.
 
 최근 업데이트: [장비 +30강·보물 보상 개선·영단어 운영 종료](docs/ENHANCEMENT_30_UPDATE.md) · [서버/웹사이트 배포 버튼 순서](docs/ENHANCEMENT_30_DEPLOY.md) · [검증 결과](docs/ENHANCEMENT_30_VERIFICATION.md)

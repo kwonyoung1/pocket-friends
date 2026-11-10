@@ -23,39 +23,23 @@ export function humanPose(
   if (
     p === 'petting' ||
     p === 'delighted' ||
-    p === 'settling' ||
-    emotion === 'smile'
+    p === 'settling'
   )
     return 'smile'
+  if(f.moving)return 'walk'
   if ((f.furnitureUntil ?? 0) > now && f.furnitureActivity?.includes('놀이'))
     return 'play'
   if ((f.stats?.energy ?? 100) <= 30 || f.life?.coldAt) return 'sleepy'
-  if (f.moving) return 'walk'
-  if (f.life?.coldAt) return 'sleepy'
+  if (emotion==='smile')return 'smile'
   if ((f.bubbleUntil ?? 0) > now && f.bubblePriority === 2) return 'smile'
   if ((f.restingUntil ?? 0) > now) return 'rest'
   return 'idle'
 }
-/** One seated illustration per character. Missing camera views are never fabricated. */
-export const humanAssetManifest = {
-  source:
-    'User supplied single seated couple illustration; background removal and small occluded clothing contours repaired with image editing.',
-  images: {
-    boy: 'src/assets/humans/boy.png',
-    girl: 'src/assets/humans/girl.png',
-  },
-  extracted: ['seated', 'smiling-front-three-quarter'],
-  missing: [
-    'neutral-standing',
-    'exact-front',
-    'side',
-    'rear',
-    'surprised-face',
-    'sleepy-face',
-    'walk-frames',
-    'play-pose',
-    'lying-sleep',
-  ],
-  fallback:
-    'Fixed size/foot anchor; CSS motion and overlays reuse each original seated face without face warping.',
+/** Original SVG layers, newly authored from the existing hair and outfit identity. */
+export const humanAssetManifest={
+ source:'New original layered SVG artwork. Existing seated PNGs are retained as historical sources; poses are not extracted from them.',
+ images:{boy:'src/assets/characters-v2/boy.svg',girl:'src/assets/characters-v2/girl.svg'},
+ authored:['standing','smile','happy','sleepy','surprised','seated','blanket-sleep'],
+ extracted:[],missing:['side-view','rear-view','hand-drawn-walk-frame-sheet'],
+ fallback:'Walking articulates the new separate standing legs/arms. Sleep uses a new pillow/blanket layer, not an extracted lying photograph.',
 }
