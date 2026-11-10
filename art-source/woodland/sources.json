@@ -1,0 +1,23 @@
+{
+  "cat": {
+    "walk": "art-source/woodland/cat-walk.png",
+    "life": "art-source/woodland/cat-life.png"
+  },
+  "bunny": {
+    "walk": "art-source/woodland/bunny-walk.png",
+    "life": "art-source/woodland/bunny-life.png"
+  },
+  "dog": {
+    "walk": "art-source/woodland/dog-walk.png",
+    "life": "art-source/woodland/dog-life.png"
+  },
+  "bear": {
+    "walk": "art-source/woodland/bear-walk.png",
+    "life": "art-source/woodland/bear-life.png"
+  },
+  "fox": {
+    "walk": "art-source/woodland/fox-walk.png",
+    "life": "art-source/woodland/fox-life.png"
+  },
+  "background": "art-source/woodland/room.png"
+}

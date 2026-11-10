@@ -1,0 +1,547 @@
+{
+  "cat": {
+    "frameSize": 512,
+    "sourceCell": {
+      "width": 384,
+      "height": 512
+    },
+    "anchor": [
+      256,
+      476
+    ],
+    "frames": [
+      {
+        "name": "walk-0",
+        "sourceEdgePixels": 0,
+        "sha256": "6ee86b5a959687d4c8d8245ea250785301bc1b7b7735e709fe6fec55113c3b9f",
+        "bytes": 38688
+      },
+      {
+        "name": "walk-1",
+        "sourceEdgePixels": 0,
+        "sha256": "3f75c348a492cab1367ee5d89b04d9809a026494c9389fa6d82e86b29fed4877",
+        "bytes": 39258
+      },
+      {
+        "name": "walk-2",
+        "sourceEdgePixels": 0,
+        "sha256": "aa90b7fb05d063c0fb979e1947876c6ff2791e86db030ce8df34755638ef4ed1",
+        "bytes": 38534
+      },
+      {
+        "name": "walk-3",
+        "sourceEdgePixels": 0,
+        "sha256": "79acbfadcc1852ef9784732c07e6a65564b2a646abaf1456836dc93c4d53adc4",
+        "bytes": 37412
+      },
+      {
+        "name": "walk-4",
+        "sourceEdgePixels": 0,
+        "sha256": "ac3902d061719fef3e7b31c1989757fa22a1f38af562f3aa7a458228993e2146",
+        "bytes": 38808
+      },
+      {
+        "name": "walk-5",
+        "sourceEdgePixels": 0,
+        "sha256": "5a5ef7e03d2dfdc378bfd3d0d94c00878f878139a417734103e2a3a8269c7639",
+        "bytes": 37764
+      },
+      {
+        "name": "walk-6",
+        "sourceEdgePixels": 0,
+        "sha256": "031cada3133d57f68bd0b05b046a6e43f49521026e4de7e9ae55cb29d6e74fd6",
+        "bytes": 36686
+      },
+      {
+        "name": "walk-7",
+        "sourceEdgePixels": 0,
+        "sha256": "3d134659a98ebd4106df70fe96988a96bfd4d5adde4aeb1de1f0703ad0a34413",
+        "bytes": 38360
+      },
+      {
+        "name": "idle",
+        "sourceEdgePixels": 0,
+        "sha256": "2abb517d520af790d4247c12860adbb48c7bda8075665c6117b78829f5a3e59c",
+        "bytes": 31888
+      },
+      {
+        "name": "blink",
+        "sourceEdgePixels": 0,
+        "sha256": "eeae3d52e28fdcdddd7d175b0d014dedcb759125f519964f10b1b8931ad4023d",
+        "bytes": 31034
+      },
+      {
+        "name": "sit",
+        "sourceEdgePixels": 0,
+        "sha256": "be78047709079419459ae9661ffddf6272b076333d476ce8fe3351a58b5ff209",
+        "bytes": 24038
+      },
+      {
+        "name": "sleep",
+        "sourceEdgePixels": 0,
+        "sha256": "ce880d9dbdfc931f6395072f9d1857665b39ff26fe175ddd40714c69cfe7beda",
+        "bytes": 23240
+      },
+      {
+        "name": "stretch",
+        "sourceEdgePixels": 0,
+        "sha256": "6955ec6e608b9ff53c4b723f4150c6ab1ac58d939b59ea3ccb32a57dfdaec3b9",
+        "bytes": 27876
+      },
+      {
+        "name": "groom",
+        "sourceEdgePixels": 0,
+        "sha256": "fff983fc6cd5f54333010fb02a8117844ed6d81b696900e3b448c7c55292a5b1",
+        "bytes": 27780
+      },
+      {
+        "name": "yawn",
+        "sourceEdgePixels": 0,
+        "sha256": "81f3a381066f4f9f26257cec9ee6e0d7f3ee557f31c83fb9f3f86d9a39d9c496",
+        "bytes": 22826
+      },
+      {
+        "name": "look",
+        "sourceEdgePixels": 0,
+        "sha256": "1ad4fde1be253f560214fc0677ab12b851e059ac2a3029a3a4eaaef81f6e4b28",
+        "bytes": 31980
+      }
+    ]
+  },
+  "bunny": {
+    "frameSize": 512,
+    "sourceCell": {
+      "width": 384,
+      "height": 512
+    },
+    "anchor": [
+      256,
+      476
+    ],
+    "frames": [
+      {
+        "name": "walk-0",
+        "sourceEdgePixels": 0,
+        "sha256": "25a1ca870445047fe8bf3673251e7e4d9709b9d6ab23eaa56bd9f91fd9027bac",
+        "bytes": 28380
+      },
+      {
+        "name": "walk-1",
+        "sourceEdgePixels": 0,
+        "sha256": "3ceddd4e89232a6298ce4b31c7b166246583816b35086c021c4ed55828e782e0",
+        "bytes": 28974
+      },
+      {
+        "name": "walk-2",
+        "sourceEdgePixels": 0,
+        "sha256": "dd1babb8a6fb028d9710f6c134f68df9e912f2be3de9f029e76f3d163f45d74c",
+        "bytes": 28260
+      },
+      {
+        "name": "walk-3",
+        "sourceEdgePixels": 0,
+        "sha256": "7035aecbe2797bdc5ec293cf4c61ded39046172f46d68a29a00a2578cd1f5045",
+        "bytes": 29946
+      },
+      {
+        "name": "walk-4",
+        "sourceEdgePixels": 0,
+        "sha256": "731fad4aeda1381e9ff7d13f09d03825e7a5a69a34832e2a0d822b9c495c967f",
+        "bytes": 30854
+      },
+      {
+        "name": "walk-5",
+        "sourceEdgePixels": 0,
+        "sha256": "82bcb9b4b2e4c0e63ce615b62a39294295c4d5d123dcb4ed964ad63771c7f64a",
+        "bytes": 29716
+      },
+      {
+        "name": "walk-6",
+        "sourceEdgePixels": 0,
+        "sha256": "b1f42113dcc45e4e646aca194dcd1649e2df89c3b28eaa2847a699394db860fe",
+        "bytes": 30736
+      },
+      {
+        "name": "walk-7",
+        "sourceEdgePixels": 0,
+        "sha256": "4418e65016a950c04dcb6f5cbede45c858583c1d028cc40336117a804084d2f2",
+        "bytes": 28722
+      },
+      {
+        "name": "idle",
+        "sourceEdgePixels": 0,
+        "sha256": "b14dd02ff72c4d9cf2eaacd03395aee45ce1850863c7f9c98107b6399c00577c",
+        "bytes": 32516
+      },
+      {
+        "name": "blink",
+        "sourceEdgePixels": 0,
+        "sha256": "29cec02cc56274cf52f365c53b357bef6c6e59924602be98ad96d2b3bfb14188",
+        "bytes": 32548
+      },
+      {
+        "name": "sit",
+        "sourceEdgePixels": 0,
+        "sha256": "1aa28a88eeaf8651a464791c2fccae364aaf36439e5858897aaeab64347fd1a3",
+        "bytes": 27414
+      },
+      {
+        "name": "sleep",
+        "sourceEdgePixels": 0,
+        "sha256": "5c2e2e55e384a6e1f93ebe67f2be291e8d9d2821293e153f06d03dcae94966c6",
+        "bytes": 25812
+      },
+      {
+        "name": "stretch",
+        "sourceEdgePixels": 0,
+        "sha256": "32241bf041653134102c2fb5ac9fd891810d16fe6d744d4625a5ba8746a9f1ff",
+        "bytes": 29332
+      },
+      {
+        "name": "groom",
+        "sourceEdgePixels": 0,
+        "sha256": "fe649fb9f79ec5cfa6452f91e5b64beb14b5a02e448484c2872e2b69bf49babf",
+        "bytes": 26528
+      },
+      {
+        "name": "yawn",
+        "sourceEdgePixels": 0,
+        "sha256": "d44ba1a0501f8c793a460b94af1431298ae111127749520d785541be62155b59",
+        "bytes": 27742
+      },
+      {
+        "name": "look",
+        "sourceEdgePixels": 0,
+        "sha256": "74301dfc72a73edc16158cd4dde0e9ca81baeb069fe2381c626915d1bbf0ffbd",
+        "bytes": 29584
+      }
+    ]
+  },
+  "dog": {
+    "frameSize": 512,
+    "sourceCell": {
+      "width": 384,
+      "height": 512
+    },
+    "anchor": [
+      256,
+      476
+    ],
+    "frames": [
+      {
+        "name": "walk-0",
+        "sourceEdgePixels": 0,
+        "sha256": "771ccd70c7428c9176161cb76f8f2f52aa8eb836abcb6ba3f7bf6f10a56e2623",
+        "bytes": 33554
+      },
+      {
+        "name": "walk-1",
+        "sourceEdgePixels": 0,
+        "sha256": "f391ed3ca1e7aa2ff0b36815bdb01da941888f1bfa2c324e115aa76b3ea75b1b",
+        "bytes": 33042
+      },
+      {
+        "name": "walk-2",
+        "sourceEdgePixels": 0,
+        "sha256": "aa404d641377eb6bcdf287da2b1452522698f2299ed323bb804ce23d9f3650d2",
+        "bytes": 31406
+      },
+      {
+        "name": "walk-3",
+        "sourceEdgePixels": 0,
+        "sha256": "b5f05240aa8960f8f39d3d207cdb1e1598ca794c555cae6069139fd1cedd605e",
+        "bytes": 31374
+      },
+      {
+        "name": "walk-4",
+        "sourceEdgePixels": 0,
+        "sha256": "a4b560ce53544964caa4da944f8db1dc312a53f7a8a9af4c88c45e91f4affd8c",
+        "bytes": 32624
+      },
+      {
+        "name": "walk-5",
+        "sourceEdgePixels": 0,
+        "sha256": "ca3c44f7da5d81ad8ad765399b034b95491557d1408369c398bc544dce5c330e",
+        "bytes": 30118
+      },
+      {
+        "name": "walk-6",
+        "sourceEdgePixels": 0,
+        "sha256": "da9066247fc29725599c54cec1011f8e7ca6b56ab9b7dc86d9cca5fbcc3e1103",
+        "bytes": 29480
+      },
+      {
+        "name": "walk-7",
+        "sourceEdgePixels": 0,
+        "sha256": "9bf3fff27906b4163cb394e7dce70c09504e81ad86d768499faecacddc298821",
+        "bytes": 31636
+      },
+      {
+        "name": "idle",
+        "sourceEdgePixels": 0,
+        "sha256": "c867a83a56ded3ffad87e3050ba8d2fa3d1d39defdb4c62fd8db50e2fb0c830e",
+        "bytes": 38512
+      },
+      {
+        "name": "blink",
+        "sourceEdgePixels": 0,
+        "sha256": "db9e9670735c7cb94f5aec4c55b292db3311ee349243ab685b14df14dd2c98d0",
+        "bytes": 38638
+      },
+      {
+        "name": "sit",
+        "sourceEdgePixels": 0,
+        "sha256": "b3f349443781b8e9b42322461ecc34b8105cc0a8a9aff8dd99fe9e3987acde54",
+        "bytes": 29380
+      },
+      {
+        "name": "sleep",
+        "sourceEdgePixels": 0,
+        "sha256": "5cb8725c5856a4af7a3bb6f3c71100c7b32b9242611cb83969f010c1e6c2be40",
+        "bytes": 23752
+      },
+      {
+        "name": "stretch",
+        "sourceEdgePixels": 0,
+        "sha256": "0818113cdf86449f391f8c0f066f06b2e990641334e18457174c9185e67cf6c3",
+        "bytes": 34516
+      },
+      {
+        "name": "groom",
+        "sourceEdgePixels": 0,
+        "sha256": "96728bb014190d9f5e5da1712ecba6eb0e107a4d54a118732148764095a76b73",
+        "bytes": 33938
+      },
+      {
+        "name": "yawn",
+        "sourceEdgePixels": 0,
+        "sha256": "673566a38dc6826e60cb214a2efe0e941244d1f0312d9c00245980686742d97e",
+        "bytes": 27466
+      },
+      {
+        "name": "look",
+        "sourceEdgePixels": 0,
+        "sha256": "6af138975194218d10ce04025d2c246e90178be5ac901515535d6138f0926fbe",
+        "bytes": 37754
+      }
+    ]
+  },
+  "bear": {
+    "frameSize": 512,
+    "sourceCell": {
+      "width": 384,
+      "height": 512
+    },
+    "anchor": [
+      256,
+      476
+    ],
+    "frames": [
+      {
+        "name": "walk-0",
+        "sourceEdgePixels": 0,
+        "sha256": "b8eb06a7ded98405bb01ab2a44e5703d6c7e78a411ee39a566cfb19a2e8a153e",
+        "bytes": 32134
+      },
+      {
+        "name": "walk-1",
+        "sourceEdgePixels": 0,
+        "sha256": "38c65a030134b38bf7c8757b6e5c029b3aace22ec17966000060095b8fede381",
+        "bytes": 31160
+      },
+      {
+        "name": "walk-2",
+        "sourceEdgePixels": 0,
+        "sha256": "0961b79abe7c74e8a20e7557858edba14389c1659d43ef3d622c11b9c2319514",
+        "bytes": 30612
+      },
+      {
+        "name": "walk-3",
+        "sourceEdgePixels": 0,
+        "sha256": "b6cdf2add04d96598f33ec96ec4be636e59bfc57107e50ae56b1c48e468df94d",
+        "bytes": 30904
+      },
+      {
+        "name": "walk-4",
+        "sourceEdgePixels": 0,
+        "sha256": "9b2efd681999e17ca0dd28a68d911db06cf667c034182b17a9956ed6e99d27c4",
+        "bytes": 30920
+      },
+      {
+        "name": "walk-5",
+        "sourceEdgePixels": 0,
+        "sha256": "fd4d2a30398d8d73642e4d1c940a29ece988a8766ca65cba86c4861a236672d3",
+        "bytes": 29750
+      },
+      {
+        "name": "walk-6",
+        "sourceEdgePixels": 0,
+        "sha256": "736279a3ee33e88d4b8572137462ea15116f04e35f4305e2d8e46a4662506436",
+        "bytes": 29268
+      },
+      {
+        "name": "walk-7",
+        "sourceEdgePixels": 0,
+        "sha256": "14336bd2644f5d4a22e8154de3808f27e91c033225ba51f9468d4b6f0f12d1de",
+        "bytes": 31528
+      },
+      {
+        "name": "idle",
+        "sourceEdgePixels": 0,
+        "sha256": "a1f281dc17c8820826ec59f2d9746a370d4900a48d8290b49e05f63feedb55cb",
+        "bytes": 29248
+      },
+      {
+        "name": "blink",
+        "sourceEdgePixels": 0,
+        "sha256": "5db709c00b9402e608279a8a133f46178b075e72c0acd4f204f5023937d8126e",
+        "bytes": 28822
+      },
+      {
+        "name": "sit",
+        "sourceEdgePixels": 0,
+        "sha256": "c3aa198dae9ca89466cc34058d560d9ec4f973ff295eb00eed64f7625827fde3",
+        "bytes": 24360
+      },
+      {
+        "name": "sleep",
+        "sourceEdgePixels": 0,
+        "sha256": "d437a43de2c382603a2a41dec8ecbe7bd37ca20edea14b2304fba3fc9e34f4b7",
+        "bytes": 20838
+      },
+      {
+        "name": "stretch",
+        "sourceEdgePixels": 0,
+        "sha256": "f17f14fdd49261875e93951c867df01dd65d36c3d712485ba241fdeeca048cb2",
+        "bytes": 26812
+      },
+      {
+        "name": "groom",
+        "sourceEdgePixels": 0,
+        "sha256": "f24867193289e59ca9a5441095d7e8c89709da0f819c07e172e7b86e5c673a51",
+        "bytes": 26656
+      },
+      {
+        "name": "yawn",
+        "sourceEdgePixels": 0,
+        "sha256": "c163ab23b2a288adf5f92dd5ce28dcf8d46ab3af8ce531a9baa44d5af214f7b4",
+        "bytes": 24772
+      },
+      {
+        "name": "look",
+        "sourceEdgePixels": 0,
+        "sha256": "4a021d9d8cd0b501ecbd6c954e93e1879cc7424561d688a110874c4fc97826bf",
+        "bytes": 28876
+      }
+    ]
+  },
+  "fox": {
+    "frameSize": 512,
+    "sourceCell": {
+      "width": 384,
+      "height": 512
+    },
+    "anchor": [
+      256,
+      476
+    ],
+    "frames": [
+      {
+        "name": "walk-0",
+        "sourceEdgePixels": 0,
+        "sha256": "ed599ab38e93be8542c1339dfdaf68df47835b351bb8218595e210b66e03e716",
+        "bytes": 34252
+      },
+      {
+        "name": "walk-1",
+        "sourceEdgePixels": 0,
+        "sha256": "56e20c292fde97886af725bdefb1831300ba4277dd093b053cc2fa2aa59bc348",
+        "bytes": 33694
+      },
+      {
+        "name": "walk-2",
+        "sourceEdgePixels": 0,
+        "sha256": "855ff70dbecc05dd11dac9b0c5977cc1ec03441e2f37ae59cd329d4df38530b8",
+        "bytes": 30388
+      },
+      {
+        "name": "walk-3",
+        "sourceEdgePixels": 0,
+        "sha256": "3104d939123ef9d7629d44e1953dea49215c9520c54e02fda280c6a8b81691a9",
+        "bytes": 31248
+      },
+      {
+        "name": "walk-4",
+        "sourceEdgePixels": 0,
+        "sha256": "24ab2dcd4b6b936cc4f5396068cb630739366436f38f2d0cc92b426be5810ce5",
+        "bytes": 33802
+      },
+      {
+        "name": "walk-5",
+        "sourceEdgePixels": 0,
+        "sha256": "c80c171593d9e45848923a2c2a72402cff02bd26cbf02ffca0517d309e69eb02",
+        "bytes": 32540
+      },
+      {
+        "name": "walk-6",
+        "sourceEdgePixels": 0,
+        "sha256": "cb76697dfc7f917a7a363554eb0b25b4bcc4631ae7bea9603810563506cb185f",
+        "bytes": 31900
+      },
+      {
+        "name": "walk-7",
+        "sourceEdgePixels": 0,
+        "sha256": "3d028ecf31953262688568f40f13dd91469f1e580749e55ffcfcbccb9e86a02d",
+        "bytes": 32892
+      },
+      {
+        "name": "idle",
+        "sourceEdgePixels": 0,
+        "sha256": "dc41e91915fe5dfafc4a22b4489fd664fa57092c4a056de8d9b09c8ab0952916",
+        "bytes": 49434
+      },
+      {
+        "name": "blink",
+        "sourceEdgePixels": 0,
+        "sha256": "da7b48681cd7efdceb4584efb17b120ee25e989e3049446bfb851c9d04731b29",
+        "bytes": 44132
+      },
+      {
+        "name": "sit",
+        "sourceEdgePixels": 0,
+        "sha256": "673a48a4a3293416ed34796637bdc3acd70fa65017d5c9e3c3af9f058a664ea8",
+        "bytes": 28386
+      },
+      {
+        "name": "sleep",
+        "sourceEdgePixels": 0,
+        "sha256": "478fe84cfd0b12d04306170f6745f7e3517136f7167091fb0495da5ba5f95ca9",
+        "bytes": 22980
+      },
+      {
+        "name": "stretch",
+        "sourceEdgePixels": 0,
+        "sha256": "991d5da98c0c8a178b98e76720ad38d831c7c1567dfde8856be3eb7a2c8a57ab",
+        "bytes": 37804
+      },
+      {
+        "name": "groom",
+        "sourceEdgePixels": 0,
+        "sha256": "9b463c4b0f42c2670ddb0958cbc7f0b8a64628062feb7ea6c407fcb169f6a67b",
+        "bytes": 37974
+      },
+      {
+        "name": "yawn",
+        "sourceEdgePixels": 0,
+        "sha256": "0cef1746e5966c181a82f3382dd5146cb630e75510ae710a7762c9a22200dfe1",
+        "bytes": 28166
+      },
+      {
+        "name": "look",
+        "sourceEdgePixels": 0,
+        "sha256": "789daacd4e7ad6fd9ead1ce508dbd41b1a0185c1b9fa758fcdbb7be74ace8a19",
+        "bytes": 40710
+      }
+    ]
+  }
+}
