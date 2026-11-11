@@ -1,0 +1,4 @@
+Automation preflight, 2026-11-11.
+Documentation only; no game code, user data, economy, server or schema change.
+This branch checks Git transport and PR API access before the automation bootstrap.
+It is not evidence of automatic merging or a verified production deployment.
