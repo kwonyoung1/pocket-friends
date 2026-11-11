@@ -15,6 +15,8 @@ export const test = base.extend<{
     loseNextEnhanceResponse: () => void
     loseNextBuyResponse: () => void
     loseNextRewardResponse: () => void
+    traffic: () => { action: string; type: string; bytes: number; unchanged: boolean; delta: boolean }[]
+    setPhoto: (photo: string) => void
   }
 }>({
   backend: async ({ context }, use) => {
@@ -33,6 +35,7 @@ export const test = base.extend<{
       },
       loseEnhance = false,
       loseNext = false
+    const traffic: { action: string; type: string; bytes: number; unchanged: boolean; delta: boolean }[] = []
     const receipts = new Map<
       string,
       { user: string; command: string; message: string }
@@ -46,6 +49,7 @@ export const test = base.extend<{
       revoke: async (user) => {
         members.delete(user)
       },
+      head: async () => ({ id: row.id, revision: row.revision, updated_at: row.updated_at }),
       load: async () => structuredClone(row),
       commit: async (user, id, command, expected, data, holds, message) => {
         const prior = receipts.get(id)
@@ -138,10 +142,12 @@ export const test = base.extend<{
             await route.abort('failed')
             return
           }
+          const text=await response.text(),payload=JSON.parse(text),body=request.postDataJSON()
+          traffic.push({action:body?.action??'',type:body?.command?.type??'',bytes:Buffer.byteLength(text),unchanged:payload.unchanged===true,delta:!!payload.delta})
           await route.fulfill({
             status: response.status,
             headers: Object.fromEntries(response.headers),
-            body: await response.text(),
+            body: text,
           })
           return
         }
@@ -152,6 +158,8 @@ export const test = base.extend<{
     await attach(context)
     await use({
       secret,
+      traffic: () => structuredClone(traffic),
+      setPhoto: (photo:string) => { if(!row.data)throw Error('Initialize first');row.data.friends[0].photo=photo;row.revision++ },
       setTime: (at:number) => {timeOffset=at-(epoch+Date.now()-clockStarted)},
       seedRanking: () => {if(!row.data)throw Error('Initialize test world first');row.data.world!.sichuan={version:1,nextStartAt:0,competitions:{},bests:[{playerId:'test-player',nickname:'오늘친구',elapsedMs:1234,at:now(),sessionId:'test-record'}]};row.revision++},
       attach,
