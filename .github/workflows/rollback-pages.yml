@@ -1,0 +1,80 @@
+name: Approved website artifact rollback
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful original release run ID with retained website artifact
+        type: string
+        required: true
+      commit:
+        description: Full SHA of that release (database and server are never rolled back here)
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+jobs:
+  check:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ENVIRONMENT_READ_TOKEN || github.token }}
+          script: |
+            const {requireProtectedApproval}=await import(`${process.env.GITHUB_WORKSPACE}/scripts/automation/github.mjs`)
+            await requireProtectedApproval({github,context})
+      - uses: actions/github-script@v7
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+          TARGET_SHA: ${{ inputs.commit }}
+        with:
+          script: |
+            const {internalMainRun}=await import(`${process.env.GITHUB_WORKSPACE}/scripts/automation/github.mjs`)
+            if(!/^[a-f0-9]{40}$/.test(process.env.TARGET_SHA)||!/^\d+$/.test(process.env.RUN_ID))throw Error('Invalid rollback input')
+            const r=(await github.rest.actions.getWorkflowRun({...context.repo,run_id:Number(process.env.RUN_ID)})).data
+            if(!internalMainRun(r,context.repo)||r.head_sha!==process.env.TARGET_SHA||r.conclusion!=='success'||r.path!=='.github/workflows/deploy.yml')throw Error('Only a successful main release is eligible')
+            const a=(await github.rest.actions.listWorkflowRunArtifacts({...context.repo,run_id:r.id})).data.artifacts
+            if(!a.some(x=>x.name===`release-proof-${process.env.TARGET_SHA}`&&!x.expired))throw Error('No verified release proof')
+  approve:
+    needs: check
+    runs-on: ubuntu-latest
+    environment: release-approval
+    steps:
+      - run: echo 'Operator approved compatibility of the older website with the current server.'
+  rollback:
+    needs: approve
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    environment: github-pages
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          name: website-${{ inputs.commit }}
+          path: dist
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
+      - run: node scripts/automation/verify-site.mjs
+        env:
+          SITE_URL: https://kwonyoung1.github.io/pocket-friends/
+          EXPECTED_SHA: ${{ inputs.commit }}
+      - run: echo 'Website artifact restored and verified. No database, coins, saved world or Edge Function was reverted.' >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,26 @@
+name: Reconcile a missed Codex merge deployment
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+  actions: write
+jobs:
+  reconcile:
+    if: vars.AUTO_MERGE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+          sparse-checkout: scripts/automation
+      - uses: actions/github-script@v7
+        env:
+          AUTO_MERGE_ENABLED: ${{ vars.AUTO_MERGE_ENABLED }}
+        with:
+          script: |
+            const {reconcile} = await import(`${process.env.GITHUB_WORKSPACE}/scripts/automation/github.mjs`)
+            await reconcile({github,context})

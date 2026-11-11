@@ -1,0 +1,58 @@
+name: Reusable verified Edge Function deployment
+on:
+  workflow_call:
+    inputs:
+      commit:
+        type: string
+        required: true
+      game:
+        type: boolean
+        default: false
+      treasure:
+        type: boolean
+        default: false
+      update_password:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  functions:
+    runs-on: ubuntu-latest
+    environment: cloud-backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - name: Explicit password maintenance only
+        if: inputs.update_password
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          GAME_ACCESS_PASSWORD: ${{ secrets.GAME_ACCESS_PASSWORD }}
+        run: |
+          node --input-type=module <<'JS'
+          import {execFileSync} from 'node:child_process'
+          const password=process.env.GAME_ACCESS_PASSWORD,ref=process.env.PROJECT_REF
+          if(!password||/[\r\n]/.test(password)||!/^[a-z0-9-]+$/.test(ref??'')||!process.env.SUPABASE_ACCESS_TOKEN)throw Error('Invalid explicit password maintenance configuration')
+          try{execFileSync('supabase',['secrets','set',`GAME_ACCESS_PASSWORD=${password}`,'--project-ref',ref],{stdio:'pipe'})}
+          catch{console.error('Explicit password update failed; inspect token permissions without printing the secret.');process.exit(1)}
+          console.log('Explicit password update completed; value is not logged.')
+          JS
+      - name: Deploy only changed functions and verify exact SHA
+        run: node scripts/automation/backend.mjs
+        env:
+          DEPLOY_SHA: ${{ inputs.commit }}
+          DEPLOY_GAME: ${{ inputs.game }}
+          DEPLOY_TREASURE: ${{ inputs.treasure }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          SUPABASE_HEALTH_ANON_JWT: ${{ vars.SUPABASE_HEALTH_ANON_JWT }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}

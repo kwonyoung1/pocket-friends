@@ -18,7 +18,11 @@
     "test:cloud": "playwright test --config playwright.cloud.config.ts",
     "test:effects": "playwright test --config playwright.effects.config.ts",
     "check:effects-isolation": "node scripts/check-effects-isolation.mjs",
-    "measure:effects": "node scripts/measure-effects-lab.mjs"
+    "measure:effects": "node scripts/measure-effects-lab.mjs",
+    "test:automation": "node scripts/automation/tests.mjs",
+    "automation:submit": "node scripts/automation/submit.mjs",
+    "automation:watch": "node scripts/automation/watch.mjs",
+    "test:production": "playwright test --config playwright.production.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "^5.3.1",

@@ -1,5 +1,8 @@
 # 포켓프렌즈 · 우리의 작은 집
 
+
+자동화: [최초 설정](AUTO_DEPLOY_SETUP.md) · [사용 방법](AUTO_DEPLOY_USER_GUIDE.md) · [문제 해결](AUTO_DEPLOY_TROUBLESHOOTING.md) · [구축/미완료 상태](AUTO_DEPLOY_IMPLEMENTATION.md) · [검사·배포 실행](https://github.com/kwonyoung1/pocket-friends/actions/workflows/deploy.yml)
+
 최신 모바일 업데이트: [겨울 테마·영이/찬미 산책·터치 안정화·서버/웹 배포 순서](docs/MOBILE_WINTER.md)
 기존 동물·배경: [4족 보행·토끼 도약·수채화 거실 및 상세 배포 안내](docs/WOODLAND_ANIMALS.md)
 이전 사람/동물 페인팅 원화: [실제 PNG/WebP 교체·구현 범위·화면·배포 안내](docs/PAINTED_CHARACTERS.md)
