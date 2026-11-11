@@ -68,11 +68,15 @@ jobs:
           run-id: ${{ inputs.run_id }}
           name: website-${{ inputs.commit }}
           path: dist
+      # A rerun keeps older artifacts in the same run; use a fresh name per attempt.
       - uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
           path: dist
       - uses: actions/configure-pages@v5
       - uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
       - run: node scripts/automation/verify-site.mjs
         env:
           SITE_URL: https://kwonyoung1.github.io/pocket-friends/
