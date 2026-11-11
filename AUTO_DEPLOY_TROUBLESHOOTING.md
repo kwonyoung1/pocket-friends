@@ -38,3 +38,12 @@
 공식 UI/권한 항목이 계정에 보이지 않으면 [초기 설정의 공식 링크](AUTO_DEPLOY_SETUP.md#공식-참고-문서)를 참고한다. 조직 정책/플랜으로 보호 기능이 없으면 무인 운영을 강행하지 않는다.
 
 롤백 후에는 문제가 남은 main을 그대로 둔 채 다음 일반 배포를 진행하지 않는다. 소유자가 AUTO_MERGE_ENABLED를 일시 중지하고, Codex가 수정/되돌림 PR을 검증해 main을 복구한 뒤 재활성화한다. reconcile은 이미 실행된 같은 main SHA를 다시 배포해 승인 롤백을 덮어쓰지 않는다.
+
+
+## Pages: Multiple artifacts named github-pages
+
+같은 workflow run을 재실행하면 이전 artifact가 남을 수 있다. `actions/deploy-pages`는 지정한 이름의 파일이 두 개 이상이면 중단한다.
+
+업로드의 `name`과 배포의 `artifact_name`에 동일한 `github-pages-${{ github.run_id }}-${{ github.run_attempt }}`를 지정한다. 일반 배포와 롤백에 모두 적용했다. 재실행마다 고유한 이름이므로 이전 파일을 지우지 않아도 된다.
+
+이전 커밋을 Re-run하면 이전 YAML을 그대로 사용한다. 수정 PR을 main에 반영한 뒤 [배포 화면](https://github.com/kwonyoung1/pocket-friends/actions/workflows/deploy.yml)에서 Run workflow → main으로 새 실행을 시작한다. 병합으로 새 main 배포가 이미 시작됐다면 중복 실행하지 않는다. 기존 #76을 반복 리런하지 않는다. Supabase 토큰·DB·저장 데이터 변경은 필요 없다.
