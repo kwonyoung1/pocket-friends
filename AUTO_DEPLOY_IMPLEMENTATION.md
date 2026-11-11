@@ -52,3 +52,13 @@
 | `automation-smoke.yml`의 전체 자동 실험 | 미완료 — 초기 설정/main 반영 후 실행 필요 |
 
 운영 데이터·기존 Supabase 프로젝트·SQL·코인은 수정하지 않았다. 운영 시스템 구축 완료라는 표현은 위 실험과 실제 URL 검증을 통과한 뒤에만 사용할 수 있다.
+
+## 원격 브랜치 및 사전 실험 기록
+
+- 구현 코드 커밋: `f0f1dbe7974d698d3fefb449dd0bd19f41c5a1ab`, 원격 `feat/auto-deploy-system` push 확인.
+- 문서만 추가한 별도 사전 실험: 원격 `codex/automation-preflight-20261111`, 커밋 `7248e54b5d3a9adedb559bb955f1bcb73826df63`. 브랜치 생성 → 문서 커밋 → 원격 push까지 확인했다. 게임 코드·데이터는 변경하지 않았다.
+- 구현 PR 조회와 사전 실험 PR 생성은 모두 실제 GitHub GraphQL 요청에서 `Forbidden`으로 종료됐다. PR URL/번호를 얻지 못했으므로 생성 성공으로 보고하지 않는다.
+- 사전 실험의 PR 검사 → 자동 병합 → 서버/웹 배포 → 운영 SHA 확인은 수행되지 않았다. 초기 main 반영과 관리자 설정 후 `automation-smoke.yml`로 전체 경로를 검증해야 한다.
+- 이 사전 브랜치는 자동화 설치 전 API 접근 점검용이며 자동 운영 성공의 증거가 아니다. 운영 URL의 403 역시 현재 실행 환경의 접근 제한이며 사이트 장애로 단정하지 않는다.
+
+구현 변경 검토 시작 링크: https://github.com/kwonyoung1/pocket-friends/compare/main...feat/auto-deploy-system
