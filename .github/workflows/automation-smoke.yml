@@ -1,0 +1,43 @@
+name: Automation smoke experiment
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+jobs:
+  experiment:
+    if: github.ref == 'refs/heads/main' && vars.AUTO_PR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        id: experiment
+        env:
+          AUTO_PR_ENABLED: ${{ vars.AUTO_PR_ENABLED }}
+          TRUSTED_CODEX_ACTORS: ${{ vars.TRUSTED_CODEX_ACTORS }}
+        with:
+          script: |
+            const {trusted,submit}=await import(`${process.env.GITHUB_WORKSPACE}/scripts/automation/github.mjs`)
+            if(!trusted(context.actor,context.repo.owner,process.env.TRUSTED_CODEX_ACTORS))throw Error('Untrusted smoke initiator')
+            const branch=`codex/automation-smoke-${context.runId}`
+            const base=(await github.rest.repos.getCommit({...context.repo,ref:'main'})).data.sha
+            await github.rest.git.createRef({...context.repo,ref:`refs/heads/${branch}`,sha:base})
+            const created=(await github.rest.repos.createOrUpdateFileContents({...context.repo,branch,path:`docs/automation-smoke/${context.runId}.txt`,message:'docs: verify automatic release without game data changes',content:Buffer.from(`Automation experiment ${context.runId}\nNo game data or economy changes.\n`).toString('base64')})).data
+            const sha=created.commit.sha
+            await submit({github,context,core,branch,sha,smoke:true})
+            core.setOutput('sha',sha)
+      - name: Bind trusted smoke provenance to the exact PR commit
+        env:
+          SHA: ${{ steps.experiment.outputs.sha }}
+        run: |
+          mkdir smoke-proof
+          printf '%s\n' "$SHA" > smoke-proof/head.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-pr-${{ steps.experiment.outputs.sha }}
+          path: smoke-proof/
+          retention-days: 14

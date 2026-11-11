@@ -1,25 +1,50 @@
 name: Test and deploy Pocket Friends
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
-
+    inputs:
+      validation_pr:
+        description: Internal validation PR number (optional; main always releases)
+        type: string
+        default: ''
 permissions:
   contents: read
-
+concurrency:
+  group: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'production-release' || format('validation-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' || github.event_name == 'pull_request' }}
 jobs:
-  build:
+  unit:
     runs-on: ubuntu-latest
+    outputs:
+      validated_base: ${{ steps.base.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Bind validation to the checked main base
+        id: base
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          base="$(git rev-parse origin/main)"
+          if test "$REF" != refs/heads/main || test "$EVENT" = pull_request; then
+            git merge-base --is-ancestor "$base" HEAD || { echo 'Update this branch to current main before validating.'; exit 1; }
+          else
+            base="$GITHUB_SHA"
+          fi
+          printf 'sha=%s\n' "$base" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - run: npm run test:automation
       - run: npm test
       - uses: denoland/setup-deno@v2
         with:
@@ -27,46 +52,245 @@ jobs:
       - name: Check Edge Function
         run: deno check --no-config --node-modules-dir=none --lock=supabase/functions/deno.lock --frozen supabase/functions/game/index.ts supabase/functions/treasure/index.ts
         env:
-          DENO_NO_PACKAGE_JSON: "1"
+          DENO_NO_PACKAGE_JSON: '1'
       - run: npm run build
         env:
-          VITE_CLOUD_ENABLED: ${{ vars.VITE_CLOUD_ENABLED }}
+          VITE_CLOUD_ENABLED: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'true' || vars.VITE_CLOUD_ENABLED }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          name: website-${{ github.sha }}
+          path: dist/
+          retention-days: 14
+  browser:
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
+      # Keep existing desktop compatibility and all mobile/economy regressions.
       - run: npm run test:e2e
         env:
-          VITE_CLOUD_ENABLED: "false"
-      - run: npm run test:cloud
-      - name: Upload browser diagnostics
+          VITE_CLOUD_ENABLED: 'false'
+      - uses: actions/upload-artifact@v4
         if: failure()
-        uses: actions/upload-artifact@v4
         with:
           name: browser-test-results
           path: test-results/
           retention-days: 7
-      - name: Upload website
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
+  cloud:
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
         with:
-          path: dist
-
-  deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:cloud
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cloud-test-results
+          path: test-results/
+          retention-days: 7
+  # Preserve the existing required check name. Failure/skips never become success.
+  build:
+    if: always()
+    needs: [unit, browser, cloud]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every validation job
+        env:
+          UNIT: ${{ needs.unit.result }}
+          BROWSER: ${{ needs.browser.result }}
+          CLOUD: ${{ needs.cloud.result }}
+        run: test "$UNIT" = success && test "$BROWSER" = success && test "$CLOUD" = success
+      - name: Record exact validated PR head
+        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
+        env:
+          TESTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir validation-proof
+          printf '%s\n' "$TESTED_HEAD" > validation-proof/head.txt
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
+        with:
+          name: validated-head-${{ github.event.pull_request.head.sha || github.sha }}-base-${{ needs.unit.outputs.validated_base }}
+          path: validation-proof/
+          retention-days: 7
+  plan:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     permissions:
+      contents: read
+      actions: read
+    outputs:
+      game: ${{ steps.policy.outputs.game }}
+      treasure: ${{ steps.policy.outputs.treasure }}
+      review_required: ${{ steps.policy.outputs.review_required }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        id: policy
+        with:
+          script: |
+            const {releasePlan} = await import(`${process.env.GITHUB_WORKSPACE}/scripts/automation/github.mjs`)
+            await releasePlan({github,context,core})
+  approval-config:
+    needs: plan
+    if: needs.plan.outputs.review_required == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ENVIRONMENT_READ_TOKEN || github.token }}
+          script: |
+            const {requireProtectedApproval} = await import(`${process.env.GITHUB_WORKSPACE}/scripts/automation/github.mjs`)
+            await requireProtectedApproval({github,context})
+  approve:
+    needs: approval-config
+    runs-on: ubuntu-latest
+    environment: release-approval
+    steps:
+      - run: echo 'Explicit protected release approval completed.'
+  backend:
+    if: >-
+      always() && needs.build.result == 'success' && needs.plan.result == 'success' &&
+      (needs.plan.outputs.review_required != 'true' || needs.approve.result == 'success') &&
+      (needs.plan.outputs.game == 'true' || needs.plan.outputs.treasure == 'true') &&
+      vars.AUTO_SERVER_DEPLOY_ENABLED == 'true'
+    needs: [build, plan, approve]
+    uses: ./.github/workflows/deploy-backend.yml
+    with:
+      commit: ${{ github.sha }}
+      game: ${{ needs.plan.outputs.game == 'true' }}
+      treasure: ${{ needs.plan.outputs.treasure == 'true' }}
+    secrets: inherit
+  backend-gate:
+    if: always() && needs.plan.result == 'success'
+    needs: [plan, approve, backend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail closed on denied server deployment or missing approval
+        env:
+          GAME: ${{ needs.plan.outputs.game }}
+          TREASURE: ${{ needs.plan.outputs.treasure }}
+          REVIEW: ${{ needs.plan.outputs.review_required }}
+          APPROVAL: ${{ needs.approve.result }}
+          BACKEND: ${{ needs.backend.result }}
+        run: |
+          set -euo pipefail
+          if test "$REVIEW" = true; then test "$APPROVAL" = success; fi
+          if test "$GAME" = true || test "$TREASURE" = true; then
+            test "$BACKEND" = success || { echo 'Server release was not authorized or failed. Website release stopped.'; exit 1; }
+          fi
+  deploy:
+    needs: [build, plan, backend-gate]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
       pages: write
       id-token: write
-    concurrency:
-      group: pages
-      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Deploy to GitHub Pages
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: website-${{ github.sha }}
+          path: dist
+      - name: Check both backend metadata routes before releasing the client
+        if: vars.AUTO_SERVER_DEPLOY_ENABLED == 'true'
+        env:
+          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          HEALTH_TOKEN: ${{ vars.SUPABASE_HEALTH_ANON_JWT || vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          node --input-type=module <<'JS'
+          import {health} from './scripts/automation/backend.mjs'
+          import {execFileSync} from 'node:child_process'
+          for(const name of ['game','treasure']){
+            const sha=await health(name,{ref:process.env.PROJECT_REF,token:process.env.HEALTH_TOKEN})
+            execFileSync('git',['merge-base','--is-ancestor',sha,process.env.GITHUB_SHA],{stdio:'ignore'})
+            console.log(`Verified ${name} deployed main ancestor ${sha}`)
+          }
+          JS
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
         id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Verify live HTML, exact commit and executable assets
+        run: node scripts/automation/verify-site.mjs
+        env:
+          SITE_URL: https://kwonyoung1.github.io/pocket-friends/
+          EXPECTED_SHA: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+      - name: Read-only live mobile boot check
+        run: npx playwright test --config playwright.production.config.ts
+        env:
+          SITE_URL: https://kwonyoung1.github.io/pocket-friends/
+          EXPECTED_SHA: ${{ github.sha }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: live-mobile-diagnostics
+          path: test-results/production/
+          retention-days: 7
+      - name: Release proof
+        run: |
+          mkdir -p release-proof
+          printf '%s\n' "$GITHUB_SHA" > release-proof/commit.txt
+          printf '### Website verified\n- Commit: `%s`\n- URL: https://kwonyoung1.github.io/pocket-friends/\n- Backend gates passed before Pages release.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-proof-${{ github.sha }}
+          path: release-proof/
+          retention-days: 90

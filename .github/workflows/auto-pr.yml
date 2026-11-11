@@ -1,0 +1,26 @@
+name: Open trusted Codex pull request
+on:
+  push:
+    branches: ['codex/**']
+permissions:
+  contents: read
+  pull-requests: write
+  actions: write
+jobs:
+  open:
+    if: vars.AUTO_PR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # Execute automation from main, never scripts supplied by the candidate PR.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        env:
+          AUTO_PR_ENABLED: ${{ vars.AUTO_PR_ENABLED }}
+          TRUSTED_CODEX_ACTORS: ${{ vars.TRUSTED_CODEX_ACTORS }}
+        with:
+          script: |
+            const {submit} = await import(`${process.env.GITHUB_WORKSPACE}/scripts/automation/github.mjs`)
+            await submit({github,context,core})

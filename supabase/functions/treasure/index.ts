@@ -1,3 +1,4 @@
+import {withHealth} from '../_shared/health.ts'
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3'
 import {createRewardHandler} from '../../../src/match3/rewardServer.ts'
 import type {RewardRepository} from '../../../src/match3/rewardServer.ts'
@@ -9,4 +10,4 @@ const repository:RewardRepository={
  async load(user,id){return checked(await admin.from('treasure_sessions').select('*').eq('id',id).eq('user_id',user).maybeSingle())},
  async advance(user,id,cursor,hash,log,state,complete,coins,result){return checked(await admin.rpc('treasure_advance',{p_user:user,p_id:id,p_cursor:cursor,p_hash:hash,p_log:log,p_checkpoint:state,p_complete:complete,p_coins:coins,p_result:result}))}
 }
-Deno.serve(createRewardHandler({repository,user:async token=>{const {data,error}=await admin.auth.getUser(token);return error?null:data.user?.id??null},origins:(Deno.env.get('GAME_ALLOWED_ORIGINS')??'').split(',').map(s=>s.trim()).filter(Boolean)}))
+Deno.serve(withHealth('treasure',createRewardHandler({repository,user:async token=>{const {data,error}=await admin.auth.getUser(token);return error?null:data.user?.id??null},origins:(Deno.env.get('GAME_ALLOWED_ORIGINS')??'').split(',').map(s=>s.trim()).filter(Boolean)}),(Deno.env.get('GAME_ALLOWED_ORIGINS')??'').split(',').map(s=>s.trim()).filter(Boolean)))

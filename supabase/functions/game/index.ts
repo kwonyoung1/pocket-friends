@@ -1,3 +1,4 @@
+import {withHealth} from '../_shared/health.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3'
 import { createGameHandler } from '../../../src/cloud/server.ts'
 import type { CloudRepository } from '../../../src/cloud/server.ts'
@@ -14,4 +15,4 @@ const repository: CloudRepository = {
     return checked(await admin.rpc(data && typeof data === 'object' && 'world' in data && (data as {world?:{roomVersion?:number}}).world?.roomVersion ? 'game_commit_room' : data && typeof data === 'object' && 'world' in data && (data as {world?:{adventureVersion?:number}}).world?.adventureVersion ? 'game_commit_adventure' : data && typeof data === 'object' && 'world' in data && (data as {world?:{expansion?:unknown}}).world?.expansion ? 'game_commit_expansion' : 'game_commit', { p_user: user, p_operation: operation, p_command: command, p_expected: expected, p_data: data, p_holds: holds, p_message: message }))
   },
 }
-Deno.serve(createGameHandler({ repository, user: async token => { const { data, error } = await admin.auth.getUser(token); return error ? null : data.user?.id ?? null }, password: () => Deno.env.get('GAME_ACCESS_PASSWORD'), origins: (Deno.env.get('GAME_ALLOWED_ORIGINS') ?? '').split(',').map(s => s.trim()).filter(Boolean) }))
+Deno.serve(withHealth('game',createGameHandler({ repository, user: async token => { const { data, error } = await admin.auth.getUser(token); return error ? null : data.user?.id ?? null }, password: () => Deno.env.get('GAME_ACCESS_PASSWORD'), origins: (Deno.env.get('GAME_ALLOWED_ORIGINS') ?? '').split(',').map(s => s.trim()).filter(Boolean) }),(Deno.env.get('GAME_ALLOWED_ORIGINS')??'').split(',').map(s=>s.trim()).filter(Boolean)))
