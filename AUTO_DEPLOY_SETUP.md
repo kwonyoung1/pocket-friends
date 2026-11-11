@@ -1,5 +1,7 @@
 # 처음 한 번 하는 자동 배포 설정
 
+**1번(main 반영)을 마쳤다면 [2번부터 따라 하는 쉬운 안내서](AUTO_DEPLOY_BEGINNER_GUIDE.md)를 먼저 보세요.**
+
 현재 상태: 자동화 코드는 준비되어 있지만 **이 문서를 작성한 Codex 환경의 GitHub API는 403 Forbidden**이다. 저장소 설정/Secrets 이름 조회·PR 생성·병합·workflow 실행을 실제로 완료하지 못했다. Git push 권한만 있는 상태와 API 권한은 다르다. 따라서 아직 “완전 자동 배포가 운영에서 검증됐다”고 볼 수 없다.
 
 설정 대상: [kwonyoung1/pocket-friends](https://github.com/kwonyoung1/pocket-friends). 개인 계정 소유자가 진행한다. 비밀키를 채팅·코드·PR에 붙이지 않는다. 아래 UI 명칭은 GitHub의 표준 설정 명칭과 공식 문서 링크를 기준으로 했으며, 이번 환경에서는 공식 문서 HTTP 접속도 403이라 현재 사용자 계정 화면을 직접 확인하지 못했다. 명칭/제공 여부가 다르면 연결된 공식 문서를 확인한다.
