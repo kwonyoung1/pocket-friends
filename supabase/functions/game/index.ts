@@ -10,6 +10,11 @@ const repository: CloudRepository = {
   async authorize(user) { const row = checked(await admin.from('game_members').select('expires_at').eq('user_id', user).maybeSingle()); return !!row && Date.parse(row.expires_at) > Date.now() },
   async enroll(user) { checked(await admin.from('game_members').upsert({ user_id: user, expires_at: new Date(Date.now() + 7 * 86400000).toISOString() })) },
   async revoke(user) { checked(await admin.from('game_members').delete().eq('user_id', user)) },
+  async head() {
+    const row = checked(await admin.from('game_worlds').select('id,revision,updated_at').eq('id', 'home').single())
+    if (!row) throw Error('공유 월드 정보를 확인하지 못했어요. 연결을 확인한 뒤 같은 작업으로 다시 시도해 주세요.')
+    return row
+  },
   async load() { return checked(await admin.from('game_worlds').select('*').eq('id', 'home').single()) as ServerWorld },
   async commit(user: string, operation: string, command: unknown, expected: number, data: unknown, holds: Holds, message: string) {
     return checked(await admin.rpc(data && typeof data === 'object' && 'world' in data && (data as {world?:{roomVersion?:number}}).world?.roomVersion ? 'game_commit_room' : data && typeof data === 'object' && 'world' in data && (data as {world?:{adventureVersion?:number}}).world?.adventureVersion ? 'game_commit_adventure' : data && typeof data === 'object' && 'world' in data && (data as {world?:{expansion?:unknown}}).world?.expansion ? 'game_commit_expansion' : 'game_commit', { p_user: user, p_operation: operation, p_command: command, p_expected: expected, p_data: data, p_holds: holds, p_message: message }))

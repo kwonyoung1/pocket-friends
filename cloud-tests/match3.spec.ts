@@ -16,7 +16,9 @@ for(const mode of ['stage','challenge'] as const)test(`${mode}: local match play
   await page.evaluate(()=>{document.documentElement.dataset.worldChanges='0';new MutationObserver(()=>{document.documentElement.dataset.worldChanges=String(Number(document.documentElement.dataset.worldChanges)+1)}).observe(document.querySelector('.room')!,{subtree:true,attributes:true,childList:true})})
   const m=await nextMove(page);await swap(page,m.a,m.b);await idle(page)
   await second.getByRole('navigation',{name:'성장과 모험 메뉴'}).getByRole('button',{name:'상점',exact:true}).click();await second.getByTestId('item-snack').getByRole('button',{name:'구매하기',exact:true}).click();await second.getByRole('button',{name:'구매 확정',exact:true}).click();await expect(second.getByRole('button',{name:'보유 코인 285',exact:true})).toBeVisible()
-  await page.waitForTimeout(5500);expect(outgoing.some(r=>r.action==='status')).toBe(true);expect(outgoing.filter(r=>r.action==='command').every(r=>r.command?.type==='refresh')).toBe(true)
+  // Only a visible browser keeps polling; the room hidden inside the minigame is still suspended.
+  await page.bringToFront();await expect.poll(()=>page.evaluate(()=>document.visibilityState)).toBe('visible')
+  await expect.poll(()=>outgoing.some(r=>r.action==='status'),{timeout:10000}).toBe(true);expect(outgoing.filter(r=>r.action==='command').every(r=>r.command?.type==='refresh')).toBe(true)
   expect(await page.evaluate(()=>document.documentElement.dataset.worldChanges)).toBe('0');expect(backend.row().data!.world!.coins).toBe(285);expect(backend.row().data!.world!.inventory.snack).toBe(1);expect(backend.row().data!.friends.map(f=>f.growth?.xp)).toEqual(before.friends.map(f=>f.growth?.xp))
   const count=outgoing.length;await page.getByRole('button',{name:'보물 3매치 종료',exact:true}).click();await page.getByRole('button',{name:'거실로 돌아가기',exact:true}).click();await expect(page.getByRole('button',{name:'보유 코인 285',exact:true})).toBeVisible();await expect.poll(()=>outgoing.length).toBeGreaterThan(count)
   await page.getByRole('button',{name:'사천성',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible()

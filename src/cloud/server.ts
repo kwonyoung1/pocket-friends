@@ -1,3 +1,4 @@
+import { syncProtocol, worldPayload } from './transport.ts'
 import type { ServerWorld, WorldRow, Holds } from './protocol.ts'
 import {
   applyCommand,
@@ -10,6 +11,7 @@ export interface CloudRepository {
   authorize(user: string): Promise<boolean>
   enroll(user: string): Promise<void>
   revoke(user: string): Promise<void>
+  head?(): Promise<Pick<WorldRow, 'id' | 'revision' | 'updated_at'>>
   load(): Promise<ServerWorld>
   commit(
     user: string,
@@ -37,6 +39,27 @@ export function createGameHandler(options: {
 }) {
   const { repository: db } = options,
     now = options.now ?? Date.now
+  // Small, bounded isolate-local cache. Every request still authenticates and checks membership.
+  // Revision probes and atomic compare-and-swap commits prevent cached state overwriting newer data.
+  const recent = new Map<number, { row: ServerWorld; until: number }>()
+  const cached = (revision: number) => {
+    const entry = recent.get(revision)
+    return entry && entry.until > now() ? structuredClone(entry.row) : undefined
+  }
+  const remember = (row: ServerWorld) => {
+    for (const [revision, entry] of recent) if (entry.until <= now()) recent.delete(revision)
+    recent.delete(row.revision)
+    recent.set(row.revision, { row: structuredClone(row), until: now() + 60000 })
+    while (recent.size > 3) recent.delete(recent.keys().next().value!)
+    return row
+  }
+  const load = async () => {
+    if (db.head && recent.size) {
+      const head = await db.head(), hit = cached(head.revision)
+      if (hit && hit.id === head.id) return hit
+    }
+    return remember(await db.load())
+  }
   return async (request: Request): Promise<Response> => {
     const origin = request.headers.get('origin') ?? ''
     const headers = {
@@ -86,6 +109,9 @@ export function createGameHandler(options: {
         offset += chunk.length
       }
       const body = JSON.parse(new TextDecoder().decode(bytes))
+      const compatible = body.sync === syncProtocol
+      const known = compatible && Number.isSafeInteger(body.knownRevision) && body.knownRevision >= 0 ? body.knownRevision as number : undefined
+      const wire = (row: ServerWorld, base?: WorldRow) => compatible ? worldPayload(publicRow(row), base ?? (known === undefined ? undefined : cached(known))) : { row: publicRow(row) }
       if (body.action === 'login') {
         const password = options.password()
         if (!password)
@@ -109,7 +135,7 @@ export function createGameHandler(options: {
         for (let i = 0; i < a.length; i++) different |= a[i] ^ b[i]
         if (different) return reply({ error: '비밀번호가 맞지 않아요.' }, 403)
         await db.enroll(user)
-        return reply({ row: publicRow(await db.load()) })
+        return reply({ row: publicRow(await load()) })
       }
       if (!(await db.authorize(user)))
         return reply(
@@ -120,8 +146,16 @@ export function createGameHandler(options: {
         await db.revoke(user)
         return reply({ ok: true })
       }
-      if (body.action === 'status')
-        return reply({ row: publicRow(await db.load()) })
+      if (body.action === 'status') {
+        if (known !== undefined && db.head) {
+          const head = await db.head()
+          if (head.revision === known) return reply({ unchanged: true, revision: head.revision })
+          const hit = cached(head.revision)
+          if (hit && hit.id === head.id) return reply(wire(hit))
+          return reply(wire(remember(await db.load())))
+        }
+        return reply(wire(await load()))
+      }
       if (
         body.action !== 'command' ||
         typeof body.operation !== 'string' ||
@@ -130,7 +164,7 @@ export function createGameHandler(options: {
         )
       )
         return reply({ error: '올바른 작업 번호가 필요해요.' }, 400)
-      if (![2,3,4,5,6,7,8,9,10,11,12].includes(body.clientVersion) && (await db.load()).data?.world?.expansion)
+      if (![2,3,4,5,6,7,8,9,10,11,12].includes(body.clientVersion) && (await load()).data?.world?.expansion)
         return reply(
           {
             error: '게임이 업데이트되었어요. 새로고침 후 다시 시도해 주세요.',
@@ -138,14 +172,14 @@ export function createGameHandler(options: {
           },
           409,
         )
-      if(![3,4,5,6,7,8,9,10,11,12].includes(body.clientVersion)&&(await db.load()).data?.world?.specialFriendsVersion)return reply({error:'새 특별 친구가 왔어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
-      if (![4,5,6,7,8,9,10,11,12].includes(body.clientVersion) && (await db.load()).data?.world?.careRulesVersion) return reply({ error: '돌봄 규칙이 업데이트되었어요. 새로고침해 주세요.', rejected: true }, 409)
-      if(![5,6,7,8,9,10,11,12].includes(body.clientVersion)&&(await db.load()).data?.world?.adventureVersion)return reply({error:'탐험 기능이 업데이트되었어요. 새로고침해 주세요.',rejected:true},409)
-      if(![6,7,8,9,10,11,12].includes(body.clientVersion)&&(await db.load()).data?.world?.roomVersion)return reply({error:'방과 거래 기능이 업데이트되었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
-      if(![7,8,9,10,11,12].includes(body.clientVersion)&&(await db.load()).data?.world?.sichuan)return reply({error:'사천성이 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
-      if(![8,9,10,11,12].includes(body.clientVersion)&&(await db.load()).data?.world?.careEffectsVersion)return reply({error:'돌봄과 사천성 규칙이 바뀌었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
-      if(![9,10,11,12].includes(body.clientVersion)&&(await db.load()).data?.world?.recoveryLearningVersion)return reply({error:'음식과 일일 랭킹이 업데이트되었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
-      if(![10,11,12].includes(body.clientVersion)&&(await db.load()).data?.world?.statusBalanceVersion)return reply({error:'상태 변화 규칙이 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
+      if(![3,4,5,6,7,8,9,10,11,12].includes(body.clientVersion)&&(await load()).data?.world?.specialFriendsVersion)return reply({error:'새 특별 친구가 왔어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
+      if (![4,5,6,7,8,9,10,11,12].includes(body.clientVersion) && (await load()).data?.world?.careRulesVersion) return reply({ error: '돌봄 규칙이 업데이트되었어요. 새로고침해 주세요.', rejected: true }, 409)
+      if(![5,6,7,8,9,10,11,12].includes(body.clientVersion)&&(await load()).data?.world?.adventureVersion)return reply({error:'탐험 기능이 업데이트되었어요. 새로고침해 주세요.',rejected:true},409)
+      if(![6,7,8,9,10,11,12].includes(body.clientVersion)&&(await load()).data?.world?.roomVersion)return reply({error:'방과 거래 기능이 업데이트되었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
+      if(![7,8,9,10,11,12].includes(body.clientVersion)&&(await load()).data?.world?.sichuan)return reply({error:'사천성이 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
+      if(![8,9,10,11,12].includes(body.clientVersion)&&(await load()).data?.world?.careEffectsVersion)return reply({error:'돌봄과 사천성 규칙이 바뀌었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
+      if(![9,10,11,12].includes(body.clientVersion)&&(await load()).data?.world?.recoveryLearningVersion)return reply({error:'음식과 일일 랭킹이 업데이트되었어요. 최신 화면으로 새로고침해 주세요.',rejected:true},409)
+      if(![10,11,12].includes(body.clientVersion)&&(await load()).data?.world?.statusBalanceVersion)return reply({error:'상태 변화 규칙이 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
       // Receipt lookup happens before evaluating a consumed hold or an already-imported world.
       const receipt = await db.commit(
         user,
@@ -158,7 +192,7 @@ export function createGameHandler(options: {
       )
       if (receipt.status === 'duplicate')
         return reply({
-          row: publicRow(await db.load()),
+          ...wire(await load()),
           message: receipt.message,
         })
       const initialize = body.command?.type === 'initialize'
@@ -169,7 +203,7 @@ export function createGameHandler(options: {
         return reply({ error: (error as Error).message, rejected: true }, 400)
       }
       for (let attempt = 0; attempt < 6; attempt++) {
-        const row = await db.load()
+        const row = await load()
         if(![11,12].includes(body.clientVersion)&&row.data?.world?.expeditionGearVersion)return reply({error:'장비와 방 꾸미기가 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
         if(body.clientVersion!==12&&row.data?.world?.placementBoundsVersion===2)return reply({error:'방 테마와 배치 범위가 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
         if (initialize && row.data) {
@@ -254,8 +288,17 @@ export function createGameHandler(options: {
           result.message,
         )
         if (committed.status === 'conflict') continue
+        // The commit RPC increments revision exactly once. Confirm metadata before reusing
+        // the computed snapshot; a concurrent writer or duplicate needs the current world.
+        let final: ServerWorld
+        if (committed.status === 'ok' && db.head) {
+          const head = await db.head()
+          final = head.id === row.id && head.revision === row.revision + 1
+            ? remember({ ...head, data: result.save, holds: result.holds })
+            : await load()
+        } else final = await load()
         return reply({
-          row: publicRow(await db.load()),
+          ...wire(final, known === row.revision ? publicRow(row) : undefined),
           message: committed.message ?? result.message,
         })
       }

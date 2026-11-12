@@ -1,5 +1,6 @@
+import { applyWorldDelta, syncProtocol } from './transport'
 import { createClient } from '@supabase/supabase-js'
-import type { SupabaseClient, RealtimeChannel } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { GameCommand, WorldRow } from './protocol'
 import { resolveCloudConfiguration } from './configuration'
 export type InitialCommand = { type: 'initialize'; source: 'fresh' | 'local'; data?: unknown }
@@ -11,9 +12,12 @@ export class CloudClient {
   private state: CloudState = { phase: 'loading', row: null, busy: false, blocking: false, error: '', message: '', realtime: false, pending: false }
   private listeners = new Set<() => void>()
   private pending: Pending[] = []
-  private channel?: RealtimeChannel
   private timer?: ReturnType<typeof setInterval>
-  private reading = false
+  private reading?: Promise<void>
+  private lastContact = -Infinity
+  private lastRead = -Infinity
+  private nextProbe = 0
+  private failures = 0
   private draining?: Promise<void>
   private processingQueue = false
   private heartbeat = 0
@@ -41,13 +45,30 @@ export class CloudClient {
     if (!session) { this.update({ phase: 'login' }); throw Error('다시 로그인해 주세요.') }
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000)
     try {
-      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 12 }), signal: controller.signal })
+      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 12, sync: syncProtocol, ...(!(body as {full?:boolean}).full && this.state.row ? { knownRevision: this.state.row.revision } : {}) }), signal: controller.signal })
       const result = await response.json()
       if (Number.isFinite(result.serverTime)) { this.serverAt = result.serverTime; this.receivedAt = performance.now() }
       if (!response.ok) {
         if (response.status === 401 || response.status === 403 && body && typeof body === 'object' && 'action' in body && body.action !== 'login') this.update({ phase: 'login' })
         if (result.row) this.accept(result.row)
         throw new CloudRequestError(result.error ?? '클라우드 연결에 실패했어요.', result.rejected === true)
+      }
+      this.failures = 0; this.nextProbe = 0
+      if ((body as {action?:string}).action === 'command') this.lastContact = this.heartbeat = performance.now()
+      if (result.delta) {
+        const current = this.state.row
+        if (current && current.revision >= result.delta.revision) result.row = current
+        else {
+          try { if (!current) throw Error('Missing base'); result.row = applyWorldDelta(current, result.delta) }
+          catch {
+            // A committed command is never replayed just to recover a missed delta.
+            const full = await this.request({ action: 'status', full: true }); result.row = full.row
+          }
+        }
+      } else if (result.unchanged) {
+        if (!this.state.row || this.state.row.revision !== result.revision) {
+          const full = await this.request({ action: 'status', full: true }); result.row = full.row
+        } else result.row = this.state.row
       }
       return result
     } catch (error) { if (error instanceof CloudRequestError) throw error; throw Error(error instanceof Error && /[가-힣]/.test(error.message) ? error.message : '동기화에 실패했어요. 연결을 확인하고 다시 시도해 주세요.') }
@@ -70,28 +91,47 @@ export class CloudClient {
     } catch (e) { this.update({ error: (e as Error).message }) }
     finally { this.update({ busy: false }) }
   }
-  private resume = () => {if(!document.hidden&&this.state.phase==='ready'&&this.state.row?.data&&!this.pending.length&&!this.state.busy)void this.send({type:'refresh'})}
+  private available = () => !document.hidden && navigator.onLine !== false
+  private resume = () => {
+    if (!this.available() || this.state.phase !== 'ready' || this.state.busy) return
+    if (this.pending.length) { void this.retry(); return }
+    if (this.state.row?.data && performance.now() - this.heartbeat >= 30000) void this.send({ type: 'refresh' })
+    else void this.read()
+  }
   private watch() {
     if (this.timer) return
-    this.channel = this.sdk.channel('shared-home').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_worlds', filter: 'id=eq.home' }, () => { void this.read() }).subscribe(status => this.update({ realtime: status === 'SUBSCRIBED' }))
-    this.heartbeat = performance.now()
-    document.addEventListener('visibilitychange',this.resume)
+    // postgres_changes sends the full JSON world (including photos) to each device.
+    // A 5-second authorized revision probe replaces it without DB triggers/schema changes.
+    this.heartbeat = this.lastRead = performance.now()
+    document.addEventListener('visibilitychange', this.resume)
+    window.addEventListener('online', this.resume)
     this.timer = setInterval(() => {
-      if (this.state.phase !== 'ready') return
-      void this.read()
-      if (this.state.row?.data && performance.now() - this.heartbeat >= 30000 && !this.pending.length && !this.state.busy) { this.heartbeat = performance.now(); void this.send({ type: 'refresh' }) }
-    }, 5000)
+      if (!this.available() || this.state.phase !== 'ready' || this.state.busy || this.pending.length || this.failures >= 5 || performance.now() < this.nextProbe) return
+      if (this.state.row?.data && performance.now() - this.heartbeat >= 30000) void this.send({ type: 'refresh' })
+      else if (performance.now() - this.lastContact >= 5000 && performance.now() - this.lastRead >= 5000) void this.read()
+    }, 1000)
   }
-  async read() {
-    if (this.reading || this.disposed) return
-    this.reading = true
+  read(): Promise<void> {
+    if (this.reading) return this.reading
+    if (this.disposed) return Promise.resolve()
+    // The command response already synchronizes this device. Avoid a parallel full read.
+    if (this.draining) return this.draining
+    this.reading = this.readOnce().finally(() => { this.reading = undefined })
+    return this.reading
+  }
+  private async readOnce() {
+    this.lastRead = performance.now()
     try { const result = await this.request({ action: 'status' }); this.accept(result.row); if (!this.pending.length) this.update({ error: '' }) }
-    catch (e) { this.update({ error: (e as Error).message }) }
-    finally { this.reading = false }
+    catch (e) {
+      this.failures = Math.min(this.failures + 1, 5)
+      this.nextProbe = performance.now() + Math.min(60000, 5000 * 2 ** (this.failures - 1))
+      this.update({ error: (e as Error).message })
+    }
   }
   private saveQueue() { try { sessionStorage.setItem(pendingKey, JSON.stringify(this.pending)); return true } catch { return false } }
   async send(command: GameCommand | InitialCommand) {
     if (this.pending.length >= 20 || this.state.error && this.pending.some(p => p.command.type !== 'refresh')) { this.update({ error: '앞선 작업을 다시 확인한 뒤 시도해 주세요.' }); return }
+    if (command.type === 'refresh' && this.pending.some(p => p.command.type === 'refresh')) return this.retry()
     this.pending.push({ operation: crypto.randomUUID(), command })
     if (!this.saveQueue()) { this.pending.pop(); this.update({ error: '작업 번호를 저장하지 못해 요청을 보내지 않았어요. 브라우저 저장 공간을 확인해 주세요.', pending: this.pending.length > 0 }); return }
     this.update({ pending: true }); await this.retry()
@@ -130,7 +170,7 @@ export class CloudClient {
     } catch (e) { this.update({ error: `로그아웃을 완료하지 못했어요. ${(e as Error).message}` }) }
     finally { this.update({ busy: false }) }
   }
-  private stop() { document.removeEventListener('visibilitychange',this.resume); if (this.timer) clearInterval(this.timer); this.timer = undefined; if (this.channel) void this.sdk.removeChannel(this.channel); this.channel = undefined }
+  private stop() { document.removeEventListener('visibilitychange',this.resume); window.removeEventListener('online',this.resume); if (this.timer) clearInterval(this.timer); this.timer = undefined }
   dispose() { this.stop(); this.disposed = true }
 }
 export function cloudConfiguration() {
