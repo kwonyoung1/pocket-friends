@@ -3,3 +3,8 @@
 @media(max-width:600px){.room-theme-control{order:2}.room-toolbar .friend-count{order:1}}
 
 .room-art.theme-halloween .watercolor-scenery{filter:saturate(.78) hue-rotate(325deg)}.room[data-night=true] .watercolor-scenery{filter:brightness(.78) saturate(.75)}
+
+/* Small local bulbs breathe gently; no room-wide flash or particle layer. */
+.christmas-bulb{opacity:.75}.christmas-decor[data-lights-active=true] .christmas-bulb{animation:christmas-breathe 5s ease-in-out infinite}
+@keyframes christmas-breathe{0%,100%{opacity:.6}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.christmas-bulb{animation:none!important}}

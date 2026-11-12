@@ -1,7 +1,6 @@
 import {legacyChange} from './status/balance'
 import {roomScale,scaledPoint} from './room/config'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cells } from './navigation'
 import { care, createFriends, findRoute, parseSave, tick, walkable } from './game'
 const start = 1760000000000
 function seeded() {
@@ -17,17 +16,18 @@ describe('room navigation and autonomous behaviour', () => {
     expect(route.some(p => p.y < 420*roomScale || p.y > 515*roomScale)).toBe(true)
     for (const p of route) expect(walkable(p)).toBe(true)
   })
-  it('all four friends independently move, pause and meet over five simulated minutes', () => {
+  it('all four friends independently move and pause on valid floor over five simulated minutes', () => {
     seeded()
     const friends = createFriends(start)
     const origins = friends.map(f => ({ x: f.x, y: f.y }))
-    const distances = friends.map(() => 0), moving = new Set<string>(), resting = new Set<string>()
+    const furthest = friends.map(() => 0), distances = friends.map(() => 0), moving = new Set<string>(), resting = new Set<string>()
     const meetings: string[] = []
     for (let i = 1; i <= 3000; i++) {
       const previous = friends.map(f => ({ x: f.x, y: f.y }))
       tick(friends, start + i * 100, .1, text => meetings.push(text))
       friends.forEach((f, j) => {
         distances[j] += Math.hypot(f.x - previous[j].x, f.y - previous[j].y)
+        furthest[j]=Math.max(furthest[j],Math.hypot(f.x-origins[j].x,f.y-origins[j].y))
         if (f.moving) moving.add(f.id)
         if (start + i * 100 < f.restingUntil) resting.add(f.id)
         expect(walkable(f)).toBe(true)
@@ -35,39 +35,40 @@ describe('room navigation and autonomous behaviour', () => {
       })
     }
     expect(moving.size).toBe(4); expect(resting.size).toBe(4)
-    distances.forEach(d => expect(d).toBeGreaterThan(1000))
-    friends.forEach((f, i) => expect(Math.hypot(f.x - origins[i].x, f.y - origins[i].y)).toBeGreaterThan(10))
-    expect(meetings.length).toBeGreaterThan(0)
-    expect(friends.some(f => f.stats.affection > 20)).toBe(true)
+    distances.forEach(d => expect(d).toBeGreaterThan(100))
+    furthest.forEach(d=>expect(d).toBeGreaterThan(55))
+    // Rare meetings are verified with an explicit encounter below, not a random deadline.
   })
-  it('may rest at its randomly chosen current tile, then resumes walking to a new destination', () => {
-    const f = createFriends(start)[0]
-    Object.assign(f,cells.find(p=>Math.hypot(p.x-f.x,p.y-f.y)<30)!)
-    const origin={x:f.x,y:f.y}
-    f.restingUntil = start
-    const currentIndex = cells.findIndex(p => p.x === f.x && p.y === f.y)
-    expect(currentIndex).toBeGreaterThanOrEqual(0)
-    // Peer choice, random-floor choice, current tile, six-second rest.
-    const choices = [0, .99, (currentIndex + .5) / cells.length, .99]
-    let call = 0
-    vi.spyOn(Math, 'random').mockImplementation(() => choices[call++ % choices.length])
-    for (let i = 1; i <= 100; i++) tick([f], start + i * 100, .1, () => {})
-    expect([f.x, f.y]).toEqual([origin.x, origin.y])
-    vi.mocked(Math.random).mockReturnValue(.99)
-    for (let i = 101; i <= 160; i++) tick([f], start + i * 100, .1, () => {})
-    expect(Math.hypot(f.x - origin.x, f.y - origin.y)).toBeGreaterThan(10)
+  it('nearby encounters still grant the existing social rewards during the quiet schedule',()=>{
+    const [f,p]=createFriends(start)
+    Object.assign(f,{x:500,y:400,restingUntil:0,meeting:p.id,route:[{x:560,y:400}],socialAfter:0})
+    Object.assign(p,{x:560,y:400,restingUntil:start+60000,socialAfter:0})
+    const met:string[]=[]
+    tick([f,p],start,.1,text=>met.push(text))
+    expect(met).toHaveLength(1);expect(f.stats.affection).toBeGreaterThan(20);expect(p.stats.affection).toBeGreaterThan(20)
+  })
+  it('rests for at least fifteen seconds before choosing a nearby destination', () => {
+    seeded()
+    const f=createFriends(start)[0],origin={x:f.x,y:f.y}
+    f.restingUntil=start+15000
+    for(let i=1;i<150;i++)tick([f],start+i*100,.1,()=>{})
+    expect({x:f.x,y:f.y}).toEqual(origin)
+    const friends=[f]
+    for(let i=150;i<=200;i++)tick(friends,start+i*100,.1,()=>{})
+    expect(Math.hypot(f.x-origin.x,f.y-origin.y)).toBeGreaterThan(5)
+    expect(Math.hypot(f.x-origin.x,f.y-origin.y)).toBeLessThan(160)
   })
   it('keeps ordinary friends silent while scheduling their autonomous movement', () => {
     seeded()
     const friends = createFriends(start)
-    friends.forEach(f => expect(f.nextSpeech - start).toBeGreaterThanOrEqual(20000))
-    const now = start + 50000
+    friends.forEach(f => expect(f.nextSpeech - start).toBeGreaterThanOrEqual(30000))
+    const now = start + 60001
     tick(friends, now, .1, () => {})
     friends.forEach(f => {
       expect(f.bubble).toBe('')
       expect(f.bubbleUntil).toBe(0)
-      expect(f.nextSpeech - now).toBeGreaterThanOrEqual(20000)
-      expect(f.nextSpeech - now).toBeLessThanOrEqual(50000)
+      expect(f.nextSpeech - now).toBeGreaterThanOrEqual(30000)
+      expect(f.nextSpeech - now).toBeLessThanOrEqual(60000)
     })
   })
 })

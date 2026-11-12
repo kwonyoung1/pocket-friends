@@ -31,11 +31,11 @@ export const AnimalSprite=memo(function AnimalSprite({friend,mini=false,emotion=
   function draw(time:number,dt:number){
    const {friend:f,emotion:expression}=live.current,now=Date.now(),held=!!f.interaction?.gesture,asleep=!!f.id&&sleeping(f as Friend,now)
    const reduced=media.matches||!!el!.closest('[data-living-motion=reduced]')
-   if(!nextHabit)nextHabit=time+4000+visualRandom()*6000
+   if(!nextHabit)nextHabit=time+15000+visualRandom()*15000
    if(!nextBlink)nextBlink=time+2500+visualRandom()*4500
    if(reduced&&dt>0&&time-lastReducedDraw<200)return;lastReducedDraw=time
    const free=!asleep&&!f.moving&&!held&&!reduced
-   if(free&&time>=nextHabit){pose=habits[kind][Math.floor(visualRandom()*habits[kind].length)];poseUntil=time+1100;nextHabit=time+4000+visualRandom()*6000}
+   if(free&&time>=nextHabit){pose=habits[kind][Math.floor(visualRandom()*habits[kind].length)];poseUntil=time+1100;nextHabit=time+15000+visualRandom()*15000}
    if(free&&time>=nextBlink){blinkUntil=time+150;nextBlink=time+2500+visualRandom()*4500}
    if(time>=poseUntil)pose='idle'
    const activity:LifePose|undefined=!free?undefined:time<blinkUntil?'blink':pose

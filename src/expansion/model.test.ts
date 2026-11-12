@@ -73,7 +73,7 @@ describe('life and data preservation', () => {
     )
     expect(startExpedition(s, f.id, 'forest', noon)).toContain('이미')
     const old = { x: f.x, y: f.y }
-    for (let i = 1; i < 100; i++) tick(s.friends, noon + i * 100, 0.1, () => {})
+    for (let i = 1; i < 500; i++) tick(s.friends, noon + i * 100, 0.1, () => {})
     expect({ x: f.x, y: f.y }).toEqual(old)
     expect(
       s.friends

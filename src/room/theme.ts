@@ -1,7 +1,7 @@
 import type {Save} from '../game.ts'
 export type RoomThemeId='default'|'halloween'|'winter'
 export type RoomTheme={id:RoomThemeId;changedAt:number}
-export const themeLabels={default:'기본',halloween:'할로윈',winter:'겨울'} as const
+export const themeLabels={default:'기본',halloween:'할로윈',winter:'겨울(크리스마스)'} as const
 export function roomTheme(s:Save):RoomThemeId{return s.world?.roomTheme?.id??'default'}
 export function changeRoomTheme(s:Save,id:RoomThemeId,now:number){
  if(id!=='default'&&id!=='halloween'&&id!=='winter')throw Error('방 테마를 확인해 주세요.')

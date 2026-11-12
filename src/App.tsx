@@ -1,3 +1,4 @@
+import {visibleEmotion} from './emotions/model'
 import {activityItem} from './art/activity'
 import {HomeTools} from './cozy/HomeTools'
 import {RoomAtmosphere} from './cozy/RoomAtmosphere'
@@ -95,6 +96,12 @@ function App({ cloud, suspended=false, openTreasureMatch }: { cloud?: CloudGame;
   const roomCamera=useRef<HTMLDivElement>(null)
   const uploadTarget = useRef('momo')
   const audio = useRef<AudioContext | null>(null)
+  const activeRoomTheme=roomTheme(model.current)
+  useEffect(()=>{
+    if(activeRoomTheme!=='winter'||!matchMedia('(max-width:600px)').matches)return
+    const camera=roomCamera.current
+    if(camera)camera.scrollLeft=(camera.scrollWidth-camera.clientWidth)/2
+  },[activeRoomTheme])
   const friends = model.current.friends
   if(!cloud) {upgradeRoom(model.current);world(model.current).adventureVersion=1; for(const f of friends)f.foodTaste??=defaultTaste(f.id)}
   const friend = friends.find(f => f.id === selected)!
@@ -109,6 +116,7 @@ function App({ cloud, suspended=false, openTreasureMatch }: { cloud?: CloudGame;
       if (local || indexed) setSavedAt(model.current.savedAt)
     })
   }, [])
+  const interactionChanged=useCallback(()=>{persist();render(v=>v+1)},[persist])
   useEffect(()=>{if(claimedSpecial.current)return;claimedSpecial.current=true;if(cloudRef.current){if(!specialIds.every(id=>model.current.friends.some(f=>f.id===id)))void cloudRef.current.send({type:'claim-special-friends'})}else{grantSpecialFriends(model.current);persist();render(v=>v+1)}},[persist])
   const remember = useCallback((text: string) => {
     const entry: Memory = { id: crypto.randomUUID(), text, at: Date.now() }
@@ -143,7 +151,7 @@ function App({ cloud, suspended=false, openTreasureMatch }: { cloud?: CloudGame;
   }, [cloud?.row.revision])
   useEffect(() => {
     if(suspended){persist();return}
-    let frame = 0, previous = performance.now(), lastRender = 0, lastWorldCheck = -1000
+    let frame = 0, previous = performance.now(), lastRender = 0, lastWorldCheck = -1000, lastFeedback = ''
     const loop = (stamp: number) => {
       const dt = Math.min(Math.max((stamp - previous) / 1000, 0), .15)
       previous = stamp
@@ -156,7 +164,13 @@ function App({ cloud, suspended=false, openTreasureMatch }: { cloud?: CloudGame;
         if (returns.length) { returns.forEach(remember); setNotice(returns.join(' · ')); persist() }
       }
       tick(model.current.friends, Date.now(), dt, cloudRef.current ? () => {} : remember, bonded, !!cloudRef.current)
-      if (model.current.friends.some(f => f.interaction?.gesture) || stamp - lastRender > 80) { render(v => v + 1); lastRender = stamp }
+      const gesture=model.current.friends.some(f=>f.interaction?.gesture)
+      const renderEvery=model.current.friends.some(f=>f.moving)?80:300
+      // Quiet idle frames can wait, but visible feedback transitions cannot.
+      const now=Date.now()
+      const feedback=model.current.friends.map(f=>{const e=visibleEmotion(f,now);return `${f.id}:${f.interaction?.phase??'idle'}:${f.bubbleUntil>now?f.bubble:''}:${e?`${e.kind}:${e.at}`:''}:${(f.growth?.levelUpUntil??0)>now?f.growth?.level:''}`}).join('|')
+      const feedbackChanged=feedback!==lastFeedback;lastFeedback=feedback
+      if (gesture || feedbackChanged || stamp - lastRender > renderEvery) { render(v => v + 1); lastRender = stamp }
       frame = requestAnimationFrame(loop)
     }
     frame = requestAnimationFrame(loop)
@@ -274,9 +288,9 @@ function App({ cloud, suspended=false, openTreasureMatch }: { cloud?: CloudGame;
       <nav className="adventure-nav" aria-label="성장과 모험 메뉴">{menus.map(({ id, label, icon: Icon }) => <button key={id} aria-label={label} onClick={() => { setMenu(id); }}><Icon size={17} /><span>{label}</span>{id === 'inventory' && <small>{Object.values(world(model.current).inventory).reduce((s, n) => s + n, 0)}</small>}</button>)}<button onClick={()=>setSichuanOpen(true)}>사천성</button><button onClick={openTreasureMatch}>💎 보물 3매치</button><button className="life-nav-button" onClick={()=>{setTogether(false);setLifeOpen(true)}}>생활·입양</button></nav>
       <div className="game-layout">
         <section className="room-panel" aria-label="친구들이 생활하는 방"><div className="room-toolbar"><div><span className="live-dot" /><strong>우리의 거실</strong><span className="room-caption">작은 발걸음으로 채워지는 공간</span></div><div className="room-theme-control" role="group" aria-label="방 테마"><span>{themeLabels[roomTheme(model.current)]} 테마</span><select aria-label="방 테마 선택" value={roomTheme(model.current)} disabled={cloud?.busy} onChange={event=>{const theme=event.target.value as RoomThemeId;if(cloud){void cloud.send({type:'room-theme',theme})}else{notify(changeRoomTheme(model.current,theme,Date.now()));persist()}}}>{Object.entries(themeLabels).map(([id,label])=><option key={id} value={id}>{label} 테마</option>)}</select></div><span className="friend-count"><PawPrint size={14} /> {friends.length}명의 친구</span></div>
-          <div className="room-camera-shell"><div className="room-viewport" ref={roomCamera} role="region" aria-label="확장된 방 카메라" tabIndex={0}><div className="room" data-theme={roomTheme(model.current)} data-world-width={room.width} data-world-height={room.height} data-night={(Date.now()/3600000+9)%24>=20||(Date.now()/3600000+9)%24<6}><BulkFeedback save={model.current} now={cloud?.now}/><RoomArt theme={roomTheme(model.current)} now={cloud?.now} crowded={friends.length>=8} suspended={suspended}/><RoomAtmosphere/><RoomExtras suspended={suspended} save={model.current} draft={draft} setDraft={setDraft} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/><div className="room-label"><Sun size={13} /> {roomTheme(model.current)==='winter'?'창밖엔 눈, 실내엔 온기':roomTheme(model.current)==='halloween'?'사탕 향기 가득한 할로윈':'햇살 가득한 오후'}</div>
+          <div className="room-camera-shell"><div className="room-viewport" ref={roomCamera} role="region" aria-label="확장된 방 카메라" tabIndex={0}><div className="room" data-theme={roomTheme(model.current)} data-world-width={room.width} data-world-height={room.height} data-night={(Date.now()/3600000+9)%24>=20||(Date.now()/3600000+9)%24<6}><BulkFeedback save={model.current} now={cloud?.now}/><RoomArt theme={roomTheme(model.current)} now={cloud?.now} crowded={friends.length>=8} suspended={suspended}/>{roomTheme(model.current)!=='winter'&&<RoomAtmosphere/>}<RoomExtras suspended={suspended} save={model.current} draft={draft} setDraft={setDraft} changed={persist} notify={notify} command={cloud?.send} busy={cloud?.busy}/><div className="room-label"><Sun size={13} /> {roomTheme(model.current)==='winter'?'창밖엔 눈, 실내엔 온기':roomTheme(model.current)==='halloween'?'사탕 향기 가득한 할로윈':'햇살 가득한 오후'}</div>
             {friends.filter(f => { const j = world(model.current).jobs.find(j => j.id === f.growth?.awayJobId); return j && Date.now() - j.startedAt < 1800 }).map(f => <div key={`leaving-${f.id}`} className="room-friend departing-friend" style={{ left: leftPercent(f.x), top: topPercent(f.y), zIndex: Math.round(f.y) }} aria-label={`${f.name} 탐험 출발`}><span className="speech" role="status">다녀올게~! 오늘은 어떤 보물을 찾을까?</span><span className="friend-figure"><Character friend={f} /></span><span className="friend-name">{f.name} · 외출</span></div>)}
-            {friends.filter(f => !f.growth?.awayJobId).map(f => <InteractiveFriend key={f.id} peers={friends} reducedLiving={calm||suspended} activeItem={activityItem(f,model.current.memories,notice,Date.now())} friend={f} selected={selected === f.id} select={() => {setSelected(f.id);setCareOpen(true)}} changed={persist} bonded={bonded} remote={cloud ? { busy: cloud.busy, send: cloud.send } : undefined} />)}
+            {friends.filter(f => !f.growth?.awayJobId).map(f => <InteractiveFriend key={f.id} peers={friends} reducedLiving={calm||suspended} activeItem={activityItem(f,model.current.memories,notice,Date.now())} friend={f} selected={selected === f.id} select={() => {setSelected(f.id);setCareOpen(true)}} changed={interactionChanged} bonded={bonded} remote={cloud ? { busy: cloud.busy, send: cloud.send } : undefined} />)}
           </div></div></div>
           {draft&&<div className="camera-controls" role="group" aria-label="가구 배치 카메라 이동">{[{label:'왼쪽',x:-180,y:0,text:'← 왼쪽'},{label:'위',x:0,y:-140,text:'↑ 위'},{label:'아래',x:0,y:140,text:'↓ 아래'},{label:'오른쪽',x:180,y:0,text:'오른쪽 →'}].map(d=><button key={d.label} aria-label={`배치 카메라 ${d.label} 보기`} onClick={()=>roomCamera.current?.scrollBy({left:d.x,top:d.y,behavior:'instant'})}>{d.text}</button>)}</div>}
           <div id="room-placement-tools"/>

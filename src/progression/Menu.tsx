@@ -34,6 +34,11 @@ export function GameMenu({ save, tab, close, selected, select, changed, notify, 
   const [filter, setFilter] = useState('all')
   const dialog = useRef<HTMLDivElement>(null)
   const w = world(save), f = save.friends.find(f => f.id === selected)!, g = growth(f)
+  const [,refreshDeadline]=useState(0)
+  const clock=now??Date.now,current=clock()
+  const deadline=Math.min(...[w.buyAfter,w.useAfter,g.rewardAfter.feed??0,g.rewardAfter.play??0,f.interaction?.resumeAt??0].filter(at=>at>current))
+  // Refresh at the actual button deadline even when the quiet room skips frames.
+  useEffect(()=>{if(!Number.isFinite(deadline))return;const timer=setTimeout(()=>refreshDeadline(v=>v+1),Math.max(0,deadline-clock())+1);return()=>clearTimeout(timer)},[deadline,clock])
   const run = (c: GameCommand, action: () => string) => { if (command) { if (!busy) void command(c); return }; const message = action(); changed(); notify(message) }
   useEffect(() => { const previous = document.activeElement as HTMLElement | null; dialog.current?.focus(); return () => previous?.focus() }, [])
   const title = menus.find(m => m.id === tab)!.label
