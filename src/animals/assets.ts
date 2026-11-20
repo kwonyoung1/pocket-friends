@@ -1,3 +1,4 @@
+import {directionArt} from '../animation/assets'
 // Approved plush A originals and newly authored poses; prepared by prepare-plush-art.mjs.
 export type AnimalKind='cat'|'bunny'|'dog'|'bear'|'fox'|'hamster'
 import momo_idle from '../assets/animals/plush-A/momo/idle.webp'
@@ -27,7 +28,7 @@ import mungchi_life from '../assets/animals/plush-A/mungchi/life-atlas.webp'
 import hamster_idle from '../assets/animals/plush-A/hamster/idle.webp'
 import hamster_walk from '../assets/animals/plush-A/hamster/walk-atlas.webp'
 import hamster_life from '../assets/animals/plush-A/hamster/life-atlas.webp'
-export const plushArt={momo:{png:momo_idle,walk:momo_walk,life:momo_life},bibi:{png:bibi_idle,walk:bibi_walk,life:bibi_life},coco:{png:coco_idle,walk:coco_walk,life:coco_life},dudu:{png:dudu_idle,walk:dudu_walk,life:dudu_life},lulu:{png:lulu_idle,walk:lulu_walk,life:lulu_life},toto:{png:toto_idle,walk:toto_walk,life:toto_life},byeol:{png:byeol_idle,walk:byeol_walk,life:byeol_life},mungchi:{png:mungchi_idle,walk:mungchi_walk,life:mungchi_life},hamster:{png:hamster_idle,walk:hamster_walk,life:hamster_life}} as const
+export const plushArt={momo:{direction:directionArt.momo,png:momo_idle,walk:momo_walk,life:momo_life},bibi:{direction:directionArt.bibi,png:bibi_idle,walk:bibi_walk,life:bibi_life},coco:{direction:directionArt.coco,png:coco_idle,walk:coco_walk,life:coco_life},dudu:{direction:directionArt.dudu,png:dudu_idle,walk:dudu_walk,life:dudu_life},lulu:{direction:directionArt.lulu,png:lulu_idle,walk:lulu_walk,life:lulu_life},toto:{direction:directionArt.toto,png:toto_idle,walk:toto_walk,life:toto_life},byeol:{direction:directionArt.byeol,png:byeol_idle,walk:byeol_walk,life:byeol_life},mungchi:{direction:directionArt.mungchi,png:mungchi_idle,walk:mungchi_walk,life:mungchi_life},hamster:{direction:directionArt.hamster,png:hamster_idle,walk:hamster_walk,life:hamster_life}} as const
 export const animalArt={cat:plushArt.momo,bunny:plushArt.bibi,dog:plushArt.mungchi,bear:plushArt.coco,fox:plushArt.dudu,hamster:plushArt.hamster}
 export function animalAppearance(friend:{id?:string;kind:string;color:string}){
  if(friend.kind==='hamster')return plushArt.hamster

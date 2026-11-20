@@ -1,0 +1,12 @@
+import momo from '../assets/directional/momo.webp'
+import bibi from '../assets/directional/bibi.webp'
+import coco from '../assets/directional/coco.webp'
+import dudu from '../assets/directional/dudu.webp'
+import lulu from '../assets/directional/lulu.webp'
+import toto from '../assets/directional/toto.webp'
+import byeol from '../assets/directional/byeol.webp'
+import mungchi from '../assets/directional/mungchi.webp'
+import hamster from '../assets/directional/hamster.webp'
+import boy from '../assets/directional/boy.webp'
+import girl from '../assets/directional/girl.webp'
+export const directionArt={momo,bibi,coco,dudu,lulu,toto,byeol,mungchi,hamster,boy,girl} as const

@@ -1,0 +1,64 @@
+{
+  "frameSize": 256,
+  "grid": [
+    4,
+    3
+  ],
+  "items": {
+    "momo": {
+      "output": "src/assets/directional/momo.webp",
+      "bytes": 144882,
+      "sha256": "5846cf6f0bd83462be1ddc1f778c52efb3241c6576f8fc23197916950d76f5bd"
+    },
+    "dudu": {
+      "output": "src/assets/directional/dudu.webp",
+      "bytes": 121362,
+      "sha256": "e69ba6845dda3bb71a263995ffc4632242a5508bbfca787815ce568f75ec766a"
+    },
+    "bibi": {
+      "output": "src/assets/directional/bibi.webp",
+      "bytes": 97772,
+      "sha256": "a44c8d6045598d3f4fa52f4daa9103deb7a2504cfc275d587ce0d8f91a868aab"
+    },
+    "byeol": {
+      "output": "src/assets/directional/byeol.webp",
+      "bytes": 108808,
+      "sha256": "75d7e2d3ad2ffd4e0cc986865f66920331559a3bab08ff5d91329574e9fca650"
+    },
+    "coco": {
+      "output": "src/assets/directional/coco.webp",
+      "bytes": 140970,
+      "sha256": "b43721663a780812652732d362c0e4e9defecd176ec524b7188c6f9e118b4d28"
+    },
+    "mungchi": {
+      "output": "src/assets/directional/mungchi.webp",
+      "bytes": 94180,
+      "sha256": "08803040b23843adaca9cecd2ebe699fe501039da7ea4a4fbc76ce5d2ba839f8"
+    },
+    "lulu": {
+      "output": "src/assets/directional/lulu.webp",
+      "bytes": 126068,
+      "sha256": "c9e346b4692a4ef0cc983779a7b292ef1e444c9f87ad7d4f6898359a504b2912"
+    },
+    "hamster": {
+      "output": "src/assets/directional/hamster.webp",
+      "bytes": 130132,
+      "sha256": "ecbf9a3cff8a5c8f1637da501a10f35013a6b230f4dbdae5306739f73daace9e"
+    },
+    "toto": {
+      "output": "src/assets/directional/toto.webp",
+      "bytes": 166600,
+      "sha256": "c9888a699081d70d910ddf7f15f3efc96fd0b0bcd167d327e9581951ed982616"
+    },
+    "boy": {
+      "output": "src/assets/directional/boy.webp",
+      "bytes": 131190,
+      "sha256": "9afd9040ee3fbad3c652cdddce73056ea7fa52e3c2d742b83321dda1e0e35874"
+    },
+    "girl": {
+      "output": "src/assets/directional/girl.webp",
+      "bytes": 141466,
+      "sha256": "a27f8459c9ba8f0d9066945c9cd1684c897c6423a95f0a99443d5be60695dd3d"
+    }
+  }
+}

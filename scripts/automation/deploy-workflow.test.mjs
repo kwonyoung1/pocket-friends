@@ -36,3 +36,13 @@ test('pull requests and non-main dispatches never deploy to production',()=>{
  assert.equal(scheduled({ref:'refs/heads/codex/fix',event:'workflow_dispatch'}),false)
  assert.equal(scheduled({event:'workflow_dispatch'}),true)
 })
+test('independent browser and cloud jobs start in parallel while build still requires every full validation suite',()=>{
+ const browser=workflow.split('\n  browser:\n')[1].split('\n  cloud:\n')[0]
+ const cloud=workflow.split('\n  cloud:\n')[1].split('\n  build:\n')[0]
+ const build=workflow.split('\n  build:\n')[1].split('\n  plan:\n')[0]
+ for(const job of [browser,cloud])assert.doesNotMatch(job,/^    needs:/m)
+ assert.match(browser,/run: npm run test:e2e/)
+ assert.match(cloud,/run: npm run test:cloud/)
+ assert.match(build,/needs: \[unit, browser, cloud\]/)
+ assert.match(build,/test "\$UNIT" = success && test "\$BROWSER" = success && test "\$CLOUD" = success/)
+})

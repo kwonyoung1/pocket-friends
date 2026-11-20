@@ -54,7 +54,7 @@ test('personal photo takes precedence over A art and remains unchanged after rel
 })
 test('failed animation downloads leave the approved standing art visible without retry loops',async({page})=>{
  let failed=0
- await page.route('**/plush-A/momo/*-atlas.webp',route=>{failed++;return route.fulfill({status:503,body:'unavailable'})})
+ await page.route(/\/(?:plush-A\/momo\/[^/]+-atlas|directional\/momo)\.webp(?:\?.*)?$/,route=>{if(route.request().resourceType()!=='image')return route.continue();failed++;return route.fulfill({status:503,body:'unavailable'})})
  await seed(page)
  const art=page.getByTestId('room-momo').locator('.animal-art')
  await art.scrollIntoViewIfNeeded();await expect(art).toHaveAttribute('data-art-error','true')
