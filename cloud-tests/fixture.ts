@@ -13,6 +13,7 @@ export const test = base.extend<{
     attach: (context: BrowserContext) => Promise<void>
     row: () => ServerWorld
     loseNextEnhanceResponse: () => void
+    pauseNextEnhanceResponse: () => () => void
     loseNextBuyResponse: () => void
     loseNextRewardResponse: () => void
     traffic: () => { action: string; type: string; bytes: number; unchanged: boolean; delta: boolean }[]
@@ -36,6 +37,7 @@ export const test = base.extend<{
       loseEnhance = false,
       loseNext = false
     const traffic: { action: string; type: string; bytes: number; unchanged: boolean; delta: boolean }[] = []
+    let enhanceResponseGate: Promise<void> | undefined
     const receipts = new Map<
       string,
       { user: string; command: string; message: string }
@@ -142,6 +144,13 @@ export const test = base.extend<{
             await route.abort('failed')
             return
           }
+          // Commit first, then let the test explicitly acknowledge the response.
+          // Expose reload races without depending on runner speed or sleeps.
+          if (request.postDataJSON()?.command?.type === 'enhance' && enhanceResponseGate) {
+            const gate = enhanceResponseGate
+            enhanceResponseGate = undefined
+            await gate
+          }
           const text=await response.text(),payload=JSON.parse(text),body=request.postDataJSON()
           traffic.push({action:body?.action??'',type:body?.command?.type??'',bytes:Buffer.byteLength(text),unchanged:payload.unchanged===true,delta:!!payload.delta})
           await route.fulfill({
@@ -166,6 +175,12 @@ export const test = base.extend<{
       row: () => structuredClone(row),
       loseNextRewardResponse:()=>{loseReward=true},
       loseNextEnhanceResponse:()=>{loseEnhance=true},
+      pauseNextEnhanceResponse:()=>{
+        if(enhanceResponseGate)throw Error('An enhancement response is already paused')
+        let release!: () => void
+        enhanceResponseGate = new Promise<void>(resolve=>{release=resolve})
+        return release
+      },
       loseNextBuyResponse: () => {
         loseNext = true
       },
