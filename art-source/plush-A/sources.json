@@ -1,0 +1,67 @@
+{
+  "approved": "User: 1안으로 진행시켜 (2026-11-20)",
+  "generator": "image_gen; newly drawn poses from approved individual masters",
+  "grid": {
+    "columns": 4,
+    "rows": 5,
+    "walk": 8,
+    "life": 12
+  },
+  "animals": {
+    "momo": {
+      "master": "art-source/plush-A/momo-master.png",
+      "sheet": "art-source/plush-A/momo-poses.png",
+      "masterSHA256": "de3333d82b1b0823a132d936ec9baa665bcd0317c40e4c756376aa311ab92ffa",
+      "sheetSHA256": "694d52404f7354b83ebe32b098eb63e67d5f2f9230230e733e9acf275b5b5759"
+    },
+    "bibi": {
+      "master": "art-source/plush-A/bibi-master.png",
+      "sheet": "art-source/plush-A/bibi-poses.png",
+      "masterSHA256": "458df04804d701a0cbb106208d6a1238c0d0d2c8073e2014f243298a8143e8f3",
+      "sheetSHA256": "255d5fe05078797b11de44be9fb7ae96f64942d12105124c31c882b35fd92839"
+    },
+    "coco": {
+      "master": "art-source/plush-A/coco-master.png",
+      "sheet": "art-source/plush-A/coco-poses.png",
+      "masterSHA256": "e1f760955d635236b8faad71d86c5b00a439f6da842b24b7b12acd0f4da3c680",
+      "sheetSHA256": "b2cd74e7c421a115c181d884569ad598ff9466da6b1fc1bf51544c354ee6b13e"
+    },
+    "dudu": {
+      "master": "art-source/plush-A/dudu-master.png",
+      "sheet": "art-source/plush-A/dudu-poses.png",
+      "masterSHA256": "5d24eefe66049bf24317b3180e08b14e271dedcc7a05c7d8e8b0308ee1d5537f",
+      "sheetSHA256": "adf5c300fa673823fa98cc5e1dec9495c98c66edb9584019ccd32813b92867c0"
+    },
+    "lulu": {
+      "master": "art-source/plush-A/lulu-master.png",
+      "sheet": "art-source/plush-A/lulu-poses.png",
+      "masterSHA256": "831198144767398e389f72bcdea0f7ec1492fff52642803ceae8439635111115",
+      "sheetSHA256": "c4d4f947a61851da27a8d714d28fb483a798843165ca7bede0164e33942bd002"
+    },
+    "toto": {
+      "master": "art-source/plush-A/toto-master.png",
+      "sheet": "art-source/plush-A/toto-poses.png",
+      "masterSHA256": "835671a6cd4a3cea96fc1401aade70eaf8bad7718c78f16a91d72deb9d9f0a90",
+      "sheetSHA256": "e7a27741443aa323a3e8aba153936415b04185a37611a3c3b89981db4a222d8b"
+    },
+    "byeol": {
+      "master": "art-source/plush-A/byeol-master.png",
+      "sheet": "art-source/plush-A/byeol-poses.png",
+      "masterSHA256": "46e125abcb6e7e08f8dbf79efd2233436c962ab930acbabd9a5c49da0767e8eb",
+      "sheetSHA256": "41b8de27ea27fb806ae9990e729e6abac2d740ec8abecd8e423f62e93142b4fd"
+    },
+    "mungchi": {
+      "master": "art-source/plush-A/mungchi-master.png",
+      "sheet": "art-source/plush-A/mungchi-poses.png",
+      "masterSHA256": "f0a935fe3711ef970609ea1112f23fcc714a8f7dde0c87af9dd7ccd594303041",
+      "sheetSHA256": "c82e121db847b1933d76bf7e3892f3ac2801bbe9aa8cdc6f84ab014f91bc98fa"
+    },
+    "hamster": {
+      "master": "art-source/plush-A/hamster-master.png",
+      "sheet": "art-source/plush-A/hamster-poses.png",
+      "masterSHA256": "ef741fb5712b46388ec6d6eb180f5d882102ac2c6935e6c4e14d3e19cb72e172",
+      "sheetSHA256": "209e91c7335a1d6a6e39b1c05b0a2308b461c91d44a1f8ddd07f550af5195c4b"
+    }
+  },
+  "background": "image_gen transparency cleanup followed by low-alpha fringe normalization"
+}

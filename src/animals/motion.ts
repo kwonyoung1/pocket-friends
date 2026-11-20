@@ -3,8 +3,8 @@ export type MotionState='Idle'|'WalkStart'|'Walk'|'WalkFast'|'Turn'|'WalkStop'|'
 export type LifePose='idle'|'blink'|'sit'|'sleep'|'stretch'|'groom'|'yawn'|'look'
 export type MotionInput={x:number;y:number;moving:boolean;facing:number;held:boolean;sleeping:boolean;resting:boolean;expression:string;activity?:LifePose}
 export type MotionOutput={state:MotionState;frame:number;life:LifePose;walkOpacity:number;speed:number;direction:'left'|'right'|'front'|'back'}
-const strides:Record<AnimalKind,number>={cat:40,dog:36,bear:44,fox:44,bunny:28}
-const speeds:Record<AnimalKind,number>={cat:35,dog:35,bear:29,fox:42,bunny:35}
+const strides:Record<AnimalKind,number>={cat:40,dog:36,bear:44,fox:44,bunny:28,hamster:18}
+const speeds:Record<AnimalKind,number>={cat:35,dog:35,bear:29,fox:42,bunny:35,hamster:36}
 /** Read-only visual state: distance, not a clock-only animation, advances feet. */
 export class AnimalMotion{
  private previous?:MotionInput

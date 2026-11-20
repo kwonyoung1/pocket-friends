@@ -26,6 +26,7 @@ import {
 import { expansion, life, lifeCommand, sleepLabel, sleeping, bathStatus } from './model'
 import type { LifeCommand, Placement, Hamster } from './model'
 import { Character } from '../Character'
+import { AnimalSprite } from '../animals/AnimalSprite'
 import { findRoute, validPosition } from '../navigation'
 import { furnitureObstacles } from './model'
 export type Draft = {
@@ -369,26 +370,7 @@ export function LifePanel({
   )
 }
 function HamsterArt() {
-  return (
-    <svg viewBox="0 0 100 110" className="hamster-art" aria-hidden="true">
-      <ellipse cx="50" cy="92" rx="30" ry="7" fill="#77614a" opacity=".14" />
-      <circle cx="28" cy="37" r="13" fill="#dbb38a" />
-      <circle cx="72" cy="37" r="13" fill="#dbb38a" />
-      <ellipse cx="50" cy="68" rx="34" ry="31" fill="#e6c39a" />
-      <ellipse cx="50" cy="77" rx="25" ry="19" fill="#fff4df" />
-      <circle cx="36" cy="59" r="4" fill="#695244" />
-      <circle cx="64" cy="59" r="4" fill="#695244" />
-      <path d="m46 69 4 4 4-4" fill="#bb7e7e" />
-      <ellipse cx="24" cy="72" rx="8" ry="7" fill="#f4d4b0" />
-      <ellipse cx="76" cy="72" rx="8" ry="7" fill="#f4d4b0" />
-      <path
-        d="M40 91h-8m28 0h8"
-        stroke="#ba9470"
-        strokeWidth="6"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
+  return <span className="hamster-art"><AnimalSprite friend={{kind:'hamster',color:'#e6c39a',name:'햄스터'}} mini /></span>
 }
 function HamsterActor({ hamster: h, save, suspended=false }: { hamster: Hamster; save: Save; suspended?:boolean }) {
   const state = useRef({
@@ -482,7 +464,7 @@ function HamsterActor({ hamster: h, save, suspended=false }: { hamster: Hamster;
       }
       aria-label={`햄스터 · ${s.action}`}
     >
-      <HamsterArt />
+      <span className="hamster-figure"><AnimalSprite friend={{id:h.id,kind:'hamster',color:'#e6c39a',name:'햄스터',x:s.x,y:s.y,facing:s.facing,moving:s.route.length>0,eatingUntil:s.action==='오물오물 간식'?Date.now()+1000:0}} sleepingOverride={s.action==='새근새근'} restingOverride={s.action==='고개 갸웃'}/></span>
       {s.action === '새근새근' && <small>z z z</small>}
     </span>
   )
