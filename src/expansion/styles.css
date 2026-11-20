@@ -494,3 +494,9 @@
 .placement-list{padding:10px 14px;background:#fff9ee;border-radius:12px;border:1px solid #dfccb0;margin:8px 0}.placement-list label{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.placement-list select{font:inherit;max-width:100%;min-height:44px;border:1px solid #d5c3a8;border-radius:8px;padding:6px;background:#fffdf7}.furniture-controls{flex-wrap:wrap}
 @keyframes gem-glow{to{opacity:.4;scale:1.15}}@keyframes gem-stars{50%{translate:0 -5px;opacity:.5}}
 @media(prefers-reduced-motion:reduce){.gem-aura::before,.gem-sparkles{animation:none}}
+
+/* Approved plush hamster shares the same visible-only sprite renderer. */
+.hamster-art{display:inline-block;width:64px;height:70px}.hamster-art .animal-art{width:100%;height:100%}
+.room-hamster .hamster-figure{display:block;width:100%;height:100%;transform:scaleX(var(--hamster-facing,1));transform-origin:50% 93%}
+.room-hamster .hamster-figure .animal-art{width:100%;height:100%}
+.hamster-walking .hamster-figure,.hamster-sleeping .hamster-figure{animation:none}
