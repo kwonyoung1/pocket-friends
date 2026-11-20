@@ -1,0 +1,38 @@
+import {test} from 'node:test'
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+import {runInNewContext} from 'node:vm'
+
+// Evaluate the actual job expression, including Actions' implicit success()
+// when no status-check function is present. No network or deployment is run.
+const workflow=readFileSync(new URL('../../.github/workflows/deploy.yml',import.meta.url),'utf8')
+const deploy=workflow.split('\n  deploy:\n')[1]
+assert(deploy,'Missing website deployment job')
+const lines=deploy.split('\n'),start=lines.findIndex(line=>line.startsWith('    if:'))
+assert(start>=0,'Missing deployment condition')
+const first=lines[start].slice('    if:'.length).trim()
+const expression=first==='>-'?lines.slice(start+1).slice(0,lines.slice(start+1).findIndex(line=>!line.startsWith('      '))).map(line=>line.trim()).join(' '):first
+function scheduled({results={},cancelled=false,ref='refs/heads/main',event='push',ancestors=['success','success','success','skipped']}={}){
+ const needs=Object.fromEntries(['build','plan','backend-gate'].map(name=>[name,{result:results[name]??'success'}]))
+ const explicitStatus=/\b(?:always|success|failure|cancelled)\s*\(/.test(expression)
+ if(!explicitStatus&&!ancestors.every(result=>result==='success'))return false
+ return runInNewContext(`Boolean(${expression})`,{needs,github:{ref,event_name:event},cancelled:()=>cancelled})
+}
+test('frontend-only release deploys after successful gates despite intentionally skipped backend/approval ancestors',()=>{
+ assert.equal(scheduled(),true)
+ assert.equal(scheduled({ancestors:['success','skipped','skipped','success']}),true)
+})
+test('server release deploys only after successful release gates',()=>{
+ assert.equal(scheduled({ancestors:['success','success','success','success']}),true)
+})
+test('failed, skipped, cancelled or missing required release gates never deploy',()=>{
+ for(const name of ['build','plan','backend-gate'])for(const result of ['failure','skipped','cancelled','']){
+  assert.equal(scheduled({results:{[name]:result}}),false,`${name}=${result}`)
+ }
+ assert.equal(scheduled({cancelled:true}),false)
+})
+test('pull requests and non-main dispatches never deploy to production',()=>{
+ assert.equal(scheduled({event:'pull_request'}),false)
+ assert.equal(scheduled({ref:'refs/heads/codex/fix',event:'workflow_dispatch'}),false)
+ assert.equal(scheduled({event:'workflow_dispatch'}),true)
+})

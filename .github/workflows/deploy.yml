@@ -218,7 +218,12 @@ jobs:
           fi
   deploy:
     needs: [build, plan, backend-gate]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # A frontend-only release intentionally skips backend. Override the implicit
+    # success() check across skipped ancestors, then require every release gate.
+    if: >-
+      !cancelled() && needs.build.result == 'success' && needs.plan.result == 'success' &&
+      needs['backend-gate'].result == 'success' &&
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
