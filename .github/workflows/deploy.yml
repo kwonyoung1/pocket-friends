@@ -65,7 +65,6 @@ jobs:
           path: dist/
           retention-days: 14
   browser:
-    needs: unit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +91,6 @@ jobs:
           path: test-results/
           retention-days: 7
   cloud:
-    needs: unit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

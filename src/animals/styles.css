@@ -10,3 +10,5 @@
 @keyframes animal-quiet-breath{50%{scale:1.004}}
 .animal-art[data-animation-visible=false]>span,.living-motion[data-visible=false] .animal-art>span,.cozy-home[data-living-motion=reduced] .animal-art>span{animation:none!important}
 @media(prefers-reduced-motion:reduce){.animal-art>span{animation:none!important}}
+
+.animal-walk>span{position:absolute;inset:0;background-repeat:no-repeat;background-size:400% 300%;transform-origin:50% 93%}

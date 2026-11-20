@@ -1,0 +1,59 @@
+{
+  "generator": "image_gen; directional poses drawn from preserved approved masters",
+  "grid": [
+    4,
+    3
+  ],
+  "rows": [
+    "right",
+    "front",
+    "back"
+  ],
+  "framesPerDirection": 4,
+  "items": {
+    "momo": {
+      "source": "art-source/directional/momo.png",
+      "sha256": "3c7cd037d96c7b740e7cda3a2e35cfbfb7dcfb26498b130cee92af719de4b35c"
+    },
+    "dudu": {
+      "source": "art-source/directional/dudu.png",
+      "sha256": "0e5de78b61fdd5f7dcdc33c70ca211c9b4780c551df62d1112d57b954d95396d"
+    },
+    "bibi": {
+      "source": "art-source/directional/bibi.png",
+      "sha256": "52b145086e91c5cfdabebf487a4a33225bc0e3dabe04f0fb004408ba10480a4d"
+    },
+    "byeol": {
+      "source": "art-source/directional/byeol.png",
+      "sha256": "1d766d517c09e740e9b9f79d4c40a10ccb14df347c882b59a70e1fc1006cd414"
+    },
+    "coco": {
+      "source": "art-source/directional/coco.png",
+      "sha256": "3d151c67632c773142616e2c59a06938b132e6bfe060fe0624ccf1fb6e6e9f0c"
+    },
+    "mungchi": {
+      "source": "art-source/directional/mungchi.png",
+      "sha256": "5600f0351c1a7042b96c32dc06468cefe355607119a9fe8a1cf12ed6cf0fc836"
+    },
+    "lulu": {
+      "source": "art-source/directional/lulu.png",
+      "sha256": "607a9a749a06c7af9f4538d7e4b27398b62bcada2cdaf9464b7d8a63534870c4"
+    },
+    "hamster": {
+      "source": "art-source/directional/hamster.png",
+      "sha256": "895c34f8a617c16e0cbcd31755894d58bae95d53205b9d24c92f000d5a49c05e"
+    },
+    "toto": {
+      "source": "art-source/directional/toto.png",
+      "sha256": "60242e5ac3e85277af1bcbe559556a1185632b8d2dabb567640b3884fa1dbec2"
+    },
+    "boy": {
+      "source": "art-source/directional/boy.png",
+      "sha256": "2d527a796dce28e23ba72d3ef0a7198ac6ac0f41034af61da1ad1cf812dd5a39"
+    },
+    "girl": {
+      "source": "art-source/directional/girl.png",
+      "sha256": "8f85418b48373f07848824922b644a711d2faf9ea1f0a8fa75c88edbc1cd5f4c"
+    }
+  }
+}
