@@ -47,3 +47,29 @@
 업로드의 `name`과 배포의 `artifact_name`에 동일한 `github-pages-${{ github.run_id }}-${{ github.run_attempt }}`를 지정한다. 일반 배포와 롤백에 모두 적용했다. 재실행마다 고유한 이름이므로 이전 파일을 지우지 않아도 된다.
 
 이전 커밋을 Re-run하면 이전 YAML을 그대로 사용한다. 수정 PR을 main에 반영한 뒤 [배포 화면](https://github.com/kwonyoung1/pocket-friends/actions/workflows/deploy.yml)에서 Run workflow → main으로 새 실행을 시작한다. 병합으로 새 main 배포가 이미 시작됐다면 중복 실행하지 않는다. 기존 #76을 반복 리런하지 않는다. Supabase 토큰·DB·저장 데이터 변경은 필요 없다.
+
+## 전체 실행은 초록색인데 deploy가 skipped인 경우
+
+실행 #89(`9ebe811`) 화면에서 unit/browser/cloud/build/plan/approve/backend-gate는
+성공했지만, 서버 변경이 없어 backend가 건너뛰어지고 deploy도 건너뛰어졌다.
+이 상태는 운영 배포 완료가 아니다. 건너뛴 job이 있어도 실행 전체는 성공으로 표시될 수 있다.
+
+기존 deploy 조건에는 명시적인 상태 검사 함수가 없어 GitHub Actions의 기본
+`success()` 조건이 적용됐다. 선택적인 backend 또는 approve 단계가 건너뛰어지는
+의존성 경로에서도 웹 배포가 잘못 생략될 수 있었다.
+
+deploy에 `!cancelled()`와 build/plan/backend-gate의 **모두 success** 조건을 명시한다.
+따라서 선택적인 서버 단계가 필요 없을 때만 정상 게이트를 거쳐 웹 배포를 진행하며,
+필수 검사 실패·필수 승인 누락·필수 서버 배포 실패·실행 취소는 계속 차단한다.
+backend-gate, 필수 리뷰, 환경 승인, 권한 및 토큰 설정은 완화하지 않는다.
+
+`npm run test:automation`에서 실제 YAML의 deploy 조건으로 프런트엔드 단독 변경,
+서버 변경, 필수 게이트 실패/생략/취소, 취소된 실행, PR 및 비-main 실행을 검사한다.
+이는 로컬 조건 회귀 검사이며 GitHub에서 운영 배포가 실행됐다는 증빙은 아니다.
+
+수정 PR을 승인·병합한 뒤 생성되는 **새 main 실행**을 확인한다.
+기존 #89를 Re-run하면 수정 전 YAML이 실행되므로 해결되지 않는다.
+[배포 목록](https://github.com/kwonyoung1/pocket-friends/actions/workflows/deploy.yml)에서
+Review deployments 승인이 필요하면 승인하고, **deploy job 자체가 success**인지 확인한다.
+그 안의 운영 SHA/HTML/JS 및 모바일 부팅 검사까지 통과해야 완료다.
+사이트 데이터·등록 사진 삭제나 Supabase 변경은 필요 없다.
