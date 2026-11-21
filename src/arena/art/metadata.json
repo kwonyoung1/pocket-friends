@@ -1,0 +1,122 @@
+{
+  "generator": "OpenAI image_gen",
+  "illustrations": [
+    {
+      "id": "chanmi",
+      "source": "art-source/chanmi-illustration.png",
+      "sha256": "a8cdf443c83a15bba0d6abab1cd6a6af3bb29471cc41005b65deb846851cef8d",
+      "output": "assets/card-chanmi.webp",
+      "bytes": 163142
+    },
+    {
+      "id": "momo",
+      "source": "art-source/momo-illustration.png",
+      "sha256": "6395b9e8fbed74db38f3e1e09d6b60807621ac959b7232b5e1b53c3fa94ac66e",
+      "output": "assets/card-momo.webp",
+      "bytes": 104382
+    },
+    {
+      "id": "youngi",
+      "source": "art-source/youngi-illustration.png",
+      "sha256": "a1ab976fb96cd40c74218b76ed066b922ffbcd5dac3f5f51fe6ad152735c80b1",
+      "output": "assets/card-youngi.webp",
+      "bytes": 117614
+    },
+    {
+      "id": "forest",
+      "source": "art-source/forest-illustration.png",
+      "sha256": "820ae9cfeeb0ad8d306e878853e82f626be13506f228cd891c403db310567342",
+      "output": "assets/forest.webp",
+      "bytes": 316250
+    },
+    {
+      "id": "bibi",
+      "source": "art-source/bibi-illustration.png",
+      "sha256": "41300366d9c45e368651e88eba460b381fdb181bb1d2c547814650af0309739d",
+      "output": "assets/card-bibi.webp",
+      "bytes": 92260
+    },
+    {
+      "id": "foliage",
+      "source": "art-source/foliage-illustration.png",
+      "sha256": "4769425476303624195b14a7208939261683ba77fa89903567341d6edaca7e06",
+      "output": "assets/foliage.webp",
+      "bytes": 83900
+    },
+    {
+      "id": "coco",
+      "source": "art-source/coco-illustration.png",
+      "sha256": "1305e46e59e03d8758a0dfe68eb8301ab515ba9de50d82ac1850f9481fbd3e19",
+      "output": "assets/card-coco.webp",
+      "bytes": 118848
+    }
+  ],
+  "sprites": [
+    {
+      "id": "chanmi",
+      "source": "art-source/chanmi-pixel-sheet.png",
+      "sourceSHA256": "65ba7b3f17a7f9292e34f2ca0d5533d4d43579540a8a20f8aea70e14a39699b2",
+      "output": "assets/sprite-chanmi.png",
+      "sha256": "c9c32505ab9cef9e6a334a3d513a848e30d00f0f223e6fd4f5244530d64e3dbd",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 15750
+    },
+    {
+      "id": "momo",
+      "source": "art-source/momo-pixel-sheet.png",
+      "sourceSHA256": "c19f7ea7914319fc5b7b48f43b1d869f202fdd7e0fd9fdf2532f15936e7e5b62",
+      "output": "assets/sprite-momo.png",
+      "sha256": "ba289385fcdd8069ec26a76394cc94f7346f7b975d1043b199678c1663071759",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 15325
+    },
+    {
+      "id": "youngi",
+      "source": "art-source/youngi-pixel-sheet.png",
+      "sourceSHA256": "04d8026f7cc3af153684a9d92f5bb668d540ac51586559a7a2a7b2a4964fff91",
+      "output": "assets/sprite-youngi.png",
+      "sha256": "517133d8f4fbe27362ea204ffd9752756892f876c8d325809bf121e9162b0bdf",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 13631
+    },
+    {
+      "id": "enemies",
+      "source": "art-source/enemies-pixel-sheet.png",
+      "sourceSHA256": "86e008fb9f63f6021c92d67cbd85bece4691529f699c4f09e2a4fd4d156d2a5c",
+      "output": "assets/sprite-enemies.png",
+      "sha256": "8cc1d7c5d1020bf9b864a0451af70c7dd0b0d7de9c3179e69edf8cf2e9ea3fdf",
+      "cols": 4,
+      "rows": 3,
+      "cell": 64,
+      "bytes": 7807
+    },
+    {
+      "id": "bibi",
+      "source": "art-source/bibi-pixel-sheet.png",
+      "sourceSHA256": "c7d1883fb2a9a3f2b4aa6196e723838b7d9995b170d46753710be276f59a943f",
+      "output": "assets/sprite-bibi.png",
+      "sha256": "1fee7365425cce72f7dabce6462216eab8bce481a71757acb9ec676d904ce6b7",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 14271
+    },
+    {
+      "id": "coco",
+      "source": "art-source/coco-pixel-sheet.png",
+      "sourceSHA256": "6068c37cc4de2c28fcf2c8eff4d3523f9799464a821f69f63d3bd818e0f06d17",
+      "output": "assets/sprite-coco.png",
+      "sha256": "044d5a906a93e2959c43d814507c70cb3ee64f38adb85aed6d92131701ec6186",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 15773
+    }
+  ]
+}
