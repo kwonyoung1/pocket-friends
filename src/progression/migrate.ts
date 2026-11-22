@@ -1,3 +1,4 @@
+import {restoreArena} from '../arena/state.ts'
 import {migrateEquipment} from '../equipment/migrate.ts'
 import {equipmentById} from '../equipment/catalog.ts'
 import {migrateSichuan} from '../sichuan/state.ts'
@@ -35,6 +36,7 @@ export function migrateWorld(raw: unknown, now: number): World {
   if (raw === undefined) {const w=newWorld(now);delete w.statusBalanceVersion;delete w.statusBalanceSince;return w}
   const r = record(raw), w = newWorld(now)
   // The presence of a valid economy means the initial grant has already been accounted for.
+  if(r.arena!==undefined)w.arena=restoreArena(r.arena)
   w.coins = number(r.coins, 0, 1e12); w.starterGranted = true
   w.inventory = {}; for (const [id, value] of Object.entries(record(r.inventory ?? {}))) { if (!Object.hasOwn(itemById, id)) throw Error('알 수 없는 아이템이 있어요.'); w.inventory[id] = number(value, 0, 1e7) }
   w.book = {}; for (const [id, value] of Object.entries(record(r.book ?? {}))) { if (!Object.hasOwn(itemById, id)) throw Error('알 수 없는 도감 항목이에요.'); const b = record(value); w.book[id] = { firstAt: number(b.firstAt), lastAt: number(b.lastAt), count: number(b.count, 1) } }

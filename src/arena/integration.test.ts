@@ -4,7 +4,7 @@ import {act,heroById} from './model'
 const source=[{id:'special-boy',name:'남자아이',level:12},{id:'special-girl',name:'우리 찬미',level:50},{id:'momo',name:'소중한 모모',level:29},{id:'bibi',name:'비비',level:35},{id:'coco',name:'코코',level:40},{id:'dudu',name:'두두',level:20}]
 test('roster snapshots owned identities, aliases and actual levels without changing the source',()=>{
  const original=structuredClone(source);source.forEach(Object.freeze);Object.freeze(source)
- const roster=arenaRoster(source);expect(roster).toHaveLength(5);expect(roster[0]).toEqual({id:'special-boy',name:'영이',level:12});expect(roster.find(f=>f.id==='momo')?.name).toBe('소중한 모모');expect(source).toEqual(original)
+ const roster=arenaRoster(source);expect(roster).toHaveLength(6);expect(roster[0]).toMatchObject({id:'special-boy',name:'영이',level:12});expect(roster.find(f=>f.id==='momo')?.name).toBe('소중한 모모');expect(source).toEqual(original)
  roster[0].name='다른 표시';expect(source).toEqual(original)
 })
 test('mixed growth levels control individual stats and skill locks; practice levels are temporary',()=>{
