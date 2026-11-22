@@ -1,3 +1,4 @@
+import {arenaCommand,validateArena} from '../arena/server.ts'
 import {bulkCare} from '../care/bulk.ts'
 import {changeRoomTheme} from '../room/theme.ts'
 import {gearCommand} from '../equipment/model.ts'
@@ -50,6 +51,7 @@ export function validateCommand(value: unknown): GameCommand {
   const c = value as Record<string, unknown>
   if ('friendId' in c && !friendIds.includes(String(c.friendId)))
     throw Error('친구를 선택해 주세요.')
+  if(typeof c.type==='string'&&c.type.startsWith('arena-'))return validateArena(c)
   switch (c.type) {
     case 'care-play-all': case 'care-wash-all': break
     case 'care-feed-all': if(!string(c.id))throw Error('음식을 선택해 주세요.');break
@@ -179,7 +181,7 @@ export function importWorld(value: unknown, now: number): Save {
   for(const f of s.friends)if(f.life)f.life.lastSettledAt=now
   world(s,now).statusBalanceVersion=1;world(s,now).statusBalanceSince=now
   // Imported local records cannot seed a public ranking or claim server rewards.
-  if(s.world)delete s.world.sichuan
+  if(s.world){delete s.world.sichuan;delete s.world.arena}
   return s
 }
 export function applyCommand(
@@ -213,6 +215,7 @@ export function applyCommand(
   if ('friendId' in c && !f) throw Error('아직 함께 살지 않는 친구예요.')
   let message = returns.join(' · ') || '클라우드와 동기화했어요.'
   switch (c.type) {
+    case 'arena-start': case 'arena-checkpoint': case 'arena-complete': case 'arena-abandon': message=arenaCommand(save,c,user,now);break
     case 'care-play-all': case 'care-wash-all': case 'care-feed-all': message=bulkCare(save,c,now,holds).message;break
     case 'room-theme': message=changeRoomTheme(save,c.theme,now);break
     case 'sichuan-start': case 'sichuan-match': case 'sichuan-hint': case 'sichuan-shuffle': case 'sichuan-next': case 'sichuan-stop': message=sichuanCommand(save,c as SichuanCommand,user,now);break

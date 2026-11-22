@@ -17,5 +17,5 @@ export function GameShell({cloud,onResume}:{cloud?:CloudGame;onResume?:()=>void}
  if(!open)frozen.current=cloud
  const enter=useCallback(()=>setOpen('treasure'),[]),leave=useCallback(()=>{setOpen(null);resume.current?.()},[])
  const enterArena=useCallback((friends:ArenaFriend[])=>{setArenaFriends(friends);setOpen('arena')},[])
- return <><div hidden={!!open} inert={!!open}><World cloud={frozen.current} suspended={!!open} openTreasureMatch={enter} openArena={enterArena}/></div>{open&&<MatchBoundary key={open} close={leave} arena={open==='arena'}><Suspense fallback={<div className="cloud-gate" role="status">{open==='arena'?'별빛 아레나를 준비하고 있어요…':'반짝이는 보물을 준비하고 있어요…'}</div>}>{open==='arena'?<Arena friends={arenaFriends} close={leave}/>:<TreasureMatch close={leave} rewarded={!!cloud}/>}</Suspense></MatchBoundary>}</>
+ return <><div hidden={!!open} inert={!!open}><World cloud={frozen.current} suspended={!!open} openTreasureMatch={enter} openArena={enterArena}/></div>{open&&<MatchBoundary key={open} close={leave} arena={open==='arena'}><Suspense fallback={<div className="cloud-gate" role="status">{open==='arena'?'별빛 아레나를 준비하고 있어요…':'반짝이는 보물을 준비하고 있어요…'}</div>}>{open==='arena'?<Arena friends={arenaFriends} close={leave} cloud={cloud}/>:<TreasureMatch close={leave} rewarded={!!cloud}/>}</Suspense></MatchBoundary>}</>
 }

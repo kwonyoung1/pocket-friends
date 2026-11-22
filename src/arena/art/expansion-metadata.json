@@ -1,0 +1,233 @@
+{
+  "generator": "OpenAI image_gen",
+  "process": "independent sprite-sheet artwork, grid extraction (whole connected sprites for enemies, avoiding clipped limbs and adjacent-frame fragments) and nearest 64px normalization; no illustration thumbnails used as field sprites",
+  "assets": [
+    {
+      "id": "card-dudu",
+      "source": "art-source/arena-expansion/dudu-card.png",
+      "sourceSHA256": "50256983d3889384cdd3fd4ef7e2ed87820c591cb70d1c226468c4a504d67436",
+      "output": "src/arena/art/card-dudu.webp",
+      "bytes": 111416
+    },
+    {
+      "id": "card-lulu",
+      "source": "art-source/arena-expansion/lulu-card.png",
+      "sourceSHA256": "33b9266a682337945eecb069e8dcdd3b9b50af581401b493b0787b9b3d1062be",
+      "output": "src/arena/art/card-lulu.webp",
+      "bytes": 144476
+    },
+    {
+      "id": "card-toto",
+      "source": "art-source/arena-expansion/toto-card.png",
+      "sourceSHA256": "a1f7c9f8d353c1d63d8054a86e52a0052479b3497adedbd479614ced32665462",
+      "output": "src/arena/art/card-toto.webp",
+      "bytes": 103866
+    },
+    {
+      "id": "card-byeol",
+      "source": "art-source/arena-expansion/byeol-card.png",
+      "sourceSHA256": "289a8f0b7b3c2b5052e6a2ffaf361cc3a312b0f9e924f2f9f95bc1a6f117f4b9",
+      "output": "src/arena/art/card-byeol.webp",
+      "bytes": 126926
+    },
+    {
+      "id": "card-mungchi",
+      "source": "art-source/arena-expansion/mungchi-card.png",
+      "sourceSHA256": "d90b163bb062fe3f6234e4ff5af60f61ee51052aa07251e3ed700a91a9880e47",
+      "output": "src/arena/art/card-mungchi.webp",
+      "bytes": 73358
+    },
+    {
+      "id": "bg-lake",
+      "source": "art-source/arena-expansion/bg-lake.png",
+      "sourceSHA256": "d2ec9ad771388a5b7e63c11cc0f74309d9c66192cf436759d7985e18069df2a5",
+      "output": "src/arena/art/bg-lake.webp",
+      "bytes": 318442
+    },
+    {
+      "id": "bg-cave",
+      "source": "art-source/arena-expansion/bg-cave.png",
+      "sourceSHA256": "170009b7a40800c493fd227a95556d9d9c6e31bccbd601dde1168de33a2764af",
+      "output": "src/arena/art/bg-cave.webp",
+      "bytes": 361588
+    },
+    {
+      "id": "bg-ruins",
+      "source": "art-source/arena-expansion/bg-ruins.png",
+      "sourceSHA256": "2005359428622c66ee59d99aed781aea60616fdda6329e713a01f82db907dddb",
+      "output": "src/arena/art/bg-ruins.webp",
+      "bytes": 389608
+    },
+    {
+      "id": "bg-canyon",
+      "source": "art-source/arena-expansion/bg-canyon.png",
+      "sourceSHA256": "c51ab74fd2f4981a99dbffc0b40fb318b2a203b987a0348ad64cdf24b2fbf48e",
+      "output": "src/arena/art/bg-canyon.webp",
+      "bytes": 357228
+    },
+    {
+      "id": "bg-snow",
+      "source": "art-source/arena-expansion/bg-snow.png",
+      "sourceSHA256": "89a7232aa9e7afd9a790e70d6c7e5b3a2e243a17d8ae788eb8652368dcc97c42",
+      "output": "src/arena/art/bg-snow.webp",
+      "bytes": 347042
+    },
+    {
+      "id": "bg-shadow",
+      "source": "art-source/arena-expansion/bg-shadow.png",
+      "sourceSHA256": "ca6165422b4ca25c5559c6bd4e747d6e3db049c7c825c7b58d249bcd74c9387f",
+      "output": "src/arena/art/bg-shadow.webp",
+      "bytes": 333368
+    },
+    {
+      "id": "bg-sanctuary",
+      "source": "art-source/arena-expansion/bg-sanctuary.png",
+      "sourceSHA256": "ee0e88f5731f655abafece28d7d72cf4c66a20cfe72a15411e9cfda92f14cebc",
+      "output": "src/arena/art/bg-sanctuary.webp",
+      "bytes": 338376
+    },
+    {
+      "id": "sprite-dudu",
+      "source": "art-source/arena-expansion/dudu-pixels.png",
+      "sourceSHA256": "b269c360892782512dcd262d74b57270410fc24f612a54db7f793cdc42e8ae85",
+      "sha256": "689f2929ac727f9aa2a2d27a3a134243385bb96d1452afadee2447eda2de97e0",
+      "output": "src/arena/art/sprite-dudu.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 14094
+    },
+    {
+      "id": "sprite-lulu",
+      "source": "art-source/arena-expansion/lulu-pixels.png",
+      "sourceSHA256": "e4d6a12c1c9e0800e666bac9c7e1d695330a2cae4fd6ea1bc9ac181348de9760",
+      "sha256": "d031882a7a8c0d971834b1da2126e6bc8de7f52c4594ffecb2e29aaf9bc2a6dd",
+      "output": "src/arena/art/sprite-lulu.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 15285
+    },
+    {
+      "id": "sprite-toto",
+      "source": "art-source/arena-expansion/toto-pixels.png",
+      "sourceSHA256": "5c5a5fd6b7b62ab9db6b97cd874bf946d8ae08fa0b24c71cb97fb13fed95a1a4",
+      "sha256": "c0b4944b5b788275ccf9c1c73277e6fca664139cf20bb8aa473b77276355a8d4",
+      "output": "src/arena/art/sprite-toto.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 14413
+    },
+    {
+      "id": "sprite-byeol",
+      "source": "art-source/arena-expansion/byeol-pixels.png",
+      "sourceSHA256": "fa9e8cc3d4b74fd46e6abaa25666cfb7c61a1739c6011c2c7218dd5c963a420a",
+      "sha256": "fed1214cda68af308a421914276e20e5a9c79052b7bb9693632f2cc6a6ac4835",
+      "output": "src/arena/art/sprite-byeol.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 15349
+    },
+    {
+      "id": "sprite-mungchi",
+      "source": "art-source/arena-expansion/mungchi-pixels.png",
+      "sourceSHA256": "88db7b463a7f1b89f3348609c6244b37ad443660f6e07b62da5ace9332f5b9c5",
+      "sha256": "2e361742897eef95a060d83a89834c339c3d162ba20da83f2b1a9a147d1deeb4",
+      "output": "src/arena/art/sprite-mungchi.png",
+      "cols": 5,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 13642
+    },
+    {
+      "id": "enemies-forest",
+      "source": "art-source/arena-expansion/enemies-forest.png",
+      "sourceSHA256": "7820982a6e1637f2190e68e9513186b2529b3426836f6babc84ce137aef69d05",
+      "sha256": "a3b39c505a21c9f5d95ae9f5372becf666d63b9cbd203cd386a0dc7ffb581cf7",
+      "output": "src/arena/art/enemies-forest.png",
+      "cols": 4,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 7819
+    },
+    {
+      "id": "enemies-lake",
+      "source": "art-source/arena-expansion/enemies-lake.png",
+      "sourceSHA256": "c8c67b07201934cd52bd722aa8f3153808709cf5d44d761c0a57df1208f7f5d1",
+      "sha256": "592b2c250567985ebec44e2644038604466ee9394a426158643a306d8a425b26",
+      "output": "src/arena/art/enemies-lake.png",
+      "cols": 4,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 9364
+    },
+    {
+      "id": "enemies-cave",
+      "source": "art-source/arena-expansion/enemies-cave.png",
+      "sourceSHA256": "4c647dc6f9f726212d98a21a4ed245cedc95eadc2271555869079988297fd45e",
+      "sha256": "17b31e5ba09a7a520b96a048056790023f0d21a4d65eec569525d17813732b71",
+      "output": "src/arena/art/enemies-cave.png",
+      "cols": 4,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 9216
+    },
+    {
+      "id": "enemies-ruins",
+      "source": "art-source/arena-expansion/enemies-ruins.png",
+      "sourceSHA256": "d979e4f105aeac698f171a620704e9f07d731ba9991cef1bb2e618d96208f65f",
+      "sha256": "63a31a3ec234fc811ee7b86f56c9fe961c37f900562414e29e6142b937560e2b",
+      "output": "src/arena/art/enemies-ruins.png",
+      "cols": 4,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 10090
+    },
+    {
+      "id": "enemies-canyon",
+      "source": "art-source/arena-expansion/enemies-canyon.png",
+      "sourceSHA256": "7c6e8addbb9c915930424833efd576ae8aafeec3fe77196b2f20ac86b723ddcd",
+      "sha256": "501effccac451275594c856863547dbfd878358774ac8f51cfde0491bbb6ab70",
+      "output": "src/arena/art/enemies-canyon.png",
+      "cols": 4,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 9223
+    },
+    {
+      "id": "enemies-snow",
+      "source": "art-source/arena-expansion/enemies-snow.png",
+      "sourceSHA256": "7363570aa4c328efa170f3e23516e1a72b9c4eaf9ba457bf42941fb76e82ef2e",
+      "sha256": "9194c97bbda4b77ef861f7e2bcfedf9f68998af458f0bb646e2f639e013b58ef",
+      "output": "src/arena/art/enemies-snow.png",
+      "cols": 4,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 11405
+    },
+    {
+      "id": "enemies-shadow",
+      "source": "art-source/arena-expansion/enemies-shadow.png",
+      "sourceSHA256": "40c002ff918b575296fa3c60871e91bd7e91ce03a7a4cd49dc6463d397ad3235",
+      "sha256": "f11cb2f77e1f9a918567cace2454f30b6830af06120b35a31d5765d272def335",
+      "output": "src/arena/art/enemies-shadow.png",
+      "cols": 4,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 7358
+    },
+    {
+      "id": "enemies-sanctuary",
+      "source": "art-source/arena-expansion/enemies-sanctuary.png",
+      "sourceSHA256": "5d3a8f8d1d8a6cab4e3ee10233b4db27bfbfe644c421fa657c1ff51d47aef93a",
+      "sha256": "b81a08e50773eac02366055f632714f9a59ebce9b77d555c6807612dee2831a2",
+      "output": "src/arena/art/enemies-sanctuary.png",
+      "cols": 4,
+      "rows": 4,
+      "cell": 64,
+      "bytes": 7310
+    }
+  ]
+}
