@@ -46,7 +46,7 @@
 ## 5. Supabase 서버 배포 확인 — 이번 변경에 필요
 
 1. 같은 main 실행에서 **backend → functions**를 누릅니다.
-2. **Deploy only changed functions and verify exact SHA** 단계의 성공 여부를 확인합니다. 자동화가 실제 의존성이 바뀐 `game`, `treasure`를 선택하며 필요하지 않은 함수는 재배포하지 않습니다.
+2. **Deploy only changed functions and verify exact SHA** 단계의 성공 여부를 확인합니다. 이번 변경의 의존성 분석 결과는 `game` 배포 대상입니다. `treasure`는 실행 의존성이 바뀌지 않아 재배포가 필요하지 않습니다. 자동화의 `plan` 결과를 기준으로 배포합니다.
 3. 로그의 함수별 검증 SHA가 이번 배포 커밋인지 확인합니다. `backend-gate`도 성공해야 합니다.
 4. 이번 변경에서 서버 단계가 예상 밖으로 **Skipped**라면 `plan`의 변경 함수 목록과 실행 커밋을 먼저 확인합니다. 웹 화면만 바뀌어도 새 서버 명령이 없으면 정식 전투는 사용할 수 없습니다.
 
