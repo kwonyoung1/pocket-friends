@@ -1,10 +1,10 @@
 import type {Move,Profiles} from './types.ts'
-export const ARENA_RULES=2
+export const ARENA_RULES=3
 export const ARENA_LIMITS={moves:160,tickets:16,ticketMs:6*3600000,rewardedClears:5,coinsPerDay:120,xpPerFriendDay:100,maxCoins:1e12} as const
 export type ArenaReward={coins:number;xp:number;stones:number;treasure?:string;first:boolean;capped:boolean;chests?:Partial<Record<import('./beast-state.ts').ChestId,number>>}
 export type ArenaTicket={id:string;owner:string;stageId:string;party:string[];profiles:Profiles;seed:number;rules:number;startedAt:number;expiresAt:number;moves:Move[];status:'active'|'claimed'|'abandoned';reward?:ArenaReward;energyCost?:number}
 export type ArenaProgress={version:1;sharedOwner?:string;links?:Record<string,string>;accounts?:Record<string,import('./beast-state.ts').ArenaAccount>;cleared:Record<string,{firstAt:number;clears:number;firstRewarded:boolean}>;tickets:Record<string,ArenaTicket>;daily:{day:string;coins:number;clears:number;xp:Record<string,number>}}
-export type ArenaCommand={type:'arena-share'}|{type:'arena-select';accountId:string;previousOwner:string}|{type:'arena-start';stageId:string;party:string[]}|{type:'arena-checkpoint'|'arena-complete';runId:string;moves:Move[]}|{type:'arena-abandon';runId:string}|{type:'arena-open';chest:import('./beast-state.ts').ChestId;nonce:number}|{type:'arena-link';accountId:string;secret:string}|{type:'arena-train';beastId:string;training:'xp'|'mastery'}
+export type ArenaCommand={type:'arena-fuse';beastId:string;fromStars:number}|{type:'arena-share'}|{type:'arena-select';accountId:string;previousOwner:string}|{type:'arena-start';stageId:string;party:string[]}|{type:'arena-checkpoint'|'arena-complete';runId:string;moves:Move[]}|{type:'arena-abandon';runId:string}|{type:'arena-open';chest:import('./beast-state.ts').ChestId;nonce:number}|{type:'arena-link';accountId:string;secret:string}|{type:'arena-train';beastId:string;training:'xp'|'mastery'}
 /** Browser backup preservation only. Cloud import explicitly removes this untrusted subtree. */
 export function restoreArena(value:unknown):ArenaProgress{
  const raw=JSON.stringify(value);if(raw.length>1000000)throw Error('아레나 기록이 너무 커요.')
@@ -18,7 +18,8 @@ export function restoreArena(value:unknown):ArenaProgress{
  if(p.accounts&&Object.keys(p.accounts).length>32)throw Error('아레나 계정 기록 범위를 확인해 주세요.');
  if(p.links&&Object.keys(p.links).length>256)throw Error('아레나 연결 기록 범위를 확인해 주세요.');
  const integer=(v:unknown,min:number,max:number):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=min&&v<=max;
- for(const a of Object.values(p.accounts??{})){if(!a.energy||!integer(a.energy.value,0,100)||!Number.isFinite(a.energy.at)||!a.cleared||Object.keys(a.cleared).length>100||!a.beasts||Object.keys(a.beasts).length>8||!a.chests||Object.keys(a.chests).length>6||!integer(a.opens,0,Number.MAX_SAFE_INTEGER)||!a.pity||!integer(a.pity.legendary,0,40)||!integer(a.pity.mythic,0,300)||!a.daily||typeof a.daily.day!=='string'||!a.daily.xp)throw Error('환수·에너지 기록을 확인해 주세요.');for(const b of Object.values(a.beasts))if(!integer(b.level,1,50)||!integer(b.xp,0,100000)||!integer(b.mastery,0,5)||!integer(b.shards,0,999999)||!integer(b.duplicates,0,Number.MAX_SAFE_INTEGER)||!Number.isFinite(b.at))throw Error('환수 성장 기록을 확인해 주세요.');for(const n of Object.values(a.chests))if(!integer(n,0,9999))throw Error('보물상자 수량을 확인해 주세요.')}
+ for(const a of Object.values(p.accounts??{})){if(!a.energy||!integer(a.energy.value,0,100)||!Number.isFinite(a.energy.at)||!a.cleared||Object.keys(a.cleared).length>100||!a.beasts||Object.keys(a.beasts).length>8||!a.chests||Object.keys(a.chests).length>6||!integer(a.opens,0,Number.MAX_SAFE_INTEGER)||!a.pity||!integer(a.pity.legendary,0,40)||!integer(a.pity.mythic,0,300)||!a.daily||typeof a.daily.day!=='string'||!a.daily.xp)throw Error('환수·에너지 기록을 확인해 주세요.');for(const b of Object.values(a.beasts))if(!integer(b.level,1,50)||!integer(b.xp,0,100000)||!integer(b.mastery,0,5)||!integer(b.shards,0,999999)||!integer(b.duplicates,0,Number.MAX_SAFE_INTEGER)||!Number.isFinite(b.at)||(b.stars!==undefined&&!integer(b.stars,1,5)))throw Error('환수 성장 기록을 확인해 주세요.');for(const n of Object.values(a.chests))if(!integer(n,0,9999))throw Error('보물상자 수량을 확인해 주세요.')}
 
+ for(const a of Object.values(p.accounts??{})){const f=a.lastFusion;if(f&&(!a.beasts[f.beastId]||!integer(f.fromStars,1,4)||f.toStars!==f.fromStars+1||!integer(f.shards,1,999999)||!Number.isFinite(f.at)))throw Error('합성 결과 기록을 확인해 주세요.')}
  return p
 }

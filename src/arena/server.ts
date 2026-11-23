@@ -12,13 +12,15 @@ import type {ArenaAccount} from './beast-state.ts'
 import {BEAST_LIMITS,addBeastXp} from './beast-state.ts'
 import {beastById} from './beasts.ts'
 import {chestById,chestForStage,openChest,trainBeast} from './chests.ts'
+import {fuseBeast} from './fusion.ts'
 import {energySpend} from './energy.ts'
 import {extendsCheckpoint,replay} from './replay.ts'
 const text=(x:unknown,n=100):x is string=>typeof x==='string'&&x.length>0&&x.length<=n
 const id=(x:unknown):x is string=>text(x,36)&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x)
 export function validateArena(value:Record<string,unknown>):ArenaCommand{
- const keys=value.type==='arena-share'?['type']:value.type==='arena-select'?['type','accountId','previousOwner']:value.type==='arena-start'?['type','stageId','party']:value.type==='arena-link'?['type','accountId','secret']:value.type==='arena-open'?['type','chest','nonce']:value.type==='arena-train'?['type','beastId','training']:value.type==='arena-abandon'?['type','runId']:['type','runId','moves']
+ const keys=value.type==='arena-fuse'?['type','beastId','fromStars']:value.type==='arena-share'?['type']:value.type==='arena-select'?['type','accountId','previousOwner']:value.type==='arena-start'?['type','stageId','party']:value.type==='arena-link'?['type','accountId','secret']:value.type==='arena-open'?['type','chest','nonce']:value.type==='arena-train'?['type','beastId','training']:value.type==='arena-abandon'?['type','runId']:['type','runId','moves']
  if(Object.keys(value).some(k=>!keys.includes(k)))throw Error('전투에는 보상·레벨·확률·결과 값을 보낼 수 없어요.')
+ if(value.type==='arena-fuse'){if(!text(value.beastId,40)||!beastById(value.beastId)||!Number.isInteger(value.fromStars)||(value.fromStars as number)<1||(value.fromStars as number)>4)throw Error('합성할 환수와 성급을 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-share')return {type:'arena-share'}
  if(value.type==='arena-select'){if(!validArenaId(value.accountId)||!validArenaId(value.previousOwner))throw Error('보존된 아레나 기록을 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-start'){if(!text(value.stageId,12)||!stageById(value.stageId)||!Array.isArray(value.party)||!value.party.length||value.party.length>5||value.party.some(x=>!text(x,60)))throw Error('스테이지와 파티를 확인해 주세요.');return value as ArenaCommand}
@@ -37,7 +39,7 @@ export function arenaAccount(p:ArenaProgress,user:string,now:number):ArenaAccoun
 }
 function ownTicket(p:ArenaProgress,user:string,runId:string,now:number,allowExpired=false):ArenaTicket{const t=p.tickets[user];if(!t||t.owner!==user||t.id!==runId)throw Error('이 계정의 진행 중인 전투가 아니에요.');if(t.status==='abandoned')throw Error('이미 종료한 전투예요.');if(!allowExpired&&t.expiresAt<now)throw Error('전투 유효 시간이 지났어요. 새 전투로 시작해 주세요.');return t}
 function firstProfiles(save:Save,a:ArenaAccount,party:string[]):Profiles{return Object.fromEntries(party.map(id=>{
- if(beastById(id)){const b=a.beasts[id];if(!b)throw Error('보유한 환수만 출전할 수 있어요.');return[id,{level:b.level,name:beastById(id)!.name,mastery:b.mastery}]}
+ if(beastById(id)){const b=a.beasts[id];if(!b)throw Error('보유한 환수만 출전할 수 있어요.');return[id,{level:b.level,name:beastById(id)!.name,mastery:b.mastery,stars:b.stars??1}]}
  const f=save.friends.find(f=>f.id===id);if(!f||!heroById(id,f.kind))throw Error('보유한 친구만 출전할 수 있어요.');const level=f.growth?.level??1;if(!Number.isInteger(level)||level<1||level>50)throw Error('친구의 실제 성장 레벨을 확인해 주세요.');const gear=equippedArenaBonus(save.world?.equipment?.instances??[],id);return[id,{level,name:/^(남자아이|여자아이)$/.test(f.name)?heroById(id,f.kind).name:f.name,kind:f.kind,gear}]
  }))}
 function grantCoins(save:Save,p:ArenaProgress,amount:number,label:string,now:number,cap:number=BEAST_LIMITS.worldCoinsPerDay){const n=Math.max(0,Math.min(amount,cap-p.daily.coins,ARENA_LIMITS.maxCoins-world(save,now).coins));if(!transact(world(save,now),n,label,now))throw Error('보상을 안전하게 지급하지 못했어요.');p.daily.coins+=n;return n}
@@ -57,6 +59,7 @@ export function arenaCommand(save:Save,c:ArenaCommand,user:string,now:number,see
   p.links??={};if(!p.links[user]&&Object.keys(p.links).length>=256)throw Error('아레나 기기 연결 공간이 가득 찼어요. 관리자에게 문의해 주세요.');p.links[user]=c.accountId;return '기존 아레나 계정의 환수·에너지·진행을 연결했어요.'
  }
  const owner=arenaOwner(p,user),a=arenaAccount(p,owner,now),random=()=>((seed()>>>0)/4294967296)
+ if(c.type==='arena-fuse'){const result=fuseBeast(a,c.beastId,c.fromStars,now);return `${beastById(c.beastId)!.name} ★${result.toStars} 합성 완료! 전용 조각 ${result.shards}개를 사용했어요.`}
  if(c.type==='arena-open'){
   const repeated=c.nonce===a.opens&&a.lastOpening?.nonce===c.nonce,result=openChest(a,c.chest,c.nonce,now,random);if(repeated)return '이미 개봉한 상자의 결과를 다시 확인했어요.'
   if(result.coins){result.coins=grantCoins(save,p,result.coins,'별빛 상자 보상',now);if(!result.coins)result.stones=1}
