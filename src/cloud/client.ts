@@ -1,3 +1,4 @@
+import {arenaOwner,createArenaIdentity,readArenaIdentity,writeArenaIdentity} from '../arena/identity.ts'
 import { applyWorldDelta, syncProtocol } from './transport'
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -45,7 +46,7 @@ export class CloudClient {
     if (!session) { this.update({ phase: 'login' }); throw Error('다시 로그인해 주세요.') }
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000)
     try {
-      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 12, sync: syncProtocol, ...(!(body as {full?:boolean}).full && this.state.row ? { knownRevision: this.state.row.revision } : {}) }), signal: controller.signal })
+      const response = await fetch(`${this.url}/functions/v1/game`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: this.key, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ ...(body as object), clientVersion: 12, arenaRules:2, sync: syncProtocol, ...(!(body as {full?:boolean}).full && this.state.row ? { knownRevision: this.state.row.revision } : {}) }), signal: controller.signal })
       const result = await response.json()
       if (Number.isFinite(result.serverTime)) { this.serverAt = result.serverTime; this.receivedAt = performance.now() }
       if (!response.ok) {
@@ -78,7 +79,7 @@ export class CloudClient {
     try {
       const { data: { session } } = await this.sdk.auth.getSession()
       if (!session) { this.update({ phase: 'login' }); return }
-      const result = await this.request({ action: 'status' }); this.accept(result.row); this.update({ phase: 'ready' }); this.watch()
+      const result = await this.request({ action: 'status' }); this.accept(result.row); this.update({ phase: 'ready' }); this.watch();this.relinkArenaIfNeeded()
     } catch (e) { this.update({ phase: 'login', error: (e as Error).message }) }
   }
   async login(password: string) {
@@ -89,7 +90,7 @@ export class CloudClient {
       const result = await this.request({ action: 'login', password })
       this.accept(result.row); this.update({ phase: 'ready', error: '' }); this.watch()
     } catch (e) { this.update({ error: (e as Error).message }) }
-    finally { this.update({ busy: false }) }
+    finally { this.update({ busy: false });if(this.state.phase==='ready')this.relinkArenaIfNeeded() }
   }
   private available = () => !document.hidden && navigator.onLine !== false
   private resume = () => {
@@ -129,11 +130,18 @@ export class CloudClient {
     }
   }
   private saveQueue() { try { sessionStorage.setItem(pendingKey, JSON.stringify(this.pending)); return true } catch { return false } }
+  private relinkArenaIfNeeded(){if(this.pending.length){void this.retry();return}const identity=readArenaIdentity();if(identity&&this.playerId&&this.state.row?.data&&arenaOwner(this.state.row.data.world?.arena,this.playerId)!==identity.id)void this.send({type:'arena-link',accountId:identity.id,secret:identity.secret})}
   async send(command: GameCommand | InitialCommand) {
     if (this.pending.length >= 20 || this.state.error && this.pending.some(p => p.command.type !== 'refresh')) { this.update({ error: '앞선 작업을 다시 확인한 뒤 시도해 주세요.' }); return }
     if (command.type === 'refresh' && this.pending.some(p => p.command.type === 'refresh')) return this.retry()
+    const before=this.pending.length
+    if(command.type.startsWith('arena-')&&command.type!=='arena-link'){
+      try{const p=this.state.row?.data?.world?.arena,owner=arenaOwner(p,this.playerId),proof=readArenaIdentity()??createArenaIdentity(owner),needs=!proof.registered||owner!==proof.id||!p?.accounts?.[owner]?.recoveryHash;if(needs&&!this.pending.some(j=>j.command.type==='arena-link'))this.pending.push({operation:crypto.randomUUID(),command:{type:'arena-link',accountId:proof.id,secret:proof.secret}})}
+      catch{this.update({error:'아레나 계정 연결 정보를 안전하게 보관하지 못했어요. 브라우저 저장 공간을 확인해 주세요.'});return}
+    }
     this.pending.push({ operation: crypto.randomUUID(), command })
-    if (!this.saveQueue()) { this.pending.pop(); this.update({ error: '작업 번호를 저장하지 못해 요청을 보내지 않았어요. 브라우저 저장 공간을 확인해 주세요.', pending: this.pending.length > 0 }); return }
+    if(this.pending.length>20){this.pending.splice(before);this.update({error:'대기 중인 작업을 먼저 확인해 주세요.'});return}
+    if (!this.saveQueue()) { this.pending.splice(before); this.update({ error: '작업 번호를 저장하지 못해 요청을 보내지 않았어요. 브라우저 저장 공간을 확인해 주세요.', pending: this.pending.length > 0 }); return }
     this.update({ pending: true }); await this.retry()
   }
   async retry() {
@@ -150,6 +158,8 @@ export class CloudClient {
     try {
       while (this.pending.length) {
         const result = await this.request({ action: 'command', ...this.pending[0] })
+        const completed=this.pending[0].command
+        if(completed.type==='arena-link')try{writeArenaIdentity({id:completed.accountId,secret:completed.secret,registered:true})}catch{/* Server connection remains valid; recovery UI reports absent local storage. */}
         this.accept(result.row); this.pending.shift(); this.saveQueue()
         this.update({ error: '', message: result.message ?? '', pending: this.pending.length > 0 })
       }

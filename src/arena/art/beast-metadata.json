@@ -1,0 +1,157 @@
+{
+  "generator": "OpenAI image_gen",
+  "assets": [
+    {
+      "id": "card-beast-lumi",
+      "source": "art-source/arena-beasts/lumi-card.png",
+      "sourceSHA256": "b93af78060b58db35d979c47024530a646a000db541cf8a74bf1150279f13268",
+      "output": "src/arena/art/card-beast-lumi.webp",
+      "sha256": "56d2339c361930280e11a27ebcbb8c871b97b24ed90c8e552ba8eaee9691a21b",
+      "bytes": 95652
+    },
+    {
+      "id": "sprite-beast-lumi",
+      "source": "art-source/arena-beasts/lumi-pixels.png",
+      "sourceSHA256": "37ac527b7466e74fb1e5e8ffc141b95cab53f333839930c4a091afdbf6b9b63b",
+      "output": "src/arena/art/sprite-beast-lumi.png",
+      "sha256": "a40c12ef2854f49c06d7f8459828f35d13bec7b4888bcd3cd137b483acec3119",
+      "bytes": 17461,
+      "cols": 5,
+      "rows": 4,
+      "cell": 64
+    },
+    {
+      "id": "card-beast-nebula",
+      "source": "art-source/arena-beasts/nebula-card.png",
+      "sourceSHA256": "55e9592cc18156c7b82aaafa6f99088cd0d6f29204ba92f6bc5fcdd69d917cf9",
+      "output": "src/arena/art/card-beast-nebula.webp",
+      "sha256": "a100bc3aaaf1697e209616bc78dc857469c154275f8a813cc81bb6b52ea7da36",
+      "bytes": 155084
+    },
+    {
+      "id": "sprite-beast-nebula",
+      "source": "art-source/arena-beasts/nebula-pixels.png",
+      "sourceSHA256": "185fe33cecb3a976712b5edc757f8b1a87c670b63f241578ad8851a9a0a46683",
+      "output": "src/arena/art/sprite-beast-nebula.png",
+      "sha256": "6663538a5a475467c8ee243933af24ead6562349db0e8b60f51b80964e6cb9ce",
+      "bytes": 16729,
+      "cols": 5,
+      "rows": 4,
+      "cell": 64
+    },
+    {
+      "id": "card-beast-selena",
+      "source": "art-source/arena-beasts/selena-card.png",
+      "sourceSHA256": "aed27cd999522fc8dd329f65fdbd8636f9411844e54b1df90b3732db700717e7",
+      "output": "src/arena/art/card-beast-selena.webp",
+      "sha256": "d9a6ac523acf8e4c50b5ccb7a6da13658ebbca0cacda2241e1bc8f5a2975db6c",
+      "bytes": 101188
+    },
+    {
+      "id": "sprite-beast-selena",
+      "source": "art-source/arena-beasts/selena-pixels.png",
+      "sourceSHA256": "b7ca3c46b883098f5a52837dc4a574185024e8c1caf5d1bd08cb2064a025eb5e",
+      "output": "src/arena/art/sprite-beast-selena.png",
+      "sha256": "180798d56c57ba1840d619107189c1f16f31b0472d5c98025e177accb5b25171",
+      "bytes": 16721,
+      "cols": 5,
+      "rows": 4,
+      "cell": 64
+    },
+    {
+      "id": "card-beast-pola",
+      "source": "art-source/arena-beasts/pola-card.png",
+      "sourceSHA256": "623c690edf8a3b6e5b8825f3c6da7c268238445ffee54873d284d100d4cd4773",
+      "output": "src/arena/art/card-beast-pola.webp",
+      "sha256": "a69106270fa803671e16b293c77409e8939cd4a940f10a4a5f2f051c6b4d853d",
+      "bytes": 84810
+    },
+    {
+      "id": "sprite-beast-pola",
+      "source": "art-source/arena-beasts/pola-pixels.png",
+      "sourceSHA256": "14fcccdfab601b298036111f2ffcc7a9d8e437a323b23a9363400ff766af7b7b",
+      "output": "src/arena/art/sprite-beast-pola.png",
+      "sha256": "3738566576e069082bbf3fc3d35806f46ae6a1f7420cb59c54dc14b0bc519d36",
+      "bytes": 16846,
+      "cols": 5,
+      "rows": 4,
+      "cell": 64
+    },
+    {
+      "id": "card-beast-phynix",
+      "source": "art-source/arena-beasts/phynix-card.png",
+      "sourceSHA256": "88ceceb8aebb5b9721de159aa9a940453bed59177870365e2573aeaa42de6eef",
+      "output": "src/arena/art/card-beast-phynix.webp",
+      "sha256": "57747d0ce86c86866cf2bd96d862da6b61a161e406fc026f1a43347b663cd807",
+      "bytes": 135816
+    },
+    {
+      "id": "sprite-beast-phynix",
+      "source": "art-source/arena-beasts/phynix-pixels.png",
+      "sourceSHA256": "4015f5e10741d85474d95a1455cf385ebf8ba0b077e37175d88af718ebbb61f2",
+      "output": "src/arena/art/sprite-beast-phynix.png",
+      "sha256": "1aa839040728e63d6507e1b90abf214b179c2e93e7678571cee53f83ed4077df",
+      "bytes": 17357,
+      "cols": 5,
+      "rows": 4,
+      "cell": 64
+    },
+    {
+      "id": "card-beast-astra",
+      "source": "art-source/arena-beasts/astra-card.png",
+      "sourceSHA256": "e647d6f82b0301d794f9e4e7d84fb16060a5c591fd33f99636347b8aa001cd5e",
+      "output": "src/arena/art/card-beast-astra.webp",
+      "sha256": "122d3c6d88663c139017c44057492605a85732798ed4ac5d0769cb4729e79c21",
+      "bytes": 139306
+    },
+    {
+      "id": "sprite-beast-astra",
+      "source": "art-source/arena-beasts/astra-pixels.png",
+      "sourceSHA256": "967db1f28a9153dc9603dd3a0b3f789ffc8077fa0413e16f1ccf600445816a32",
+      "output": "src/arena/art/sprite-beast-astra.png",
+      "sha256": "285b04742a67528935936430ef0469938dabc784bdd80f8bee534c803e7cc9f3",
+      "bytes": 13177,
+      "cols": 5,
+      "rows": 4,
+      "cell": 64
+    },
+    {
+      "id": "card-beast-eclipse",
+      "source": "art-source/arena-beasts/eclipse-card.png",
+      "sourceSHA256": "a45fd04ca3c4628cdc11f0e227cd1cd4742313402e5ea5f43373067d0b0d634b",
+      "output": "src/arena/art/card-beast-eclipse.webp",
+      "sha256": "66304ca92a2c735580025f34bfc2833ecaceb1ab3d2e489c70a1711c068f1939",
+      "bytes": 108412
+    },
+    {
+      "id": "sprite-beast-eclipse",
+      "source": "art-source/arena-beasts/eclipse-pixels.png",
+      "sourceSHA256": "f6c64cb017e28542f6d8d47c85181c84f45c7b56f52d4a6a5a41091ae4e3b5a7",
+      "output": "src/arena/art/sprite-beast-eclipse.png",
+      "sha256": "1aa73d662131bc70dc458e4a2b91d5bde90517ae03aa3f33faf256dafd3e89e7",
+      "bytes": 14998,
+      "cols": 5,
+      "rows": 4,
+      "cell": 64
+    },
+    {
+      "id": "card-beast-seraphia",
+      "source": "art-source/arena-beasts/seraphia-card.png",
+      "sourceSHA256": "7c2c2fabbfe64f53050bbac4f5e871abd381b5f5049287da3c3578984607124c",
+      "output": "src/arena/art/card-beast-seraphia.webp",
+      "sha256": "d6c90561dfd6681722a3ef7fa8086aa68311216de8d1048d21666b4ad433516a",
+      "bytes": 200790
+    },
+    {
+      "id": "sprite-beast-seraphia",
+      "source": "art-source/arena-beasts/seraphia-pixels.png",
+      "sourceSHA256": "4a66cb16c8da03d85f0f88becd913d234d1077823585e1e3442219dd249e974d",
+      "output": "src/arena/art/sprite-beast-seraphia.png",
+      "sha256": "dcd1dbb49e964dc5018791f81b6a67f6b6c9a95baace22cbc1a9c55cd1c3368d",
+      "bytes": 16235,
+      "cols": 5,
+      "rows": 4,
+      "cell": 64
+    }
+  ]
+}

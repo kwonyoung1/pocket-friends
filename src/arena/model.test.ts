@@ -2,7 +2,7 @@ import {test} from 'vitest'
 import assert from 'node:assert/strict'
 import {HEROES,partyErrors,createBattle,bossBattle,current,act,enemyAction}from './model'
 const ids=['special-boy','special-girl','momo','bibi']
-test('party constraints require a leader, cost <=10, four or fewer and no duplicates',()=>{
+test('party constraints require a leader, cost <=10, five or fewer and no duplicates',()=>{
  assert.deepEqual(partyErrors(ids),[]);assert.deepEqual(partyErrors(['special-boy','momo','bibi','coco']),[])
  for(const bad of [[],['momo','bibi'],['special-boy','special-boy'],HEROES.map(h=>h.id),['special-boy','special-girl','momo','coco','bibi'],['unknown']])assert(partyErrors(bad).length>0)
  assert.throws(()=>createBattle(ids,51));assert.throws(()=>createBattle(ids,0))
@@ -11,7 +11,7 @@ test('cost4 bear has stronger HP/defense/attack but meaningfully slower speed',(
  const s=createBattle(['special-boy','momo','coco'],35),c=s.units.find(u=>u.id==='coco')!,m=s.units.find(u=>u.id==='momo')!
  assert(c.maxHp>m.maxHp*2);assert(c.atk>m.atk);assert(c.def>m.def*2);assert(c.spd<m.spd/2)
 })
-test('all five heroes reject actives before level30, skill2 before35 and ultimate before50 without mutating state',()=>{
+test('all registered heroes reject actives before level30, skill2 before35 and ultimate before50 without mutating state',()=>{
  for(const h of HEROES)for(const [level,skill]of [[29,'active1'],[34,'active2'],[49,'ultimate']] as const){
   const team=h.id==='special-boy'?[h.id]:['special-boy',h.id],s=bossBattle(team,level);s.order=[h.id,'guardian'];s.cursor=0
   const before=structuredClone(s);assert.throws(()=>act(s,skill,'guardian'),/Lv\./);assert.deepEqual(s,before)
