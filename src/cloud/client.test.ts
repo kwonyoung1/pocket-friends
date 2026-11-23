@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CloudClient } from './client'
 import { freshWorld } from './engine'
+import {arenaProgress,arenaAccount} from '../arena/server'
 import { worldPayload } from './transport'
 
 vi.mock('@supabase/supabase-js', () => ({
@@ -45,6 +46,23 @@ describe('serialized cloud commands without background input locks', () => {
     vi.stubGlobal('document',Object.assign(new EventTarget(),{hidden:false}));vi.stubGlobal('window',new EventTarget());vi.stubGlobal('navigator',{onLine:true})
     const queued=[{operation:crypto.randomUUID(),command:{type:'arena-abandon',runId:crypto.randomUUID()}},{operation:crypto.randomUUID(),command:{type:'buy-many',id:'snack',quantity:1}}];storage.set('pocket-friends-cloud-pending',JSON.stringify(queued));client=new CloudClient('https://test.supabase.co','public')
     try{const boot=client.start();await flush();requests[0].resolve(ok(4));await boot;expect(requests).toHaveLength(1);expect(JSON.parse(storage.get('pocket-friends-cloud-pending')!)).toEqual(queued);const retry=client.retry();for(let n=0;n<queued.length;n++){await vi.waitFor(()=>expect(requests).toHaveLength(n+2));expect(requests[n+1].body.operation).toBe(queued[n].operation);requests[n+1].resolve(ok(n+5))}await retry;expect(client.snapshot().pending).toBe(false)}finally{client.dispose()}
+  })
+
+  it('activates sharing once using an existing account without reading a device recovery secret',async()=>{
+    const id='00000000-0000-4000-8000-000000000001',data=freshWorld(1000),p=arenaProgress(data,1000);arenaAccount(p,id,1000).energy.value=41
+    const read=vi.fn(()=>{throw Error('no local identity storage')});vi.stubGlobal('localStorage',{getItem:read,setItem:read})
+    const boot=client.read();await flush();requests[0].resolve(Response.json({row:{id:'home',revision:1,data},serverTime:1000}));await boot
+    const job=client.send({type:'arena-start',stageId:'1-1',party:['special-boy']});await vi.waitFor(()=>expect(requests).toHaveLength(2));expect(requests[1].body.command).toEqual({type:'arena-share'})
+    p.sharedOwner=id;requests[1].resolve(Response.json({row:{id:'home',revision:2,data},serverTime:1000}));await vi.waitFor(()=>expect(requests).toHaveLength(3));expect(requests[2].body.command.type).toBe('arena-start');expect(requests[2].body).toHaveProperty('arenaAccount',id);requests[2].resolve(Response.json({row:{id:'home',revision:3,data},serverTime:1000}));await job;expect(read).not.toHaveBeenCalled()
+  })
+
+  it('pins a queued arena mutation to its original shared record across offline retries',async()=>{
+    const id='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002',data=freshWorld(1000),p=arenaProgress(data,1000);arenaAccount(p,id,1000);p.sharedOwner=id
+    const boot=client.read();await flush();requests[0].resolve(Response.json({row:{id:'home',revision:1,data},serverTime:1000}));await boot
+    const job=client.send({type:'arena-open',chest:'forest',nonce:1});await vi.waitFor(()=>expect(requests).toHaveLength(2));const original=requests[1].body;requests[1].resolve(Response.json({error:'연결 실패'},{status:503}));await job
+    expect(JSON.parse(storage.get('pocket-friends-cloud-pending')!)[0].arenaAccount).toBe(id)
+    const read=client.read();await vi.waitFor(()=>expect(requests).toHaveLength(3));p.sharedOwner=other;requests[2].resolve(Response.json({row:{id:'home',revision:2,data},serverTime:1000}));await read
+    const retry=client.retry();await vi.waitFor(()=>expect(requests).toHaveLength(4));expect(requests[3].body.operation).toBe(original.operation);expect(requests[3].body).toHaveProperty('arenaAccount',id);requests[3].resolve(Response.json({error:'다른 기기에서 공유 기록 변경',rejected:true},{status:409}));await retry;expect(client.snapshot().pending).toBe(false)
   })
 
   it('keeps controls available throughout a background refresh', async () => {

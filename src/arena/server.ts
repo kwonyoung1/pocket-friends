@@ -1,4 +1,4 @@
-import {arenaOwner,validArenaId,validArenaSecret} from './identity.ts'
+import {arenaOwner,initialSharedOwner,validArenaId,validArenaSecret} from './identity.ts'
 import type {Save} from '../game.ts'
 import {world,dailyKey,transact,addXp,acquire,chooseLoot} from '../progression/model.ts'
 import {equipment} from '../equipment/model.ts'
@@ -17,8 +17,10 @@ import {extendsCheckpoint,replay} from './replay.ts'
 const text=(x:unknown,n=100):x is string=>typeof x==='string'&&x.length>0&&x.length<=n
 const id=(x:unknown):x is string=>text(x,36)&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x)
 export function validateArena(value:Record<string,unknown>):ArenaCommand{
- const keys=value.type==='arena-start'?['type','stageId','party']:value.type==='arena-link'?['type','accountId','secret']:value.type==='arena-open'?['type','chest','nonce']:value.type==='arena-train'?['type','beastId','training']:value.type==='arena-abandon'?['type','runId']:['type','runId','moves']
+ const keys=value.type==='arena-share'?['type']:value.type==='arena-select'?['type','accountId','previousOwner']:value.type==='arena-start'?['type','stageId','party']:value.type==='arena-link'?['type','accountId','secret']:value.type==='arena-open'?['type','chest','nonce']:value.type==='arena-train'?['type','beastId','training']:value.type==='arena-abandon'?['type','runId']:['type','runId','moves']
  if(Object.keys(value).some(k=>!keys.includes(k)))throw Error('전투에는 보상·레벨·확률·결과 값을 보낼 수 없어요.')
+ if(value.type==='arena-share')return {type:'arena-share'}
+ if(value.type==='arena-select'){if(!validArenaId(value.accountId)||!validArenaId(value.previousOwner))throw Error('보존된 아레나 기록을 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-start'){if(!text(value.stageId,12)||!stageById(value.stageId)||!Array.isArray(value.party)||!value.party.length||value.party.length>5||value.party.some(x=>!text(x,60)))throw Error('스테이지와 파티를 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-link'){if(!validArenaId(value.accountId)||!validArenaSecret(value.secret))throw Error('아레나 계정 연결 코드를 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-open'){if(!text(value.chest,20)||!chestById(value.chest)||!Number.isSafeInteger(value.nonce)||(value.nonce as number)<1)throw Error('상자와 개봉 번호를 확인해 주세요.');return value as ArenaCommand}
@@ -41,6 +43,12 @@ function firstProfiles(save:Save,a:ArenaAccount,party:string[]):Profiles{return 
 function grantCoins(save:Save,p:ArenaProgress,amount:number,label:string,now:number,cap:number=BEAST_LIMITS.worldCoinsPerDay){const n=Math.max(0,Math.min(amount,cap-p.daily.coins,ARENA_LIMITS.maxCoins-world(save,now).coins));if(!transact(world(save,now),n,label,now))throw Error('보상을 안전하게 지급하지 못했어요.');p.daily.coins+=n;return n}
 export function arenaCommand(save:Save,c:ArenaCommand,user:string,now:number,seed=seeded):string{
  const p=arenaProgress(save,now)
+ if(c.type==='arena-share'){const owner=initialSharedOwner(p,user);arenaAccount(p,owner,now);p.sharedOwner=owner;return '같은 비밀번호로 접속한 모든 기기가 아레나 진행을 자동으로 공유해요.'}
+ if(c.type==='arena-select'){
+  if(!p.sharedOwner||p.sharedOwner!==c.previousOwner)throw Error('다른 기기에서 공유 기록을 변경했어요. 최신 기록을 확인해 주세요.')
+  if(!p.accounts?.[c.accountId])throw Error('보존된 아레나 기록을 찾지 못했어요.')
+  p.sharedOwner=c.accountId;return '모든 기기의 공유 아레나 기록을 변경했어요. 다른 기록도 그대로 보존돼요.'
+ }
  if(c.type==='arena-link'){
   // The HTTP handler SHA-256 hashes the secret before this canonical command/receipt is evaluated.
   if(c.accountId===arenaOwner(p,user)){const own=arenaAccount(p,c.accountId,now);own.recoveryHash=c.secret;return '이 기기의 아레나 계정 연결 코드를 안전하게 등록했어요.'}
