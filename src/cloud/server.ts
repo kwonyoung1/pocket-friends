@@ -116,7 +116,7 @@ export function createGameHandler(options: {
       }
       const compatible = body.sync === syncProtocol
       const known = compatible && Number.isSafeInteger(body.knownRevision) && body.knownRevision >= 0 ? body.knownRevision as number : undefined
-      const checkArenaClient=(row:ServerWorld)=>{if(body.arenaRules!==2&&Object.keys(row.data?.world?.arena?.accounts??{}).length)throw new ArenaClientUpdateError('환수와 5인 전투가 업데이트되었어요. 저장 데이터를 지우지 말고 새로고침해 주세요.')}
+      const checkArenaClient=(row:ServerWorld)=>{if(row.data?.world?.arena?.sharedOwner&&body.arenaSharing!==1)throw new ArenaClientUpdateError('아레나가 자동 공유 방식으로 업데이트되었어요. 저장 데이터를 지우지 말고 새로고침해 주세요.');if(body.arenaRules!==2&&Object.keys(row.data?.world?.arena?.accounts??{}).length)throw new ArenaClientUpdateError('환수와 5인 전투가 업데이트되었어요. 저장 데이터를 지우지 말고 새로고침해 주세요.')}
       const wire = (row: ServerWorld, base?: WorldRow) => {checkArenaClient(row);return compatible ? worldPayload(publicRow(row), base ?? (known === undefined ? undefined : cached(known))) : { row: publicRow(row) }}
       if (body.action === 'login') {
         const password = options.password()
@@ -170,6 +170,7 @@ export function createGameHandler(options: {
         )
       )
         return reply({ error: '올바른 작업 번호가 필요해요.' }, 400)
+      if(['arena-share','arena-select'].includes(body.command?.type)&&body.arenaSharing!==1)return reply({error:'아레나 자동 공유를 지원하는 최신 화면으로 새로고침해 주세요.',rejected:true},409)
       if(typeof body.command?.type==='string'&&body.command.type.startsWith('arena-')&&body.arenaRules!==2)return reply({error:'별빛 아레나가 업데이트되었어요. 새로고침 후 다시 입장해 주세요.',rejected:true},409)
       if (![2,3,4,5,6,7,8,9,10,11,12].includes(body.clientVersion) && (await load()).data?.world?.expansion)
         return reply(
@@ -212,6 +213,8 @@ export function createGameHandler(options: {
       }
       for (let attempt = 0; attempt < 6; attempt++) {
         const row = await load()
+        checkArenaClient(row)
+        if(command?.type.startsWith('arena-')&&!['arena-share','arena-link'].includes(command.type)&&row.data?.world?.arena?.sharedOwner&&body.arenaAccount!==row.data.world.arena.sharedOwner)return reply({error:'다른 기기에서 공유 아레나 기록을 변경했어요. 최신 화면에서 다시 시도해 주세요.',row:publicRow(row),rejected:true},409)
         if(![11,12].includes(body.clientVersion)&&row.data?.world?.expeditionGearVersion)return reply({error:'장비와 방 꾸미기가 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
         if(body.clientVersion!==12&&row.data?.world?.placementBoundsVersion===2)return reply({error:'방 테마와 배치 범위가 업데이트되었어요. 최신 게임으로 새로고침해 주세요.',rejected:true},409)
         if (initialize && row.data) {
