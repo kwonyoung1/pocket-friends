@@ -22,6 +22,31 @@ describe('serialized cloud commands without background input locks', () => {
   const flush = async () => { await vi.waitFor(() => expect(requests.length).toBeGreaterThan(0)) }
   const ok = (revision: number) => Response.json({ row: { id: 'home', revision, data: null }, serverTime: 1000 })
 
+  it.each([
+    {type:'buy-many',id:'snack',quantity:1},
+    {type:'enhance',instanceId:'two'},
+  ])('keeps a restored $type operation unchanged until explicit gate confirmation',async command=>{
+    vi.stubGlobal('document',Object.assign(new EventTarget(),{hidden:false}));vi.stubGlobal('window',new EventTarget());vi.stubGlobal('navigator',{onLine:true})
+    const queued=[{operation:crypto.randomUUID(),command}];storage.set('pocket-friends-cloud-pending',JSON.stringify(queued));client=new CloudClient('https://test.supabase.co','public')
+    try{
+      const boot=client.start();await flush();expect(requests[0].body.action).toBe('status');requests[0].resolve(ok(4));await boot
+      expect(requests).toHaveLength(1);expect(client.snapshot()).toMatchObject({phase:'ready',pending:true,blocking:true,busy:false});expect(JSON.parse(storage.get('pocket-friends-cloud-pending')!)).toEqual(queued)
+      const retry=client.retry();await vi.waitFor(()=>expect(requests).toHaveLength(2));expect(requests[1].body.operation).toBe(queued[0].operation);expect(requests[1].body.command).toEqual(command);requests[1].resolve(ok(5));await retry;expect(client.snapshot().pending).toBe(false)
+    }finally{client.dispose()}
+  })
+
+  it('automatically resumes only an arena-only restored queue with its original operation',async()=>{
+    vi.stubGlobal('document',Object.assign(new EventTarget(),{hidden:false}));vi.stubGlobal('window',new EventTarget());vi.stubGlobal('navigator',{onLine:true})
+    const queued=[{operation:crypto.randomUUID(),command:{type:'arena-abandon',runId:crypto.randomUUID()}}];storage.set('pocket-friends-cloud-pending',JSON.stringify(queued));client=new CloudClient('https://test.supabase.co','public')
+    try{const boot=client.start();await flush();requests[0].resolve(ok(4));await boot;await vi.waitFor(()=>expect(requests).toHaveLength(2));expect(requests[1].body.operation).toBe(queued[0].operation);expect(requests[1].body.command).toEqual(queued[0].command);requests[1].resolve(ok(5));await vi.waitFor(()=>expect(client.snapshot().pending).toBe(false))}finally{client.dispose()}
+  })
+
+  it('does not treat an arena entry in a mixed restored queue as purchase confirmation',async()=>{
+    vi.stubGlobal('document',Object.assign(new EventTarget(),{hidden:false}));vi.stubGlobal('window',new EventTarget());vi.stubGlobal('navigator',{onLine:true})
+    const queued=[{operation:crypto.randomUUID(),command:{type:'arena-abandon',runId:crypto.randomUUID()}},{operation:crypto.randomUUID(),command:{type:'buy-many',id:'snack',quantity:1}}];storage.set('pocket-friends-cloud-pending',JSON.stringify(queued));client=new CloudClient('https://test.supabase.co','public')
+    try{const boot=client.start();await flush();requests[0].resolve(ok(4));await boot;expect(requests).toHaveLength(1);expect(JSON.parse(storage.get('pocket-friends-cloud-pending')!)).toEqual(queued);const retry=client.retry();for(let n=0;n<queued.length;n++){await vi.waitFor(()=>expect(requests).toHaveLength(n+2));expect(requests[n+1].body.operation).toBe(queued[n].operation);requests[n+1].resolve(ok(n+5))}await retry;expect(client.snapshot().pending).toBe(false)}finally{client.dispose()}
+  })
+
   it('keeps controls available throughout a background refresh', async () => {
     const job = client.send({ type: 'refresh' })
     await flush()

@@ -130,7 +130,16 @@ export class CloudClient {
     }
   }
   private saveQueue() { try { sessionStorage.setItem(pendingKey, JSON.stringify(this.pending)); return true } catch { return false } }
-  private relinkArenaIfNeeded(){if(this.pending.length){void this.retry();return}const identity=readArenaIdentity();if(identity&&this.playerId&&this.state.row?.data&&arenaOwner(this.state.row.data.world?.arena,this.playerId)!==identity.id)void this.send({type:'arena-link',accountId:identity.id,secret:identity.secret})}
+  private relinkArenaIfNeeded(){
+    if(this.pending.length){
+      // Arena recovery must not acknowledge an unrelated purchase or enhancement.
+      // Restored ordinary/mixed queues retain the existing gate confirmation flow.
+      if(this.pending.every(job=>job.command.type.startsWith('arena-')))void this.retry()
+      return
+    }
+    const identity=readArenaIdentity()
+    if(identity&&this.playerId&&this.state.row?.data&&arenaOwner(this.state.row.data.world?.arena,this.playerId)!==identity.id)void this.send({type:'arena-link',accountId:identity.id,secret:identity.secret})
+  }
   async send(command: GameCommand | InitialCommand) {
     if (this.pending.length >= 20 || this.state.error && this.pending.some(p => p.command.type !== 'refresh')) { this.update({ error: '앞선 작업을 다시 확인한 뒤 시도해 주세요.' }); return }
     if (command.type === 'refresh' && this.pending.some(p => p.command.type === 'refresh')) return this.retry()

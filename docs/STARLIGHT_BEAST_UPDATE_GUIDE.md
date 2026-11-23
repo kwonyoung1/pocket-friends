@@ -150,3 +150,18 @@
 ## 운영 완료 조건
 
 이번 PR Merged, 최신 main 필수 검사 성공, 필요한 서버 배포·SHA 검증 성공, Pages 배포·공개 SHA·읽기 전용 모바일 부팅 성공, 운영 새 콘텐츠 확인까지 완료돼야 합니다. 로컬 테스트 통과만으로 운영 배포 성공이라고 보고하지 않습니다.
+
+## 클라우드 재접속 검사 오류 수정 확인 (PR #41)
+
+구매·장비 강화의 응답이 끊긴 뒤 재접속하면, **앞선 작업 결과 다시 확인**으로 원래 작업 번호를 재조회합니다. 아레나 복구가 일반 거래까지 자동 처리하던 오류를 수정했습니다. 아레나 작업만 남아 있는 경우에는 자동 복구를 유지합니다. 보물 3매치 검사는 이동 애니메이션을 실제로 진행한 뒤, 멈춘 가상 시계의 유휴 시간만 건너뜁니다. 서버 보상 검증·두 기기 동기화·중복 코인 방지 검사는 유지합니다.
+
+1. [PR #41 검사](https://github.com/kwonyoung1/pocket-friends/pull/41/checks)를 엽니다. **Commits**에서 최신 수정 커밋이 있는지 확인하고 **Checks**로 돌아옵니다. 이전 실패 커밋을 재실행해도 새 수정은 적용되지 않습니다.
+2. **Test and deploy Pocket Friends**를 펼칩니다. `unit`, `browser`, `cloud`, 최종 필수 `build`가 성공해야 합니다. **Approve workflows to run**이 실제 표시되면 누릅니다. 검사 실패 시 해당 검사 로그를 확인하고 병합을 진행하지 않습니다.
+3. [PR 본문](https://github.com/kwonyoung1/pocket-friends/pull/41)에서 **Merged**인지 확인합니다. 기존 보호 정책이 리뷰를 요구하는 경우에만 **Files changed → Submit review → Approve → Submit review**를 사용합니다. 보호 규칙을 해제하지 않습니다.
+4. [main 배포 실행 목록](https://github.com/kwonyoung1/pocket-friends/actions/workflows/deploy.yml?query=branch%3Amain)에서 해당 병합 커밋의 실행을 엽니다. **Waiting / release-approval**이면 **Review deployments → release-approval 선택 → Approve and deploy**를 누릅니다. 해당 버튼이 없으면 추가 조작하지 않습니다.
+5. 전체 환수 업데이트에는 기존 계획에 따른 `game` 서버 배포가 필요합니다. 이번 재접속 수정만으로는 서버·DB 구조·토큰 변경이 추가로 필요하지 않습니다. `backend-gate`와 `deploy`의 성공 및 공개 버전 SHA를 확인합니다.
+6. [운영 게임](https://kwonyoung1.github.io/pocket-friends/)에서 새로고침합니다. 저장 데이터나 쿠키를 지우지 않습니다. 구매·강화 재시도 안내는 미확인 작업이 있을 때만 표시됩니다. 운영 데이터로 오류 상황을 일부러 만들거나 보상을 반복 청구하지 않습니다.
+
+이 안내는 확인 절차입니다. PR 검사 성공, 병합, 운영 배포 성공은 각각 별도로 확인해야 합니다. 기존 정상 Secrets·토큰·브랜치 보호 설정을 다시 만들 필요는 없습니다.
+
+로컬 수정 검증 결과 (2026-11-23): 단위 테스트 606개 통과, 전체 클라우드 검사 70개 통과·기존 조건에 따른 12개 생략·실패 0개(15.3분), TypeScript 포함 프로덕션 빌드 통과. 보물 3매치 재접속 보상 검사는 데스크톱 25.3초·모바일 에뮬레이션 25.9초이며 기존 제한 45초를 유지했습니다. 운영 서버가 아닌 분리된 테스트 서버 결과입니다. 원격 CI·병합·운영 배포 결과와 혼동하지 않습니다.
