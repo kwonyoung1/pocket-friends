@@ -21,7 +21,7 @@ export class BattleView{
   const stage=state.stageId?stageById(state.stageId):undefined,enemyKey=stage?'enemies-'+stage.region:'enemies'
   for(const id of new Set([...state.units.filter(u=>u.side==='ally').map(u=>u.art),enemyKey])){
    const isEnemy=id==='enemies'||id.startsWith('enemies-'),atlas=await load(id==='enemies'?'sprite-enemies':isEnemy?id:'sprite-'+id),frames:Texture[]=[]
-   const count=id.startsWith('enemies-')?16:id==='enemies'?12:20,cols=isEnemy?4:5
+   const count=id==='enemies-christmas'?20:id.startsWith('enemies-')?16:id==='enemies'?12:20,cols=isEnemy?4:5
    for(let n=0;n<count;n++)frames.push(new Texture({source:atlas.source,frame:new Rectangle(n%cols*64,Math.floor(n/cols)*64,64,64)}));this.frames.set(id,frames)
   }
   if(this.dead)return

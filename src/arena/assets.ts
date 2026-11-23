@@ -1,3 +1,9 @@
+import bg_eclipse from './art/bg-eclipse.webp'
+import bg_heaven from './art/bg-heaven.webp'
+import bg_christmas from './art/bg-christmas.webp'
+import enemies_eclipse from './art/enemies-eclipse.png'
+import enemies_heaven from './art/enemies-heaven.png'
+import enemies_christmas from './art/enemies-christmas.png'
 import a0 from './art/bg-canyon.webp'
 import a1 from './art/bg-cave.webp'
 import a2 from './art/bg-lake.webp'
@@ -53,6 +59,13 @@ import a51 from './art/sprite-mungchi.png'
 import a52 from './art/sprite-toto.png'
 import a53 from './art/sprite-youngi.png'
 export const ASSETS:Record<string,string>={
+ 'bg-eclipse':bg_eclipse,
+ 'bg-heaven':bg_heaven,
+ 'bg-christmas':bg_christmas,
+ 'enemies-eclipse':enemies_eclipse,
+ 'enemies-heaven':enemies_heaven,
+ 'enemies-christmas':enemies_christmas,
+
  'bg-canyon':a0,
  'bg-cave':a1,
  'bg-lake':a2,

@@ -49,9 +49,10 @@ export function validateCommand(value: unknown): GameCommand {
   if (!value || typeof value !== 'object')
     throw Error('잘못된 게임 명령이에요.')
   const c = value as Record<string, unknown>
+  // Arena targets include owned beasts and are validated by the arena command path.
+  if(typeof c.type==='string'&&c.type.startsWith('arena-'))return validateArena(c)
   if ('friendId' in c && !friendIds.includes(String(c.friendId)))
     throw Error('친구를 선택해 주세요.')
-  if(typeof c.type==='string'&&c.type.startsWith('arena-'))return validateArena(c)
   switch (c.type) {
     case 'care-play-all': case 'care-wash-all': break
     case 'care-feed-all': if(!string(c.id))throw Error('음식을 선택해 주세요.');break
@@ -212,10 +213,11 @@ export function applyCommand(
       'friendId' in c
         ? save.friends.find((p) => p.id === c.friendId)!
         : undefined
-  if ('friendId' in c && !f) throw Error('아직 함께 살지 않는 친구예요.')
+  // Arena shop validates beast ownership against the selected shared arena account.
+  if ('friendId' in c && !f && c.type!=='arena-shop') throw Error('아직 함께 살지 않는 친구예요.')
   let message = returns.join(' · ') || '클라우드와 동기화했어요.'
   switch (c.type) {
-    case 'arena-fuse': case 'arena-share': case 'arena-select': case 'arena-start': case 'arena-checkpoint': case 'arena-complete': case 'arena-abandon': case 'arena-open': case 'arena-train': case 'arena-link': message=arenaCommand(save,c,user,now);break
+    case 'arena-shop': case 'arena-fuse': case 'arena-share': case 'arena-select': case 'arena-start': case 'arena-checkpoint': case 'arena-complete': case 'arena-abandon': case 'arena-open': case 'arena-train': case 'arena-link': message=arenaCommand(save,c,user,now);break
     case 'care-play-all': case 'care-wash-all': case 'care-feed-all': message=bulkCare(save,c,now,holds).message;break
     case 'room-theme': message=changeRoomTheme(save,c.theme,now);break
     case 'sichuan-start': case 'sichuan-match': case 'sichuan-hint': case 'sichuan-shuffle': case 'sichuan-next': case 'sichuan-stop': message=sichuanCommand(save,c as SichuanCommand,user,now);break

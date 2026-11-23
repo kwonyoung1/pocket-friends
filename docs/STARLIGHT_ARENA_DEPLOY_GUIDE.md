@@ -1,3 +1,5 @@
+[별빛 상점·신규 지역·크리스마스 배포 클릭 안내서](STARLIGHT_ARENA_EXPANSION_GUIDE.md)
+
 # 별빛 아레나 정식 확장 — 클릭 배포 안내
 
 최신 환수·5인 파티 업데이트는 [새 클릭 안내서](STARLIGHT_BEAST_UPDATE_GUIDE.md)를 따르세요. 아래는 이전 확장 버전의 기록입니다.

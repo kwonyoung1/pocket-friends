@@ -1,0 +1,7 @@
+# Arena winter artwork provenance
+
+The three new original background illustrations were generated for this task with OpenAI image generation: a moonlit violet eclipse castle, luminous celestial gate, and snowy Christmas village, with empty battle floors and vertical mobile composition. The resulting triptych source is retained outside the runtime bundle at `/workspace/generated_images/exec-80d3e382-7eaa-49fb-b272-e3684b839129.png` (1774×887). `scripts/prepare-arena-winter.mjs <source-path>` crops the columns into WebP backgrounds. No commercial game artwork, original character PNG or private photo was used or overwritten.
+
+Monster sprite SVG sources are original code-authored pixel drawings in `scripts/prepare-arena-winter.mjs`, rasterized to palette PNG atlases via Sharp. Each monster has four explicit frames (idle, motion/attack, magical impact, hurt); these are drawn poses rather than extracted frames from an illustration. Eclipse and heaven each have four monsters; Christmas has five including a four-legged reindeer and a two-legged gift-thief Krampus. Existing Pixi battle movement/hit/boss effects animate these atlases. These are compact pixel sprites, not hand-painted frame-by-frame production animation.
+
+Runtime assets: `bg-eclipse.webp`, `bg-heaven.webp`, `bg-christmas.webp`, and `enemies-{eclipse,heaven,christmas}.png`. SVG sources are included for reproducibility but not imported in the runtime bundle. The optional holiday bell is synthesized locally following a user gesture; there is no externally licensed or downloaded audio.
