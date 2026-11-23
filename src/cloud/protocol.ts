@@ -33,6 +33,7 @@ export type Holds = Record<
 export type ServerWorld = WorldRow & { holds: Holds }
 export type CommandResult = { row: WorldRow; message: string }
 export type CloudGame = {
+  message?:string
   playerId?: string
   now: () => number
   row: WorldRow

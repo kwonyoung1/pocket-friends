@@ -7,6 +7,7 @@ export const CHESTS:{id:ChestId;name:string;weights:readonly number[];coins:numb
  {id:'crystal',name:'수정 보물상자',weights:[7000,2500,500,0,0],coins:10,legendaryPity:false,mythicPity:false},
  {id:'ancient',name:'고대 보물상자',weights:[6800,2400,750,50,0],coins:16,legendaryPity:false,mythicPity:false},
  {id:'starlight',name:'별빛 보물상자',weights:[6600,2400,850,150,0],coins:25,legendaryPity:true,mythicPity:false},
+ {id:'christmas',name:'크리스마스 특별 상자',weights:[6000,2200,1100,600,100],coins:160,legendaryPity:true,mythicPity:true},
  {id:'legendary',name:'전설의 보물상자',weights:[6500,2400,800,270,30],coins:40,legendaryPity:true,mythicPity:true},
 ]
 export const chestById=(id:string)=>CHESTS.find(c=>c.id===id)
@@ -20,7 +21,7 @@ export function openChest(a:ArenaAccount,id:ChestId,nonce:number,now:number,rand
  if((a.chests[id]??0)<1)throw Error('보유한 보물상자가 없어요.')
  const box=chestById(id)!,weights=chestOdds(id,a),pick=random()*10000;let sum=0,tier:Opening['tier']='common';for(let i=0;i<weights.length;i++){sum+=weights[i];if(pick<sum){tier=tiers[i];break}}
  const forced=weights.some((w,i)=>w!==box.weights[i]),result:Opening={nonce,chest:id,tier,duplicate:false,shards:0,coins:0,stones:0,at:now,pity:forced}
- if(tier==='common'){if(random()<.18)result.stones=1;else result.coins=box.coins}
+ if(tier==='common'){if(id!=='christmas'&&random()<.18)result.stones=1;else result.coins=box.coins}
  else{const pool=BEASTS.filter(b=>b.rarity===tier),beast=pool[Math.min(pool.length-1,Math.floor(random()*pool.length))];result.beastId=beast.id;const old=a.beasts[beast.id];if(old){result.duplicate=true;result.shards=BEAST_LIMITS.duplicateShards[tier as BeastRarity];old.duplicates++;old.shards=Math.min(BEAST_LIMITS.shards,old.shards+result.shards)}else a.beasts[beast.id]={at:now,level:1,xp:0,shards:0,duplicates:0,mastery:0}}
  if(box.legendaryPity)a.pity.legendary=tier==='legendary'||tier==='mythic'?0:Math.min(BEAST_LIMITS.legendaryPity,a.pity.legendary+1)
  if(box.mythicPity)a.pity.mythic=tier==='mythic'?0:Math.min(BEAST_LIMITS.mythicPity,a.pity.mythic+1)
