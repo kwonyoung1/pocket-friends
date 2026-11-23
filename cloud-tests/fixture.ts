@@ -1,3 +1,4 @@
+import {arenaProgress,arenaAccount} from '../src/arena/server'
 import {createRewardHandler} from '../src/match3/rewardServer'
 import type {RewardRepository,RewardSession} from '../src/match3/rewardServer'
 import { test as base } from '@playwright/test'
@@ -7,6 +8,8 @@ import type { CloudRepository } from '../src/cloud/server'
 import type { ServerWorld } from '../src/cloud/protocol'
 export const test = base.extend<{
   backend: {
+    seedArena: (energy?:number) => void
+    loseNextArenaResponse: (type:'arena-open'|'arena-start') => void
     setTime: (at:number) => void
     seedRanking: () => void
     secret: string
@@ -91,6 +94,7 @@ export const test = base.extend<{
       origins: ['http://127.0.0.1:4185'],
       now,
     })
+    let loseArena:''|'arena-open'|'arena-start'=''
     let loseReward=false
     const sessions=new Map<string,RewardSession&{user:string}>(),requests=new Map<string,string>()
     const rewards:RewardRepository={authorize:async user=>members.has(user),start:async(user,request,seed)=>{const old=requests.get(user+request);if(old)return sessions.get(old)!;const value={id:crypto.randomUUID(),seed,rules:6,created_at:new Date(now()).toISOString(),cursor:0,log_hash:null,checkpoint:null,coins:null,result:null,user};sessions.set(value.id,value);requests.set(user+request,value.id);return value},load:async(user,id)=>{const value=sessions.get(id);return value?.user===user?structuredClone(value):null},advance:async(user,id,cursor,hash,_log,state,complete,coins,result)=>{const value=sessions.get(id)!;if(value.user!==user)throw Error('wrong user');if(value.coins!==null)return {status:'paid',coins:value.coins,result:value.result};if(value.cursor!==cursor)return {status:'pending'};Object.assign(value,{cursor:state.cursor,log_hash:hash,checkpoint:structuredClone(state)});if(!complete)return {status:'pending'};value.coins=coins;value.result=result;row.data!.world!.coins+=coins;row.revision++;return {status:'paid',coins,result}}}
@@ -101,11 +105,12 @@ export const test = base.extend<{
           offset = Date.parse('2026-10-15T03:00:00Z') - nativeNow()
         Date.now = () => nativeNow() + offset
       })
-      const user = crypto.randomUUID()
+      let user = crypto.randomUUID()
       await ctx.route('https://cloud-fixture.supabase.co/**', async (route) => {
         const request = route.request(),
           url = request.url()
         if (url.includes('/auth/v1/signup') || url.includes('/auth/v1/token')) {
+          if(url.includes('/auth/v1/signup'))user=crypto.randomUUID()
           const token = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: user, exp: Math.floor(now() / 1000) + 3600, role: 'authenticated' })).toString('base64url')}.fixture`
           await route.fulfill({
             json: {
@@ -139,6 +144,7 @@ export const test = base.extend<{
                 : {}),
             }),
           )
+          if(loseArena&&request.postDataJSON()?.command?.type===loseArena){loseArena='';await route.abort('failed');return}
           if ((loseNext && ['buy','buy-many'].includes(request.postDataJSON()?.command?.type))||(loseEnhance&&request.postDataJSON()?.command?.type==='enhance')) {
             loseNext = false;loseEnhance=false
             await route.abort('failed')
@@ -167,6 +173,8 @@ export const test = base.extend<{
     await attach(context)
     await use({
       secret,
+      loseNextArenaResponse:type=>{loseArena=type},
+      seedArena:(energy=100)=>{if(!row.data)throw Error('Initialize first');const p=arenaProgress(row.data,now());for(const user of members){const a=arenaAccount(p,user,now());a.energy={value:energy,at:now()};a.chests.legendary=2;a.chests.forest=2;a.pity.mythic=299;a.pity.legendary=39;for(const id of ['beast-lumi','beast-nebula'])a.beasts[id]??={at:now(),level:50,xp:0,shards:0,duplicates:0,mastery:0}}for(const f of row.data.friends)if(f.growth)f.growth.level=50;row.revision++},
       traffic: () => structuredClone(traffic),
       setPhoto: (photo:string) => { if(!row.data)throw Error('Initialize first');row.data.friends[0].photo=photo;row.revision++ },
       setTime: (at:number) => {timeOffset=at-(epoch+Date.now()-clockStarted)},

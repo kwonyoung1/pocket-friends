@@ -1,3 +1,4 @@
+import {BEASTS} from './beasts.ts'
 import type {BaseDefinition,Definition,Element,Effect,Skill,Style} from './types.ts'
 import type {Kind} from '../game.ts'
 const skill=(id:string,name:string,unlock:number,cost:number,target:Skill['target'],style:Style,power:number,hits:number,description:string):Skill=>({id,name,unlock,cost,target,style,power,hits,description})
@@ -41,7 +42,7 @@ const changes:Record<string,Record<string,Partial<Skill>>>= {
  mungchi:{active1:{effects:[effect('defense-up',2,.2),effect('regen',2,.04)]},active2:{effects:[effect('defense-down',2,.2),effect('advance',0,1,'all-allies')]},ultimate:{effects:[effect('speed-up',2,.2),effect('advance',0,1)]}},
 }
 export const HEROES:Definition[]=[...classic,...additional].map(h=>({...h,...identities[h.id],skills:h.skills.map(k=>({...k,...changes[h.id]?.[k.id]}))}))
-const byId=new Map(HEROES.map(h=>[h.id,h]))
+const byId=new Map([...HEROES,...BEASTS].map(h=>[h.id,h]))
 const byKind:Record<Kind,string>={boy:'special-boy',girl:'special-girl',cat:'lulu',bunny:'bibi',bear:'toto',fox:'dudu',dog:'mungchi'}
 /** Future owned friends get a documented species archetype until an explicit ID config is registered. */
 export function heroById(id:string,kind?:Kind):Definition {const known=byId.get(id);if(known)return known;const template=kind&&byId.get(byKind[kind]);return template?{...template,id}:undefined!}

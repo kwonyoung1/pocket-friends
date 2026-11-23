@@ -1,3 +1,4 @@
+import {stageTerms} from './balance.ts'
 import type {Element,Style,Effect} from './types.ts'
 export type RegionId='forest'|'lake'|'cave'|'ruins'|'canyon'|'snow'|'shadow'|'sanctuary'
 export type Monster={id:string;name:string;region:RegionId;row:number;rank:'normal'|'elite'|'boss';element:Element;weakness:Element[];hp:number;atk:number;def:number;spd:number;pattern:('attack'|'shield'|'heal'|'area'|'debuff')[];style:Style;effects?:Effect[];toughness:number}
@@ -25,8 +26,8 @@ export const MONSTERS:Monster[]=REGIONS.flatMap((r,index)=>r.monsters.map((id,ro
 })))
 const monstersById=new Map(MONSTERS.map(m=>[m.id,m]))
 export const monsterById=(id:string)=>monstersById.get(id)
-export type Stage={id:string;index:number;region:RegionId;number:number;name:string;level:number;boss:boolean;waves:string[][];requires?:string;first:{coins:number;xp:number;stones:number;treasure:boolean};repeat:{coins:number;xp:number}}
-export const STAGES:Stage[]=REGIONS.flatMap((r,ri)=>Array.from({length:5},(_,si)=>{const index=ri*5+si,id=`${ri+1}-${si+1}`,[a,b,e,boss]=r.monsters;return{id,index,region:r.id,number:si+1,name:`${r.name} ${ri+1}-${si+1}`,level:Math.min(50,1+index+Math.floor(index/7)),boss:si===4,waves:si===0?[[a,...(ri?[b]:[])]]:si===1?[[a,a]]:si===2?[[e,b]]:si===3?[[b,e,a]]:[[a,b],[boss,b]],requires:index?`${si?ri+1:ri}-${si||5}`:undefined,first:{coins:20+ri*3,xp:9+ri*3,stones:si===4?1:0,treasure:si===4},repeat:{coins:4+ri,xp:2+ri}}}))
+export type Stage={id:string;index:number;region:RegionId;number:number;name:string;level:number;boss:boolean;waves:string[][];requires?:string;first:{coins:number;xp:number;stones:number;treasure:boolean};repeat:{coins:number;xp:number};energy:number}
+export const STAGES:Stage[]=REGIONS.flatMap((r,ri)=>Array.from({length:5},(_,si)=>{const index=ri*5+si,id=`${ri+1}-${si+1}`,[a,b,e,boss]=r.monsters;return{id,index,region:r.id,number:si+1,name:`${r.name} ${ri+1}-${si+1}`,level:Math.min(50,1+index+Math.floor(index/7)),boss:si===4,waves:si===0?[[a,...(ri?[b]:[])]]:si===1?[[a,a]]:si===2?[[e,b]]:si===3?[[b,e,a]]:[[a,b],[boss,b]],requires:index?`${si?ri+1:ri}-${si||5}`:undefined,...stageTerms(index,si===4)}}))
 export const stageById=(id:string)=>STAGES.find(s=>s.id===id)
 export const regionById=(id:RegionId)=>REGIONS.find(r=>r.id===id)!
 export const stageUnlocked=(id:string,cleared:Readonly<Record<string,unknown>>={})=>{const s=stageById(id);return !!s&&(!s.requires||Object.hasOwn(cleared,s.requires))}
