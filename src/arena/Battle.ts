@@ -1,16 +1,19 @@
+import {starsOf} from './fusion.ts'
+import {elementNames} from './characters.ts'
 import {stageById,monsterById} from './stages.ts'
 import {Application,Container,Sprite,Texture,Rectangle,Graphics,Text,ImageSource} from 'pixi.js'
 import {ASSETS} from './assets'
 import type {State,Unit,Action} from './model'
-type Actor={root:Container;sprite:Sprite;bar:Graphics;barBg:Graphics;breakBar:Graphics;label:Text;halo:Graphics;barrier:Graphics;unit:Unit;pose:number;walking:boolean;time:number;home:{x:number;y:number}}
+type Actor={root:Container;sprite:Sprite;bar:Graphics;barBg:Graphics;breakBar:Graphics;label:Text;halo:Graphics;barrier:Graphics;aura:Graphics;unit:Unit;pose:number;walking:boolean;time:number;home:{x:number;y:number}}
 type Tween={start:number;duration:number;draw:(p:number)=>void;done:()=>void}
 export type Cinematic={type:'boss'|'cutin';name:string;art:string;skill?:string}|null
 const COLORS={slash:0xb9efff,orb:0xe1d0ff,claw:0xffb58b,kick:0xffcbe2,slam:0xe8bc72,command:0xffe3a1,heal:0x97f2c5,dash:0xff9a66,carrot:0xffb66b,jump:0xffc4e6,shield:0xa3cfff,fire:0xff9554,'enemy-spit':0x84e9ef,vine:0xc591e1,shadow:0xb7a4f9,frost:0xb2eaff,water:0x8bdeef,root:0xa9d990,rally:0xf6df9c,purify:0xd8f4b5,counter:0xd2bc92,nebula:0xc6a6ff,phoenix:0xffa35d,dragon:0xa2d5ff,eclipse:0xb29bea,aegis:0xffe9c9}
 export class BattleView{
- app=new Application();camera=new Container();effects=new Container();actors=new Map<string,Actor>();frames=new Map<string,Texture[]>();clock=0;speed=1;quality=true;reduced=false;shortCutin=false;dead=false;selected='';current='';tweens:Tween[]=[];ephemeral=0;private sources=new Set<ImageSource>();private foreground?:Sprite;private inAction=false;private hasBoss=false;private allyCount=0;private height=465;private yScale=1
+ app=new Application();camera=new Container();effects=new Container();actors=new Map<string,Actor>();frames=new Map<string,Texture[]>();clock=0;speed=1;quality=true;reduced=false;shortCutin=false;dead=false;selected='';current='';tweens:Tween[]=[];ephemeral=0;private sources=new Set<ImageSource>();private foreground?:Sprite;private inAction=false;private hasBoss=false;private allyCount=0;private height=465;private yScale=1;private preview:string[]=[];private slowFrames=0
  constructor(private host:HTMLElement,private select:(id:string)=>void,private cinematic:(c:Cinematic)=>void){}
  async init(state:State){
-  const box=this.host.getBoundingClientRect();this.height=Math.max(285,Math.min(465,Math.round((box.height||465)*390/(box.width||390))));this.yScale=this.height/465
+  this.quality=(navigator.hardwareConcurrency??8)>4&&((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)>4
+  const box=this.host.getBoundingClientRect();this.height=Math.max(210,Math.min(465,Math.round((box.height||465)*390/(box.width||390))));this.yScale=this.height/465
   await this.app.init({width:390,height:this.height,backgroundAlpha:0,antialias:true,resolution:Math.min(devicePixelRatio||1,2),autoDensity:true,preference:'webgl',powerPreference:'low-power'})
   if(this.dead){this.app.destroy(true);return}
   this.host.appendChild(this.app.canvas);this.app.canvas.setAttribute('aria-label','달빛 숲 도트 전투 필드');this.app.canvas.setAttribute('role','img')
@@ -34,7 +37,7 @@ export class BattleView{
  private texture(unit:Unit,frame:number){if(unit.side==='enemy'){const monster=unit.monsterId?monsterById(unit.monsterId):undefined,row=monster?.row??(unit.art==='slime'?0:unit.art==='thorn'?1:2),key=monster?'enemies-'+monster.region:'enemies';const cell=monster?(frame===15||frame===16?3:[10,13,17,18].includes(frame)?1:[11,12,14,19].includes(frame)?2:0):(frame===15?(unit.boss?3:2):frame===16?3:[10,13,17,18].includes(frame)?1:[11,12,14,19].includes(frame)?(unit.boss?2:1):frame<4?frame:0);return this.frames.get(key)![row*4+cell]}return this.frames.get(unit.art)![frame]}
  private actor(u:Unit,index:number):Actor{
   const slots=u.side==='ally'?(this.allyCount===5?[{x:48,y:310},{x:140,y:260},{x:48,y:425},{x:140,y:350},{x:140,y:440}]:[{x:63,y:318},{x:128,y:361},{x:57,y:401},{x:124,y:438}]):u.boss?[{x:286,y:335}]:this.hasBoss?[{x:243,y:204},{x:328,y:232}]:[{x:270,y:215},{x:325,y:292},{x:253,y:364}]
-  const slot=slots[index%slots.length],home={x:slot.x,y:slot.y*this.yScale},root=new Container(),shadow=new Graphics().ellipse(0,0,u.boss?32:22,u.boss?8:5).fill({color:0x081521,alpha:.5})
+  const slot=slots[index%slots.length],home={x:slot.x,y:Math.min(slot.y*this.yScale,this.height-24)},root=new Container(),shadow=new Graphics().ellipse(0,0,u.boss?32:22,u.boss?8:5).fill({color:0x081521,alpha:.5})
   root.position.set(home.x,home.y);root.zIndex=home.y
   const halo=new Graphics().ellipse(0,0,u.boss?38:27,u.boss?10:8).stroke({color:0xffd88b,width:2,alpha:.9});halo.visible=false
   const sprite=new Sprite(this.texture(u,u.side==='ally'?2:0));sprite.anchor.set(.5,1);sprite.scale.set(u.boss?1.95:u.side==='ally'&&this.allyCount===5?1.1:1.27)
@@ -42,9 +45,10 @@ export class BattleView{
   const breakBar=new Graphics().roundRect(-21,-h-5,42,2,1).fill(0xead28a);breakBar.visible=u.maxToughness>0
   const label=new Text({text:u.name.length>9?u.name.slice(0,9)+'…':u.name,style:{fontFamily:'sans-serif',fontSize:u.boss?11:9,fill:0xf5f1df,stroke:{color:0x122334,width:3},fontWeight:'600'}});label.anchor.set(.5,0);label.position.set(0,5)
   const barrier=new Graphics().ellipse(0,-h*.45,u.boss?48:31,h*.58).fill({color:0x9bcffe,alpha:.06}).stroke({color:0xb7ddff,alpha:.65,width:1.5});barrier.visible=false
-  root.addChild(shadow,halo,sprite,barBg,bar,breakBar,barrier,label);root.eventMode='static';root.cursor='pointer';root.hitArea=new Rectangle(-34,-h,68,h+20);root.on('pointertap',()=>this.select(u.id))
+  const stars=starsOf(u),aura=new Graphics();if(u.stars&&stars>=2){const color=stars===5?0xffdf87:stars===4?0xd6b4ff:0xbce7ff;aura.ellipse(0,-4,25+stars,8+stars).stroke({color,width:stars>=4?2:1,alpha:.6});for(let n=0;n<stars;n++)aura.star((n-(stars-1)/2)*8,-h-20,4,3,1.5).fill({color,alpha:.85});if(stars>=4)aura.ellipse(0,-25,30,35).stroke({color,width:1,alpha:.25})}
+  root.addChild(shadow,aura,halo,sprite,barBg,bar,breakBar,barrier,label);root.eventMode='static';root.cursor='pointer';root.hitArea=new Rectangle(-34,-h,68,h+20);root.on('pointertap',()=>this.select(u.id))
   this.camera.addChild(root);this.camera.sortableChildren=true;this.effects.zIndex=1000
-  return{root,sprite,bar,barBg,breakBar,label,halo,barrier,unit:u,pose:-1,walking:false,time:this.clock,home}
+  return{root,sprite,bar,barBg,breakBar,label,halo,barrier,aura,unit:u,pose:-1,walking:false,time:this.clock,home}
  }
  sync(state:State){
   this.allyCount=state.units.filter(u=>u.side==='ally').length;this.hasBoss=state.units.some(u=>u.boss); this.current=state.order[state.cursor]??''
@@ -56,16 +60,17 @@ export class BattleView{
    else actor.root.eventMode='static'
   }
  }
- choose(id:string){this.selected=id}
+ choose(id:string,preview:string[]=[]){this.selected=preview.length?'':id;this.preview=preview}
  private tick(dt:number){
-  if(this.dead)return;this.clock+=Math.min(dt,60)*this.speed
+  if(this.dead)return;if(dt>45&&dt<250)this.slowFrames++;else this.slowFrames=Math.max(0,this.slowFrames-1);if(this.slowFrames>=45)this.quality=false;this.clock+=Math.min(dt,60)*this.speed
   for(const t of [...this.tweens]){const p=Math.min(1,(this.clock-t.start)/t.duration);t.draw(p);if(p===1){this.tweens.splice(this.tweens.indexOf(t),1);t.done()}}
   for(const a of this.actors.values()){
    let frame=a.pose
    if(a.unit.hp>0&&frame<0)frame=a.unit.side==='enemy'?0:this.reduced?2:Math.floor((this.clock+a.home.y*3)/1100)%5===0?9:2
    if(a.walking)frame=a.unit.side==='enemy'?(Math.floor((this.clock-a.time)/140)%2?10:0):5+Math.floor((this.clock-a.time)/95)%4
    a.sprite.texture=this.texture(a.unit,frame)
-   a.halo.visible=a.unit.hp>0&&(a.unit.id===this.selected||a.unit.id===this.current);a.halo.alpha=this.reduced?.8:.65+Math.sin(this.clock/240)*.2
+   a.halo.visible=a.unit.hp>0&&(a.unit.id===this.selected||a.unit.id===this.current||this.preview.includes(a.unit.id));a.halo.alpha=this.reduced?.8:.65+Math.sin(this.clock/240)*.2
+   a.aura.visible=a.unit.hp>0;a.aura.alpha=this.reduced?.8:.65+Math.sin(this.clock/(starsOf(a.unit)===5?420:700))*.2
    if(a.unit.hp>0&&a.pose<0&&!a.walking)a.sprite.y=this.reduced?0:Math.sin(this.clock/850+a.home.y)*.65
   }
   if(this.quality&&!this.reduced&&Math.floor(this.clock/300)!==Math.floor((this.clock-dt*this.speed)/300))this.spark(18+Math.random()*354,(100+Math.random()*310)*this.yScale,0xf2edbd,1,'light')
@@ -95,7 +100,8 @@ export class BattleView{
  private afterimages(a:Actor){if(!this.quality||this.reduced)return;for(let n=1;n<=2;n++){const sprite=new Sprite(a.sprite.texture);sprite.anchor.set(.5,1);sprite.scale.copyFrom(a.sprite.scale);sprite.tint=0x9b83e5;sprite.alpha=.28/n;sprite.position.set(a.root.x-n*14,a.root.y);this.effects.addChild(sprite);const x=sprite.x;void this.tween(300,p=>{sprite.x=x-p*20;sprite.alpha=(1-p)*.28/n}).then(()=>sprite.destroy())}}
  private impact(a:Actor,style:string,color:number,source?:string){
   const g=new Graphics(),x=a.root.x,y=a.root.y;g.position.set(x,y);this.effects.addChild(g)
-  if(style==='nebula'){for(let n=0;n<3;n++)g.ellipse(0,-30,16+n*7,6+n*3).stroke({color:0xcdb6fa,width:2,alpha:.8})}
+  if(source==='special-boy'&&style==='slash'){g.star(0,-37,4,25,7).fill({color:0xe7f8ff,alpha:.7});g.moveTo(-30,-15).lineTo(25,-58).stroke({color:0xa7ddff,width:3})}
+  else if(style==='nebula'){for(let n=0;n<3;n++)g.ellipse(0,-30,16+n*7,6+n*3).stroke({color:0xcdb6fa,width:2,alpha:.8})}
   else if(style==='dragon'){for(let n=0;n<5;n++){const x=Math.cos(n*Math.PI*.4)*27,y=Math.sin(n*Math.PI*.4)*12-30;g.moveTo(0,-30).lineTo(x,y).stroke({color:0xa7dcff,width:2});g.star(x,y,4,4,2).fill(0xffe6ae)}}
   else if(style==='phoenix'){for(const side of [-1,1])g.moveTo(0,-15).bezierCurveTo(side*32,-24,side*35,-50,side*15,-52).bezierCurveTo(side*22,-35,side*10,-25,0,-15).fill({color:0xffad62,alpha:.7})}
   else if(style==='aegis'){g.poly([0,-68,27,-53,25,-25,0,-5,-25,-25,-27,-53]).stroke({color:0xffecc9,width:3}).circle(0,-37,10).stroke({color:0xe6c6fa,width:2})}
@@ -113,7 +119,7 @@ export class BattleView{
  async intro(boss=false){
   if(boss){const a=[...this.actors.values()].find(a=>a.unit.boss);if(!a)return;a.sprite.tint=0x101e29;this.cinematic({type:'boss',name:a.unit.name,art:a.unit.art});await this.zoom(1.12,235,280*this.yScale);await this.wait(450);a.sprite.tint=0xffffff;this.ring(a.root.x,a.root.y,0x99e3cd);void this.shake(3);await this.wait(500);this.cinematic(null);await this.zoom(1)}else{await this.wait(250)}
  }
- async previewCutin(unit:Unit,skillName:string){this.cinematic({type:'cutin',name:unit.name,art:unit.art,skill:skillName});await this.wait(this.shortCutin||this.reduced?260:850);this.cinematic(null)}
+ async previewCutin(unit:Unit,skillName:string){const highest=!!unit.stars&&starsOf(unit)===5;if(highest){const a=this.actors.get(unit.id);if(a){this.ring(a.root.x,a.root.y,0xffe3a1,1.8);this.spark(a.root.x,a.root.y-40,0xffe3a1,this.quality?16:4,'light')}}this.cinematic({type:'cutin',name:unit.name,art:unit.art,skill:(highest?'★★★★★ · ':'')+skillName});await this.wait(this.shortCutin||this.reduced?260:850);this.cinematic(null)}
  async play(action:Action,onImpact:()=>void){
   if(this.dead||this.inAction)return;this.inAction=true
   const a=this.actors.get(action.actor)!,targets=action.targets.map(id=>this.actors.get(id)!).filter(Boolean),k=action.skill,color=k.style==='dash'?(a.unit.element==='dark'?0xb7a4f9:a.unit.element==='light'?0xffe3a1:0xff9a66):COLORS[k.style],ranged=['orb','carrot','enemy-spit','heal','shield','command','water','frost','root','rally','purify','counter','nebula','dragon','phoenix','aegis'].includes(k.style)
@@ -128,13 +134,19 @@ export class BattleView{
    else{a.pose=k.style==='carrot'?19:14;if(['orb','carrot','enemy-spit','water','frost','root','nebula','dragon','phoenix','aegis'].includes(k.style))await Promise.all(targets.map(t=>this.projectile(a,t,k.style==='carrot',color,k.style)));else{await Promise.all(targets.map(t=>this.projectile(a,t,false,color)));for(const t of targets){this.ring(t.root.x,t.root.y,color);this.spark(t.root.x,t.root.y-35,color,9)}await this.wait(180)}}
    if(k.style==='dash'&&targets.length){this.spark(a.root.x,a.root.y-12,color,15);await this.move(a,Math.min(357,targets[targets.length-1].root.x+35),targets[targets.length-1].root.y,125,0,color);a.pose=19}
    for(const t of targets)this.impact(t,k.style,color,a.unit.heroId)
-   for(const t of targets){this.ring(t.root.x,t.root.y,color);this.spark(t.root.x,t.root.y-20,color,k.style==='slam'?15:8,k.style==='slam'?'rock':'spark')}
+   for(const t of targets){const tier=a.unit.stars?starsOf(a.unit):1,flare=Math.max(0,tier-2);this.ring(t.root.x,t.root.y,color,1+flare*.15);this.spark(t.root.x,t.root.y-20,color,(k.style==='slam'?15:8)+flare*2,k.style==='slam'?'rock':'spark')}
    if(k.style==='slam'&&k.id!=='basic'){this.ring(a.root.x,a.root.y,color,1.8);this.spark(a.root.x,a.root.y,color,15,'rock')}
    if(['slam','dash','fire','jump'].includes(k.style))void this.shake(k.style==='slam'?5:3)
    // Painted contact pose is held briefly at impact, before recoil/return.
    await this.wait(this.reduced?1:55);onImpact()
    for(const hit of action.hits){const t=this.actors.get(hit.id);if(!t)continue;this.number(t,hit.miss?'회피':hit.heal?`+${hit.heal}`:hit.shield?'보호막':hit.buff?'공격 강화':`${hit.critical?'CRIT ':''}${hit.damage}`,hit.heal?0xa2efc3:hit.shield||hit.buff?0xc7dbff:0xffe2ac);if(hit.damage||hit.miss)void this.recoil(t);if(hit.break)this.number(t,'BREAK',0xf5de95);if(hit.counter){this.number(a,`${hit.counter}`,0xffbc96);void this.recoil(a)}}
    if(k.hits>1){for(let n=1;n<k.hits;n++){a.pose=ranged?13:10;await this.wait(60);a.pose=ranged?14:11;if(ranged)await Promise.all(targets.map(t=>this.projectile(a,t,k.style==='carrot',color,k.style)));else await this.wait(40);for(const t of targets)this.spark(t.root.x,t.root.y-30,color,5)}}
+   const echoes=action.resonances??[]
+   for(const element of [...new Set(echoes.map(h=>h.element))]){
+    const style=({fire:'phoenix',water:'frost',nature:'root',earth:'slam',light:'dragon',dark:'nebula'} as const)[element],color=({fire:0xffa35d,water:0xb2eaff,nature:0xa9d990,earth:0xe8bc72,light:0xffe5a8,dark:0xc6a6ff})[element]
+    for(const hit of echoes.filter(h=>h.element===element)){const t=this.actors.get(hit.id);if(!t)continue;this.impact(t,style,color);this.ring(t.root.x,t.root.y,color,.65);this.spark(t.root.x,t.root.y-30,color,this.quality?5:2,element==='fire'?'fire':element==='earth'?'rock':'spark');this.number(t,`${elementNames[element]} +${hit.damage}`,color);if(hit.break)this.number(t,'BREAK',0xf5de95)}
+    await this.wait(this.reduced?35:95)
+   }
    await this.wait(200)
    if(!ranged){if(this.allyCount===5&&a.unit.side==='ally'&&a.home.x<80)await this.move(a,a.home.x,140*this.yScale,110);await this.move(a,a.home.x,a.home.y,260);a.pose=0;await this.wait(70)}
    a.sprite.scale.x=Math.abs(a.sprite.scale.x);a.pose=a.unit.hp>0?-1:16;await this.zoom(1)
