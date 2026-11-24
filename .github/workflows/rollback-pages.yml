@@ -74,7 +74,7 @@ jobs:
           name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
           path: dist
       - uses: actions/configure-pages@v5
-      - uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@f33f41b675f0ab2dc5a6863c9a170fe83af3571e # v4.0.0: REST lookup scoped to run/name
         with:
           artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
       - run: node scripts/automation/verify-site.mjs
