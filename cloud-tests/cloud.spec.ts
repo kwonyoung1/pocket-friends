@@ -197,12 +197,40 @@ test('two devices share new names, adoptees and furniture without modifying the 
  await page.getByRole('button',{name:'생활·입양',exact:true}).click();await page.getByLabel('새 이름').fill('우리 친구');await page.getByRole('button',{name:'이름 저장'}).click();await expect.poll(()=>backend.row().data!.friends[0].name).toBe('우리 친구')
  await page.getByRole('button',{name:'입양',exact:true}).click();await page.getByRole('button',{name:'새 식구 맞이 · 10,000코인'}).first().click();await expect.poll(()=>backend.row().data!.friends.length).toBe(7);await page.getByRole('button',{name:'생활 메뉴 닫기'}).click()
  await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await expect(second.getByTestId('room-lulu')).toBeVisible();await expect(second.getByRole('button',{name:'우리 친구 상태 확인'})).toBeVisible();await expect(second.getByRole('button',{name:'보유 코인 10000'})).toBeVisible()
- const lulu=page.getByTestId('room-lulu');await lulu.scrollIntoViewIfNeeded();const box=await lulu.locator('.friend-figure').boundingBox()
- await page.mouse.move(box!.x+box!.width/2,box!.y+box!.height/2);await page.mouse.down();await page.mouse.move(box!.x+box!.width/2+35,box!.y+box!.height/2+15,{steps:4});await page.mouse.up()
+ const beforeDrop=backend.row().data!.friends.find(f=>f.id==='lulu')!
+ const dropsBefore=backend.traffic().filter(r=>r.type==='drop').length
+ const lulu=page.getByTestId('room-lulu')
+ // Let Playwright wait for the moving figure to receive pointer events. A stale
+ // bounding box can instead press a different friend walking across this spot.
+ await lulu.locator('.friend-figure').hover()
+ await page.mouse.down()
+ await expect(lulu).toHaveAttribute('data-phase','pressing')
+ const box=await lulu.locator('.friend-figure').boundingBox()
+ await page.mouse.move(box!.x+box!.width/2+35,box!.y+box!.height/2+15,{steps:4})
+ await expect(lulu).toHaveAttribute('data-phase','dragging')
+ await page.mouse.up()
+ // An absent hold can precede hold-start. Wait for this drag's committed drop
+ // and acknowledgement, rather than comparing with a hard-coded spawn point.
+ await expect.poll(()=>backend.traffic().filter(r=>r.type==='drop').length).toBe(dropsBefore+1)
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('pocket-friends-cloud-pending')??'[]'))).toEqual([])
  await expect.poll(()=>backend.row().holds.lulu).toBeUndefined()
- await expect.poll(()=>backend.row().data!.friends.find(f=>f.id==='lulu')!.x).not.toBe(530)
+ const dropped=backend.row().data!.friends.find(f=>f.id==='lulu')!
+ expect(Math.hypot(dropped.x-beforeDrop.x,dropped.y-beforeDrop.y)).toBeGreaterThan(12)
+ // Free walking resumes after sync. Observe the rendered authoritative pose in
+ // the browser; Node-side polling can miss it while waiting on a busy CI runner.
+ const otherLulu=second.getByTestId('room-lulu')
+ await otherLulu.evaluate((el,target)=>{
+  el.removeAttribute('data-observed-drop')
+  const observer=new MutationObserver(()=>{
+   const dx=Math.abs(Number(el.getAttribute('data-x'))-target.x)
+   const dy=Math.abs(Number(el.getAttribute('data-y'))-target.y)
+   if(dx<12&&dy<12){el.setAttribute('data-observed-drop','true');observer.disconnect()}
+  })
+  observer.observe(el,{attributes:true,attributeFilter:['data-x','data-y']})
+  setTimeout(()=>observer.disconnect(),5000)
+ },{x:dropped.x,y:dropped.y})
  await second.getByRole('button',{name:'새로 동기화',exact:true}).click()
- await expect.poll(async()=>Math.abs(Number(await second.getByTestId('room-lulu').getAttribute('data-x'))-backend.row().data!.friends.find(f=>f.id==='lulu')!.x)).toBeLessThan(12)
+ await expect(otherLulu).toHaveAttribute('data-observed-drop','true')
  await menu(second,'인벤토리');await second.getByTestId('item-plant').getByRole('button',{name:'방에 배치하기'}).click();await second.getByRole('button',{name:'여기에 놓기'}).click()
  await expect.poll(()=>backend.row().data!.world!.expansion!.placements.length).toBe(1)
  await page.getByRole('button',{name:'새로 동기화',exact:true}).click();await expect(page.getByRole('button',{name:'작은 화분 이동 또는 회수'})).toBeVisible()
