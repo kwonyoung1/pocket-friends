@@ -14,7 +14,7 @@ test('sharing reuses the saved account without merging, rewarding, resetting ene
 })
 test('multiple saved accounts and tickets survive selection; stale and invented selections are rejected',()=>{
  const save=freshWorld(now),p=arenaProgress(save,now);arenaAccount(p,a,now).energy.value=23;arenaAccount(p,b,now).energy.value=68
- grantSpecialFriends(save,now);for(const f of save.friends)f.growth!.level=35
+ p.season=2;grantSpecialFriends(save,now);for(const f of save.friends)f.growth!.level=35
  arenaCommand(save,{type:'arena-start',stageId:'1-1',party:['special-boy']},a,now);arenaCommand(save,{type:'arena-start',stageId:'1-1',party:['special-boy']},b,now)
  const accounts=structuredClone(p.accounts),tickets=structuredClone(p.tickets);arenaCommand(save,{type:'arena-share'},a,now)
  arenaCommand(save,{type:'arena-select',accountId:b,previousOwner:a},a,now);expect(arenaOwner(p,a)).toBe(b);expect(arenaOwner(p,b)).toBe(b);expect(p.accounts).toEqual(accounts)

@@ -10,7 +10,7 @@ import {skillTargets,skillScope} from './targeting.ts'
 import {activeResonances,applyResonances} from './resonance.ts'
 import * as v2 from './legacy-v2/model.ts'
 const now=Date.parse('2026-11-23T03:00:00Z'),user='11111111-1111-4111-8111-111111111111'
-function setup(){const save=freshWorld(now),p=arenaProgress(save,now),a=arenaAccount(p,user,now);return{save,p,a}}
+function setup(){const save=freshWorld(now),p=arenaProgress(save,now),a=arenaAccount(p,user,now);p.season=2;return{save,p,a}}
 test('every species uses exactly 16 one-star equivalents for five stars and preserves old growth and asset records',()=>{
  for(const h of BEASTS){const{save,a}=setup(),unit=BEAST_LIMITS.duplicateShards[h.rarity];a.beasts[h.id]={at:now-100,level:31,xp:7,mastery:3,duplicates:17,shards:unit*15+5};const before=structuredClone(save),b=a.beasts[h.id]
   expect(starsOf(b)).toBe(1);expect(parseSave(JSON.stringify(save),now).world!.arena).toEqual(save.world!.arena)
@@ -25,7 +25,7 @@ test('insufficient, unowned, cross-species and forged fusion commands cannot con
  expect(()=>fuseBeast(a,'beast-nebula',1,now)).toThrow('보유');expect(()=>validateCommand({type:'arena-fuse',beastId:'beast-lumi',fromStars:1,material:'beast-nebula'})).toThrow();expect(()=>validateCommand({type:'arena-fuse',beastId:'beast-lumi',fromStars:0})).toThrow();expect(()=>validateCommand({type:'arena-fuse',beastId:'beast-lumi',fromStars:1,stars:5,shards:0})).toThrow();expect(save).toEqual(before)
 })
 test('all star multipliers apply only to HP/ATK/DEF while cost, speed, dodge, crit and skill unlocks stay bounded',()=>{
- for(const h of BEASTS){const base=combatStats(h.id,35,undefined,{stars:1,mastery:2});for(let star=1;star<=5;star++){const stat=combatStats(h.id,35,undefined,{stars:star,mastery:2});for(const key of ['hp','atk','def'] as const)expect(Math.abs(stat[key]-base[key]*(key==='def'?STAR_DEFENSE_MULTIPLIERS:STAR_MULTIPLIERS)[star-1])).toBeLessThanOrEqual(3);expect(stat.spd).toBe(base.spd);expect(heroById(h.id).cost).toBe(h.cost);expect(h.skills.map(k=>k.unlock)).toEqual([1,30,35,50])}}
+ for(const h of BEASTS){const base=combatStats(h.id,35,undefined,{stars:1,mastery:2});for(let star=1;star<=5;star++){const stat=combatStats(h.id,35,undefined,{stars:star,mastery:2});for(const key of ['hp','atk','def'] as const)expect(Math.abs(stat[key]-base[key]*(key==='def'?STAR_DEFENSE_MULTIPLIERS:STAR_MULTIPLIERS)[star-1])).toBeLessThanOrEqual(3);expect(stat.spd).toBe(base.spd);expect(heroById(h.id).cost).toBe(h.cost);expect(h.skills.map(k=>k.unlock)).toEqual([1,20,35,50])}}
  expect(combatStats('special-boy',35,undefined,{stars:5})).toEqual(combatStats('special-boy',35));expect(partyErrors(['special-boy','special-girl','momo','bibi','beast-lumi'])).toEqual([]);expect(partyErrors(['special-boy','beast-seraphia','beast-astra'])).toContain('총 COST는 10을 넘을 수 없어요.')
 })
 test('all beasts receive role-specific buffs and both leaders improve without touching unlocks or mastery',()=>{
@@ -55,6 +55,6 @@ test('misses and non-attacking actions have no echoes; weak breaks from resonanc
 
 test('Chanmi heals and shields about thirty percent more at equal target health while retaining the old passive',()=>{
  const s=controlled(['special-boy','special-girl']);s.order=['special-girl',...s.order.filter(id=>id!=='special-girl')];s.cursor=0;const target=s.units.find(u=>u.id==='special-boy')!;target.maxHp=2000;target.hp=1
- const heal=act(s,'active1',target.id).hits.find(h=>h.id===target.id)!.heal,oldHeal=v2.act(s,'active1',target.id).hits.find(h=>h.id===target.id)!.heal
- expect(heal/oldHeal).toBeCloseTo(1.3,2);const shield=act(s,'active2',target.id).hits.find(h=>h.id===target.id)!.shield,oldShield=v2.act(s,'active2',target.id).hits.find(h=>h.id===target.id)!.shield;expect(shield/oldShield).toBeCloseTo(1.3,2);expect(heroById('special-girl').passive).toEqual(v2.heroById('special-girl').passive)
+ const heal=act(s,'active1',target.id).hits.find(h=>h.id===target.id)!.heal,oldHeal=v2.act(s as never,'active1',target.id).hits.find(h=>h.id===target.id)!.heal
+ expect(heal/oldHeal).toBeCloseTo(1.3,2);const shield=act(s,'active2',target.id).hits.find(h=>h.id===target.id)!.shield,oldShield=v2.act(s as never,'active2',target.id).hits.find(h=>h.id===target.id)!.shield;expect(shield/oldShield).toBeCloseTo(1.3,2);expect(heroById('special-girl').passive).toEqual(v2.heroById('special-girl').passive)
 })

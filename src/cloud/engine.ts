@@ -191,9 +191,11 @@ export function applyCommand(
   command: GameCommand,
   user: string,
   now: number,
+  arenaSeed?:()=>number,
 ) {
   const save = structuredClone(original),
     holds = structuredClone(oldHolds)
+  if(command.type==='arena-season-start'){const message=arenaCommand(save,command,user,now);return{save,holds,message}}
   upgradeRoom(save)
   world(save,now).careEffectsVersion=1
   world(save,now).recoveryLearningVersion=1
@@ -217,7 +219,7 @@ export function applyCommand(
   if ('friendId' in c && !f && c.type!=='arena-shop') throw Error('아직 함께 살지 않는 친구예요.')
   let message = returns.join(' · ') || '클라우드와 동기화했어요.'
   switch (c.type) {
-    case 'arena-shop': case 'arena-fuse': case 'arena-share': case 'arena-select': case 'arena-start': case 'arena-checkpoint': case 'arena-complete': case 'arena-abandon': case 'arena-open': case 'arena-train': case 'arena-link': message=arenaCommand(save,c,user,now);break
+    case 'arena-adventurer-train': case 'arena-shop': case 'arena-fuse': case 'arena-share': case 'arena-select': case 'arena-start': case 'arena-checkpoint': case 'arena-complete': case 'arena-abandon': case 'arena-open': case 'arena-train': case 'arena-link': message=arenaCommand(save,c,user,now,arenaSeed);break
     case 'care-play-all': case 'care-wash-all': case 'care-feed-all': message=bulkCare(save,c,now,holds).message;break
     case 'room-theme': message=changeRoomTheme(save,c.theme,now);break
     case 'sichuan-start': case 'sichuan-match': case 'sichuan-hint': case 'sichuan-shuffle': case 'sichuan-next': case 'sichuan-stop': message=sichuanCommand(save,c as SichuanCommand,user,now);break

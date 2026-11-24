@@ -11,8 +11,8 @@ test('cost4 bear has stronger HP/defense/attack but meaningfully slower speed',(
  const s=createBattle(['special-boy','momo','coco'],35),c=s.units.find(u=>u.id==='coco')!,m=s.units.find(u=>u.id==='momo')!
  assert(c.maxHp>m.maxHp*2);assert(c.atk>m.atk);assert(c.def>m.def*2);assert(c.spd<m.spd/2)
 })
-test('all registered heroes reject actives before level30, skill2 before35 and ultimate before50 without mutating state',()=>{
- for(const h of HEROES)for(const [level,skill]of [[29,'active1'],[34,'active2'],[49,'ultimate']] as const){
+test('all registered heroes reject actives before level20, skill2 before35 and ultimate before50 without mutating state',()=>{
+ for(const h of HEROES)for(const [level,skill]of [[19,'active1'],[34,'active2'],[49,'ultimate']] as const){
   const team=h.id==='special-boy'?[h.id]:['special-boy',h.id],s=bossBattle(team,level);s.order=[h.id,'guardian'];s.cursor=0
   const before=structuredClone(s);assert.throws(()=>act(s,skill,'guardian'),/Lv\./);assert.deepEqual(s,before)
  }
