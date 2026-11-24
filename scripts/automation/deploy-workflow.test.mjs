@@ -46,3 +46,18 @@ test('independent browser and cloud jobs start in parallel while build still req
  assert.match(build,/needs: \[unit, browser, cloud\]/)
  assert.match(build,/test "\$UNIT" = success && test "\$BROWSER" = success && test "\$CLOUD" = success/)
 })
+
+test('Pages release and rollback use the exact official REST-lookup release with attempt-specific names',()=>{
+ const pin='f33f41b675f0ab2dc5a6863c9a170fe83af3571e'
+ for(const name of ['deploy.yml','rollback-pages.yml']){
+  const source=readFileSync(new URL(`../../.github/workflows/${name}`,import.meta.url),'utf8')
+  assert.equal(source.match(/uses: actions\/deploy-pages@([^\s]+)/)?.[1],pin)
+  const upload=source.split('uses: actions/upload-pages-artifact@v3')[1].split('\n      - ')[0]
+  const release=source.split(`uses: actions/deploy-pages@${pin}`)[1].split('\n      - ')[0]
+  assert.match(upload,/name: github-pages-\$\{\{ github.run_id \}\}-\$\{\{ github.run_attempt \}\}/)
+  assert.match(release,/artifact_name: github-pages-\$\{\{ github.run_id \}\}-\$\{\{ github.run_attempt \}\}/)
+  assert.match(source,/pages: write/)
+  assert.match(source,/id-token: write/)
+  assert.match(source,/node scripts\/automation\/verify-site.mjs/)
+ }
+})
