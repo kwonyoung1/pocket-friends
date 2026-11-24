@@ -1,3 +1,19 @@
+import cardaria from './art/card-adv-aria.webp?url'
+import spritearia from './art/sprite-adv-aria.png?url'
+import cardleon from './art/card-adv-leon.webp?url'
+import spriteleon from './art/sprite-adv-leon.png?url'
+import cardellie from './art/card-adv-ellie.webp?url'
+import spriteellie from './art/sprite-adv-ellie.png?url'
+import cardkai from './art/card-adv-kai.webp?url'
+import spritekai from './art/sprite-adv-kai.png?url'
+import cardserin from './art/card-adv-serin.webp?url'
+import spriteserin from './art/sprite-adv-serin.png?url'
+import cardsion from './art/card-adv-sion.webp?url'
+import spritesion from './art/sprite-adv-sion.png?url'
+import cardrose from './art/card-adv-rose.webp?url'
+import spriterose from './art/sprite-adv-rose.png?url'
+import cardlucian from './art/card-adv-lucian.webp?url'
+import spritelucian from './art/sprite-adv-lucian.png?url'
 import bg_eclipse from './art/bg-eclipse.webp'
 import bg_heaven from './art/bg-heaven.webp'
 import bg_christmas from './art/bg-christmas.webp'
@@ -58,7 +74,23 @@ import a50 from './art/sprite-momo.png'
 import a51 from './art/sprite-mungchi.png'
 import a52 from './art/sprite-toto.png'
 import a53 from './art/sprite-youngi.png'
-export const ASSETS:Record<string,string>={
+export const ASSETS:Record<string,string>={ 'card-adv-aria':cardaria,
+ 'sprite-adv-aria':spritearia,
+ 'card-adv-leon':cardleon,
+ 'sprite-adv-leon':spriteleon,
+ 'card-adv-ellie':cardellie,
+ 'sprite-adv-ellie':spriteellie,
+ 'card-adv-kai':cardkai,
+ 'sprite-adv-kai':spritekai,
+ 'card-adv-serin':cardserin,
+ 'sprite-adv-serin':spriteserin,
+ 'card-adv-sion':cardsion,
+ 'sprite-adv-sion':spritesion,
+ 'card-adv-rose':cardrose,
+ 'sprite-adv-rose':spriterose,
+ 'card-adv-lucian':cardlucian,
+ 'sprite-adv-lucian':spritelucian,
+
  'bg-eclipse':bg_eclipse,
  'bg-heaven':bg_heaven,
  'bg-christmas':bg_christmas,

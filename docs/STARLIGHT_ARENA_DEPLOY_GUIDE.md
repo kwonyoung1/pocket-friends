@@ -1,3 +1,5 @@
+[시즌 2 사용·초기화·배포 클릭 안내서](STARLIGHT_ARENA_SEASON2_GUIDE.md)
+
 [별빛 상점·신규 지역·크리스마스 배포 클릭 안내서](STARLIGHT_ARENA_EXPANSION_GUIDE.md)
 
 # 별빛 아레나 정식 확장 — 클릭 배포 안내

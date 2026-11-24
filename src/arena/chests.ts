@@ -1,3 +1,4 @@
+import {ADVENTURERS} from './adventurers.ts'
 import {BEASTS,beastById} from './beasts.ts'
 import {BEAST_LIMITS} from './beast-state.ts'
 import type {ArenaAccount,BeastRarity,ChestId,Opening} from './beast-state.ts'
@@ -14,17 +15,20 @@ export const chestById=(id:string)=>CHESTS.find(c=>c.id===id)
 const tiers=['common','rare','heroic','legendary','mythic'] as const
 export function chestForStage(index:number,boss:boolean,random:()=>number):ChestId{if(index<5)return 'forest';if(index<10)return random()<.35||boss?'lake':'forest';if(index<15)return 'crystal';if(index<20)return boss||random()<.6?'ancient':'crystal';if(index<25)return 'ancient';if(index<30)return boss||random()<.35?'starlight':'ancient';if(index<35)return 'starlight';return 'legendary'}
 export function chestOdds(id:ChestId,a?:ArenaAccount){const c=chestById(id)!;if(c.mythicPity&&(a?.pity.mythic??0)>=BEAST_LIMITS.mythicPity-1)return [0,0,0,0,10000];if(c.legendaryPity&&(a?.pity.legendary??0)>=BEAST_LIMITS.legendaryPity-1)return [0,0,0,10000,0];return [...c.weights]}
+const adventurerRates:Record<ChestId,number[]>={forest:[800,200,0,0],lake:[1100,400,0,0],crystal:[1400,600,0,0],ancient:[1600,800,100,0],starlight:[1800,1000,200,0],legendary:[2000,1100,370,30],christmas:[2200,1100,600,100]}
+export function chestOutcomes(id:ChestId,a?:ArenaAccount){const c=chestById(id)!,base=chestOdds(id,a),forced=base.some((n,i)=>n!==c.weights[i]),rates=forced?[0,0,0,0]:adventurerRates[id];return[{kind:'common' as const,tier:'common' as const,weight:base[0]-rates.reduce((n,v)=>n+v,0)},...tiers.slice(1).map((tier,i)=>({kind:'beast' as const,tier,weight:base[i+1]})),...tiers.slice(1).map((tier,i)=>({kind:'adventurer' as const,tier,weight:rates[i]}))]}
 /** RNG is supplied only by the authenticated server command path, never by a battle seed. */
 export function openChest(a:ArenaAccount,id:ChestId,nonce:number,now:number,random:()=>number):Opening{
  if(nonce===a.opens&&a.lastOpening?.nonce===nonce){if(a.lastOpening.chest!==id)throw Error('이미 연 상자의 종류와 달라요.');return a.lastOpening}
  if(nonce!==a.opens+1)throw Error('최신 상자 개봉 기록을 먼저 불러와 주세요.')
  if((a.chests[id]??0)<1)throw Error('보유한 보물상자가 없어요.')
- const box=chestById(id)!,weights=chestOdds(id,a),pick=random()*10000;let sum=0,tier:Opening['tier']='common';for(let i=0;i<weights.length;i++){sum+=weights[i];if(pick<sum){tier=tiers[i];break}}
+ const box=chestById(id)!,weights=chestOdds(id,a),outcomes=chestOutcomes(id,a),pick=random()*10000;let sum=0,selected=outcomes[0];for(const item of outcomes){sum+=item.weight;if(pick<sum){selected=item;break}}const tier=selected.tier
  const forced=weights.some((w,i)=>w!==box.weights[i]),result:Opening={nonce,chest:id,tier,duplicate:false,shards:0,coins:0,stones:0,at:now,pity:forced}
  if(tier==='common'){if(id!=='christmas'&&random()<.18)result.stones=1;else result.coins=box.coins}
+ else if(selected.kind==='adventurer'){const pool=ADVENTURERS.filter(h=>h.rarity===tier),hero=pool[Math.min(pool.length-1,Math.floor(random()*pool.length))];a.adventurers??={};result.adventurerId=hero.id;const old=a.adventurers[hero.id];if(old){result.duplicate=true;result.shards=BEAST_LIMITS.duplicateShards[tier as BeastRarity];old.duplicates++;old.shards=Math.min(BEAST_LIMITS.shards,old.shards+result.shards)}else a.adventurers[hero.id]={at:now,level:1,xp:0,duplicates:0,shards:0}}
  else{const pool=BEASTS.filter(b=>b.rarity===tier),beast=pool[Math.min(pool.length-1,Math.floor(random()*pool.length))];result.beastId=beast.id;const old=a.beasts[beast.id];if(old){result.duplicate=true;result.shards=BEAST_LIMITS.duplicateShards[tier as BeastRarity];old.duplicates++;old.shards=Math.min(BEAST_LIMITS.shards,old.shards+result.shards)}else a.beasts[beast.id]={at:now,level:1,xp:0,shards:0,duplicates:0,mastery:0}}
- if(box.legendaryPity)a.pity.legendary=tier==='legendary'||tier==='mythic'?0:Math.min(BEAST_LIMITS.legendaryPity,a.pity.legendary+1)
- if(box.mythicPity)a.pity.mythic=tier==='mythic'?0:Math.min(BEAST_LIMITS.mythicPity,a.pity.mythic+1)
+ if(box.legendaryPity)a.pity.legendary=selected.kind==='beast'&&(tier==='legendary'||tier==='mythic')?0:Math.min(BEAST_LIMITS.legendaryPity,a.pity.legendary+1)
+ if(box.mythicPity)a.pity.mythic=selected.kind==='beast'&&tier==='mythic'?0:Math.min(BEAST_LIMITS.mythicPity,a.pity.mythic+1)
  a.chests[id]=(a.chests[id]??0)-1;a.opens=nonce;a.lastOpening=result;return result
 }
 export function trainBeast(a:ArenaAccount,id:string,training:'xp'|'mastery'){

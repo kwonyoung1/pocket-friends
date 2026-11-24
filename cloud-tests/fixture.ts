@@ -1,3 +1,4 @@
+import {ADVENTURERS} from '../src/arena/adventurers'
 import {arenaProgress,arenaAccount} from '../src/arena/server'
 import {createRewardHandler} from '../src/match3/rewardServer'
 import type {RewardRepository,RewardSession} from '../src/match3/rewardServer'
@@ -11,7 +12,10 @@ export const test = base.extend<{
     seedArena: (energy?:number) => void
     seedFusion: () => void
     seedShop: () => void
-    loseNextArenaResponse: (type:'arena-open'|'arena-start'|'arena-fuse'|'arena-shop') => void
+    seedLegacySeason: () => void
+    seedAdventurers: (level?:number) => void
+    forceArenaRolls: (rolls:number[]) => void
+    loseNextArenaResponse: (type:'arena-open'|'arena-start'|'arena-fuse'|'arena-shop'|'arena-season-start') => void
     setTime: (at:number) => void
     seedRanking: () => void
     secret: string
@@ -81,7 +85,9 @@ export const test = base.extend<{
         return { status: 'ok', message }
       },
     }
+    let rolls:number[]=[]
     const handler = createGameHandler({
+      arenaSeed:()=>{if(rolls.length)return Math.floor(rolls.shift()!*4294967296);const x=new Uint32Array(1);crypto.getRandomValues(x);return x[0]},
       repository: repo,
       user: async (token) => {
         try {
@@ -96,7 +102,7 @@ export const test = base.extend<{
       origins: ['http://127.0.0.1:4185'],
       now,
     })
-    let loseArena:''|'arena-open'|'arena-start'|'arena-fuse'|'arena-shop'=''
+    let loseArena:''|'arena-open'|'arena-start'|'arena-fuse'|'arena-shop'|'arena-season-start'=''
     let loseReward=false
     const sessions=new Map<string,RewardSession&{user:string}>(),requests=new Map<string,string>()
     const rewards:RewardRepository={authorize:async user=>members.has(user),start:async(user,request,seed)=>{const old=requests.get(user+request);if(old)return sessions.get(old)!;const value={id:crypto.randomUUID(),seed,rules:6,created_at:new Date(now()).toISOString(),cursor:0,log_hash:null,checkpoint:null,coins:null,result:null,user};sessions.set(value.id,value);requests.set(user+request,value.id);return value},load:async(user,id)=>{const value=sessions.get(id);return value?.user===user?structuredClone(value):null},advance:async(user,id,cursor,hash,_log,state,complete,coins,result)=>{const value=sessions.get(id)!;if(value.user!==user)throw Error('wrong user');if(value.coins!==null)return {status:'paid',coins:value.coins,result:value.result};if(value.cursor!==cursor)return {status:'pending'};Object.assign(value,{cursor:state.cursor,log_hash:hash,checkpoint:structuredClone(state)});if(!complete)return {status:'pending'};value.coins=coins;value.result=result;row.data!.world!.coins+=coins;row.revision++;return {status:'paid',coins,result}}}
@@ -176,9 +182,12 @@ export const test = base.extend<{
     await use({
       secret,
       loseNextArenaResponse:type=>{loseArena=type},
-      seedArena:(energy=100)=>{if(!row.data)throw Error('Initialize first');const p=arenaProgress(row.data,now());for(const user of members){const a=arenaAccount(p,user,now());a.energy={value:energy,at:now()};a.chests.legendary=2;a.chests.forest=2;a.pity.mythic=299;a.pity.legendary=39;for(const id of ['beast-lumi','beast-nebula'])a.beasts[id]??={at:now(),level:50,xp:0,shards:0,duplicates:0,mastery:0}}for(const f of row.data.friends)if(f.growth)f.growth.level=50;row.revision++},
-      seedFusion:()=>{if(!row.data)throw Error('Initialize first');const p=arenaProgress(row.data,now()),id=p.sharedOwner??[...members][0],a=arenaAccount(p,id,now());for(const id of ['beast-lumi','beast-nebula','beast-phynix'])a.beasts[id]={at:now(),level:35,xp:7,mastery:2,duplicates:15,shards:id==='beast-lumi'?120:0};for(const f of row.data.friends)if(f.growth)f.growth.level=50;row.revision++},
-      seedShop:()=>{if(!row.data)throw Error('Initialize first');row.data.world!.coins=100000;const p=arenaProgress(row.data,now()),a=arenaAccount(p,p.sharedOwner??[...members][0],now());a.chests.christmas=1;a.beasts['beast-lumi']={at:now(),level:1,xp:0,mastery:2,shards:0,duplicates:0,stars:3};for(const f of row.data.friends)if(f.growth){f.growth.level=1;f.growth.xp=0}row.revision++},
+      seedArena:(energy=100)=>{if(!row.data)throw Error('Initialize first');const p=arenaProgress(row.data,now());p.season=2;for(const user of members){const a=arenaAccount(p,user,now());a.growth=Object.fromEntries(row.data.friends.map(f=>[f.id,{level:50,xp:0}]));a.energy={value:energy,at:now()};a.chests.legendary=2;a.chests.forest=2;a.pity.mythic=299;a.pity.legendary=39;for(const id of ['beast-lumi','beast-nebula'])a.beasts[id]??={at:now(),level:50,xp:0,shards:0,duplicates:0,mastery:0}}for(const f of row.data.friends)if(f.growth)f.growth.level=50;row.revision++},
+      seedFusion:()=>{if(!row.data)throw Error('Initialize first');const p=arenaProgress(row.data,now()),id=p.sharedOwner??[...members][0],a=arenaAccount(p,id,now());p.season=2;a.growth=Object.fromEntries(row.data.friends.map(f=>[f.id,{level:50,xp:0}]));for(const id of ['beast-lumi','beast-nebula','beast-phynix'])a.beasts[id]={at:now(),level:35,xp:7,mastery:2,duplicates:15,shards:id==='beast-lumi'?120:0};for(const f of row.data.friends)if(f.growth)f.growth.level=50;row.revision++},
+      seedShop:()=>{if(!row.data)throw Error('Initialize first');row.data.world!.coins=100000;const p=arenaProgress(row.data,now()),a=arenaAccount(p,p.sharedOwner??[...members][0],now());p.season=2;a.growth=Object.fromEntries(row.data.friends.map(f=>[f.id,{level:1,xp:0}]));a.chests.christmas=1;a.beasts['beast-lumi']={at:now(),level:1,xp:0,mastery:2,shards:0,duplicates:0,stars:3};for(const f of row.data.friends)if(f.growth){f.growth.level=1;f.growth.xp=0}row.revision++},
+      forceArenaRolls:values=>{rolls=[...values]},
+      seedLegacySeason:()=>{if(!row.data)throw Error('Initialize first');const p=arenaProgress(row.data,now());delete p.season;p.sharedOwner??=[...members][0];const a=arenaAccount(p,p.sharedOwner,now());for(const f of row.data.friends)if(f.growth){f.growth.level=42;f.growth.xp=17}a.energy={value:37,at:now()};a.cleared['8-5']={firstAt:now(),clears:2,firstRewarded:true};a.beasts['beast-lumi']={at:now(),level:44,xp:7,stars:4,mastery:3,duplicates:7,shards:50};a.shop={training:{momo:{hp:10,atk:20,def:30}},skills:{momo:{active1:7}},command:3,scrolls:{small:1}};a.chests.christmas=2;row.revision++},
+      seedAdventurers:(level=35)=>{if(!row.data)throw Error('Initialize first');const p=arenaProgress(row.data,now());p.season=2;p.sharedOwner??=[...members][0];const a=arenaAccount(p,p.sharedOwner,now());a.adventurers=Object.fromEntries(ADVENTURERS.map(h=>[h.id,{at:now(),level,xp:0,shards:10,duplicates:1}]));a.growth=Object.fromEntries(row.data.friends.map(f=>[f.id,{level:35,xp:0}]));a.chests.christmas=2;a.pity={legendary:0,mythic:0};a.shop??={training:{},skills:{},command:3,scrolls:{small:2}};a.shop.command=3;row.data.world!.coins=100000;row.revision++},
       traffic: () => structuredClone(traffic),
       setPhoto: (photo:string) => { if(!row.data)throw Error('Initialize first');row.data.friends[0].photo=photo;row.revision++ },
       setTime: (at:number) => {timeOffset=at-(epoch+Date.now()-clockStarted)},
