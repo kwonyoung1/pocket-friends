@@ -46,3 +46,12 @@
 - **자동 병합/자동 서버 배포 대기:** [Actions 변수](https://github.com/kwonyoung1/pocket-friends/settings/variables/actions), [일반 설정](https://github.com/kwonyoung1/pocket-friends/settings), [환경 설정](https://github.com/kwonyoung1/pocket-friends/settings/environments)에서 이미 승인된 상태를 확인합니다. 기존 값과 보호 규칙을 삭제하거나 끄지 않습니다.
 
 PR 병합, Edge Function SHA 확인, Pages SHA 확인이 모두 끝나야 운영 반영 완료입니다. 이 문서 자체는 배포 성공의 증거가 아닙니다.
+
+## PR #51 cloud 검사 실패 수정 확인
+
+`fusion.spec.ts`의 `화염 속성 +0 · 어둠 속성 +0` 실패는 강화된 성역 사제의 방어력이 작은 공명 피해를 모두 막는 정상 결과를 테스트가 양수로 단정해 발생했습니다. 같은 8-4 전투의 `별빛 조각`을 명시적으로 선택해 양수 피해를 검증하고, 사제에게 두 속성이 모두 0이 되는 경우도 단위 테스트로 보존합니다. 피해 계산/적 방어력/보상 코드는 바꾸지 않았습니다.
+
+1. [기존 PR #51](https://github.com/kwonyoung1/pocket-friends/pull/51)을 엽니다. 별도 PR을 만들 필요가 없습니다.
+2. **Commits**에서 `fix: target armor-appropriate enemy in resonance mobile check` 커밋을 확인합니다.
+3. **Checks**에서 **새 커밋의** `cloud`와 필수 `build` 성공을 확인합니다. 이전 실패 실행을 재실행해도 이전 코드가 검사됩니다. **Approve workflows to run**이 실제로 표시될 때만 누릅니다.
+4. 모두 성공한 뒤 위 2~4절에 따라 필요한 리뷰, 병합, main의 서버/Pages 배포를 한 번 진행합니다. 이 CI 수정 자체는 서버 코드/Secrets/DB 변경을 추가하지 않습니다.
