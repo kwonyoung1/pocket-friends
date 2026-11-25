@@ -27,22 +27,28 @@ test('ordered last official party survives leaving, reload, relogin, another pho
  expect(backend.row().data!.friends.map(f=>[f.id,f.name,f.growth?.level,f.growth?.xp])).toEqual(before.friends.map(f=>[f.id,f.name,f.growth?.level,f.growth?.xp]))
  expect(backend.row().data!.world!.coins).toBe(before.world!.coins)
 })
-test('four new regions render their own lazy battle assets and 10-stage navigation fits all portrait widths',async({page,backend})=>{
- test.setTimeout(150000);const errors:string[]=[],assets:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>assets.push(r.url()))
+test('six late regions render their own lazy HD battle assets and 10-stage navigation fits all portrait widths',async({page,backend})=>{
+ test.setTimeout(150000);const errors:string[]=[],assets:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.resourceType()==='image')assets.push(r.url())})
  await login(page,backend.secret);await page.getByRole('button',{name:'연습',exact:true}).tap();await page.getByLabel('전투 레벨').selectOption('50')
- const names=['별의 정원','꿈의 미궁','천공의 성','잊혀진 별의 신전'],keys=['garden','dream','skycastle','star-temple'],sizes=[[360,800],[375,812],[390,844],[412,915]]
- for(let i=0;i<4;i++){
-  await page.setViewportSize({width:sizes[i][0],height:sizes[i][1]});await page.getByRole('button',{name:names[i],exact:true}).tap()
+ const names=['그림자 성채','천상의 문','별의 정원','꿈의 미궁','천공의 성','잊혀진 별의 신전'],keys=['eclipse','heaven','garden','dream','skycastle','star-temple'],sizes=[[360,800],[375,812],[390,844],[412,915]]
+ for(let i=0;i<6;i++){
+  await page.setViewportSize({width:sizes[i%4][0],height:sizes[i%4][1]});await page.getByRole('button',{name:names[i],exact:true}).tap()
   await expect(page.getByRole('group',{name:'세부 스테이지'}).getByRole('button')).toHaveCount(10)
-  await expect(page.getByRole('button',{name:`스테이지 ${11+i}-5 중간 보스`,exact:true})).toBeVisible()
-  await expect(page.getByRole('button',{name:`스테이지 ${11+i}-10 보스`,exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:`스테이지 ${9+i}-5 중간 보스`,exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:`스테이지 ${9+i}-10 보스`,exact:true})).toBeVisible()
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false)
-  const offset=assets.length;await page.getByRole('button',{name:'보스전 바로 체험',exact:true}).tap()
+  if(i===3)await page.emulateMedia({reducedMotion:'reduce'});const offset=assets.length;await page.getByRole('button',{name:'보스전 바로 체험',exact:true}).tap()
   await expect.poll(async()=>await page.locator('.battle-view').getAttribute('data-phase')!=='battle'||await page.locator('.battle-view').getAttribute('data-busy')==='false'&&await page.locator('.battle-view').getAttribute('data-side')==='ally',{timeout:30000}).toBe(true)
-  expect(assets.slice(offset).some(url=>url.includes('enemies-'+keys[i]+'.svg'))).toBe(true)
-  for(const other of keys.filter(key=>key!==keys[i]))expect(assets.slice(offset).some(url=>url.includes('enemies-'+other+'.svg'))).toBe(false)
+  expect(assets.slice(offset).some(url=>url.includes('enemies-'+keys[i]+'-hd.webp'))).toBe(true)
+  for(const other of keys.filter(key=>key!==keys[i]))expect(assets.slice(offset).some(url=>url.includes('enemies-'+other+'-hd.webp'))).toBe(false)
   await expect(page.locator('.battle-canvas canvas')).toBeVisible();await expect(page.locator('.enemy-intent').first()).toBeVisible()
-  await page.screenshot({path:test.info().outputPath(`fairy-${keys[i]}-${sizes[i][0]}.png`)})
+  await page.screenshot({path:test.info().outputPath(`fairy-${keys[i]}-${sizes[i%4][0]}.png`)})
+  if(i===0){await page.getByRole('button',{name:'전투 연출 설정',exact:true}).tap();await page.getByLabel('풍부한 이펙트').uncheck();await page.getByRole('button',{name:'전투 연출 설정',exact:true}).tap()}
+  if(await page.locator('.battle-view').getAttribute('data-phase')==='battle'){
+   await page.getByTestId('skill-basic').tap();await page.getByRole('button',{name:'선택한 스킬 사용',exact:true}).tap()
+   await expect.poll(async()=>await page.locator('.battle-view').getAttribute('data-phase')!=='battle'||await page.locator('.battle-view').getAttribute('data-busy')==='false',{timeout:30000}).toBe(true)
+   await page.screenshot({path:test.info().outputPath(`hit-${keys[i]}.png`)})
+  }
   if(await page.locator('.battle-view').getAttribute('data-phase')==='battle')await page.getByRole('button',{name:'편성으로 돌아가기',exact:true}).tap()
   else await page.getByRole('button',{name:'파티 다시 편성하기',exact:true}).tap()
   await expect(page.locator('.party-view')).toBeVisible()

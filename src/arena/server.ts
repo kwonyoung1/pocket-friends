@@ -1,3 +1,4 @@
+import {stageById as stage6} from './legacy-v6/stages.ts'
 import {stageById as stage5} from './legacy-v5/stages.ts'
 import {continueSeason2,arenaGrowth,growArena} from './season2.ts'
 import {adventurerById} from './adventurers.ts'
@@ -108,7 +109,7 @@ export function arenaCommand(save:Save,c:ArenaCommand,user:string,now:number,see
  if(c.type==='arena-checkpoint'){t.moves=structuredClone(c.moves);return '전투 행동 기록을 안전하게 보관했어요.'}
  if(result.phase!=='victory')throw Error('서버에서 승리를 확인하지 못했어요.')
  if(now<t.startedAt+Math.min(3000,c.moves.length*160))throw Error('전투 완료를 너무 빠르게 요청했어요.')
- const stage=t.rules===1?{...legacyStage(t.stageId)!,event:undefined}:t.rules<=4?stage4(t.stageId)!:t.rules===5?stage5(t.stageId)!:stageById(t.stageId)!,oldClears=t.rules<=4&&p.season===2&&p.season1Archive?((p.legacyCleared??={})[owner]??=structuredClone(p.season1Archive.accounts[owner]?.cleared??p.season1Archive.cleared)):undefined,cleared=stage.event?(a.eventClears??={}):oldClears??(t.rules===1?p.cleared:a.cleared),old=cleared[stage.id],first=!old?.firstRewarded,firstLoot=!(old?.firstBonusGranted??old?.firstRewarded),terms=first?stage.first:stage.repeat,eligible=t.rules===1?p.daily.clears<ARENA_LIMITS.rewardedClears&&p.daily.coins<ARENA_LIMITS.coinsPerDay:p.daily.coins+(t.rules>=4&&first?terms.coins:0)<=(t.rules>=4&&first?BEAST_LIMITS.worldCoinsPerDay:BEAST_LIMITS.worldCoinsPerDay-1)
+ const stage=t.rules===1?{...legacyStage(t.stageId)!,event:undefined}:t.rules<=4?stage4(t.stageId)!:t.rules===5?stage5(t.stageId)!:t.rules===6?stage6(t.stageId)!:stageById(t.stageId)!,oldClears=t.rules<=4&&p.season===2&&p.season1Archive?((p.legacyCleared??={})[owner]??=structuredClone(p.season1Archive.accounts[owner]?.cleared??p.season1Archive.cleared)):undefined,cleared=stage.event?(a.eventClears??={}):oldClears??(t.rules===1?p.cleared:a.cleared),old=cleared[stage.id],first=!old?.firstRewarded,firstLoot=!(old?.firstBonusGranted??old?.firstRewarded),terms=first?stage.first:stage.repeat,eligible=t.rules===1?p.daily.clears<ARENA_LIMITS.rewardedClears&&p.daily.coins<ARENA_LIMITS.coinsPerDay:p.daily.coins+(t.rules>=4&&first?terms.coins:0)<=(t.rules>=4&&first?BEAST_LIMITS.worldCoinsPerDay:BEAST_LIMITS.worldCoinsPerDay-1)
  const reward:ArenaReward={coins:0,xp:0,stones:0,first,capped:!eligible}
  if(t.rules!==1){const box=stage.event?'christmas':chestForStage(stage.index,stage.boss,random),count=stage.event?1:(t.rules>=4?firstLoot:first)&&stage.boss?2:1;if((a.chests[box]??0)+count>BEAST_LIMITS.chests)throw Error('보물상자를 먼저 개봉하고 같은 결과로 다시 확인해 주세요.');a.chests[box]=(a.chests[box]??0)+count;reward.chests={[box]:count}}
  if(eligible){

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "tile": 128,
+  "columns": 4,
+  "rows": 5,
+  "poses": [
+    "idle",
+    "breathing (derived idle)",
+    "attack",
+    "hit"
+  ],
+  "provenance": "Original image generation; transparent source sheets, five identities × three drawn poses. Sharp isolates alpha islands, removes subpixel noise, resizes and packs; WebP quality 92/alpha 100. Death is a runtime fade, not an additional drawn pose.",
+  "regions": {
+    "eclipse": {
+      "file": "src/arena/art/enemies-eclipse-hd.webp",
+      "bytes": 158530,
+      "sourceSha256": "c381e06d3d16b286e99404539b75cd84a1719b9c4abbcc6eda458b62f0692dde",
+      "sha256": "f08c6502290ccad206dd33bf62e0fff663d10adf3622b56d25e5543d1ad9b42e"
+    },
+    "heaven": {
+      "file": "src/arena/art/enemies-heaven-hd.webp",
+      "bytes": 180812,
+      "sourceSha256": "13e8695343f22d833ba9bc87e95ddf10ff89735fcead479a732a0c2b15f3bbcb",
+      "sha256": "7c7e4b631bc4a219e3c9a720ee64aeade0e225485bd090922dbdb5dde5fd2785"
+    },
+    "garden": {
+      "file": "src/arena/art/enemies-garden-hd.webp",
+      "bytes": 188146,
+      "sourceSha256": "c3f27e28b7d5ce5950509764be38596d7de48fbddcb576a466aa00ac506e6160",
+      "sha256": "cd82f16e3f4eda42b9278a56fd65b7d5f05c5a9e1c9772661ae3f03f988ec566"
+    },
+    "dream": {
+      "file": "src/arena/art/enemies-dream-hd.webp",
+      "bytes": 186688,
+      "sourceSha256": "e975ce00b024874b58fc813548286e0fc70c7d7d4eadad47a219e58432ddc97e",
+      "sha256": "19dda0d21dcfd3f81b7f180653d9be2c6fe197ff5094c3873bf2e519b8918b1d"
+    },
+    "skycastle": {
+      "file": "src/arena/art/enemies-skycastle-hd.webp",
+      "bytes": 163650,
+      "sourceSha256": "b08f748cc5dec5ca8a7084fb44ee1e0e974cc401a2313630ca1ec6e0758f8be4",
+      "sha256": "c1f0cd7d55b4433dd96f119425b60adcde8885a3e66b239b93ad208de5487a0c"
+    },
+    "star-temple": {
+      "file": "src/arena/art/enemies-star-temple-hd.webp",
+      "bytes": 179292,
+      "sourceSha256": "9099f5426fed4769ac9f275e17043257648b2a827ca4b4e101bb76f280ee3412",
+      "sha256": "2ec946eecd776457f1fc02370c0e091eefe8a510820489a764650f3a4dc8599f"
+    }
+  }
+}

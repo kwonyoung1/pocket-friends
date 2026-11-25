@@ -1,3 +1,4 @@
+import {hdMonster,monsterArtRow,monsterArtCell} from './monster-art.ts'
 import {starsOf} from './fusion.ts'
 import {elementNames} from './characters.ts'
 import {stageById,monsterById} from './stages.ts'
@@ -21,8 +22,8 @@ export class BattleView{
   const stage=state.stageId?stageById(state.stageId):undefined,enemyKey=stage?'enemies-'+stage.region:'enemies'
   for(const id of new Set([...state.units.filter(u=>u.side==='ally').map(u=>u.art),enemyKey])){
    const isEnemy=id==='enemies'||id.startsWith('enemies-'),atlas=await load(id==='enemies'?'sprite-enemies':isEnemy?id:'sprite-'+id),frames:Texture[]=[]
-   const count=id==='enemies-christmas'?20:id.startsWith('enemies-')?16:id==='enemies'?12:20,cols=isEnemy?4:5
-   for(let n=0;n<count;n++)frames.push(new Texture({source:atlas.source,frame:new Rectangle(n%cols*64,Math.floor(n/cols)*64,64,64)}));this.frames.set(id,frames)
+   const hd=hdMonster(id.replace('enemies-','')),tile=hd?128:64,count=hd||id==='enemies-christmas'?20:id.startsWith('enemies-')?16:id==='enemies'?12:20,cols=isEnemy?4:5
+   for(let n=0;n<count;n++)frames.push(new Texture({source:atlas.source,frame:new Rectangle(n%cols*tile,Math.floor(n/cols)*tile,tile,tile)}));this.frames.set(id,frames)
   }
   if(this.dead)return
   const bg=new Sprite(await load(stage&&stage.region!=='forest'?'bg-'+stage.region:'forest'));bg.position.set(-14,-10);bg.width=418;bg.height=this.height+35
@@ -34,18 +35,18 @@ export class BattleView{
   this.sync(state);this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches
  }
  private visibility=()=>{if(this.dead)return;if(document.hidden)this.app.ticker.stop();else this.app.ticker.start()}
- private texture(unit:Unit,frame:number){if(unit.side==='enemy'){const monster=unit.monsterId?monsterById(unit.monsterId):undefined,row=monster?.row??(unit.art==='slime'?0:unit.art==='thorn'?1:2),key=monster?'enemies-'+monster.region:'enemies';const cell=monster?(frame===15||frame===16?3:[10,13,17,18].includes(frame)?1:[11,12,14,19].includes(frame)?2:0):(frame===15?(unit.boss?3:2):frame===16?3:[10,13,17,18].includes(frame)?1:[11,12,14,19].includes(frame)?(unit.boss?2:1):frame<4?frame:0);return this.frames.get(key)![row*4+cell]}if(unit.art.startsWith('adv-')&&![15,16].includes(frame)&&frame>=10)frame=this.actionPoses.get(unit.id)??frame;return this.frames.get(unit.art)![frame]}
+ private texture(unit:Unit,frame:number){if(unit.side==='enemy'){const monster=unit.monsterId?monsterById(unit.monsterId):undefined,row=monster?monsterArtRow(monster.region,monster.row,monster.id,unit.boss):(unit.art==='slime'?0:unit.art==='thorn'?1:2),key=monster?'enemies-'+monster.region:'enemies';const cell=monster?monsterArtCell(frame,hdMonster(monster.region)):(frame===15?(unit.boss?3:2):frame===16?3:[10,13,17,18].includes(frame)?1:[11,12,14,19].includes(frame)?(unit.boss?2:1):frame<4?frame:0);return this.frames.get(key)![row*4+cell]}if(unit.art.startsWith('adv-')&&![15,16].includes(frame)&&frame>=10)frame=this.actionPoses.get(unit.id)??frame;return this.frames.get(unit.art)![frame]}
  private actor(u:Unit,index:number):Actor{
   const slots=u.side==='ally'?(this.allyCount===5?[{x:48,y:310},{x:140,y:260},{x:48,y:425},{x:140,y:350},{x:140,y:440}]:[{x:63,y:318},{x:128,y:361},{x:57,y:401},{x:124,y:438}]):u.boss?[{x:286,y:335}]:this.hasBoss?[{x:243,y:204},{x:328,y:232}]:[{x:270,y:215},{x:325,y:292},{x:253,y:364}]
   const slot=slots[index%slots.length],home={x:slot.x,y:Math.min(slot.y*this.yScale,this.height-24)},root=new Container(),shadow=new Graphics().ellipse(0,0,u.boss?32:22,u.boss?8:5).fill({color:0x081521,alpha:.5})
   root.position.set(home.x,home.y);root.zIndex=home.y
   const halo=new Graphics().ellipse(0,0,u.boss?38:27,u.boss?10:8).stroke({color:0xffd88b,width:2,alpha:.9});halo.visible=false
-  const sprite=new Sprite(this.texture(u,u.side==='ally'?2:0));sprite.anchor.set(.5,1);sprite.scale.set(u.boss?1.95:u.side==='ally'&&this.allyCount===5?1.1:1.27)
+  const sprite=new Sprite(this.texture(u,u.side==='ally'?2:0));sprite.anchor.set(.5,1);sprite.scale.set((u.boss?1.95:u.side==='ally'&&this.allyCount===5?1.1:1.27)*(u.side==='enemy'&&hdMonster(u.art)?.5:1))
   const h=u.boss?116:u.side==='ally'&&this.allyCount===5?65:76,barBg=new Graphics().roundRect(-21,-h-12,42,4,2).fill({color:0x101b2d,alpha:.95}),bar=new Graphics().roundRect(-21,-h-12,42,4,2).fill(u.side==='ally'?0xa3dfc0:0xf7aaad)
   const breakBar=new Graphics().roundRect(-21,-h-5,42,2,1).fill(0xead28a);breakBar.visible=u.maxToughness>0
   const label=new Text({text:u.name.length>9?u.name.slice(0,9)+'…':u.name,style:{fontFamily:'sans-serif',fontSize:u.boss?11:9,fill:0xf5f1df,stroke:{color:0x122334,width:3},fontWeight:'600'}});label.anchor.set(.5,0);label.position.set(0,5)
   const barrier=new Graphics().ellipse(0,-h*.45,u.boss?48:31,h*.58).fill({color:0x9bcffe,alpha:.06}).stroke({color:0xb7ddff,alpha:.65,width:1.5});barrier.visible=false
-  const stars=starsOf(u),aura=new Graphics();if(u.stars&&stars>=2){const color=stars===5?0xffdf87:stars===4?0xd6b4ff:0xbce7ff;aura.ellipse(0,-4,25+stars,8+stars).stroke({color,width:stars>=4?2:1,alpha:.6});for(let n=0;n<stars;n++)aura.star((n-(stars-1)/2)*8,-h-20,4,3,1.5).fill({color,alpha:.85});if(stars>=4)aura.ellipse(0,-25,30,35).stroke({color,width:1,alpha:.25})}
+  const stars=starsOf(u),aura=new Graphics();if(u.side==='enemy'&&u.boss){aura.ellipse(0,-3,34,10).stroke({color:0xd1b3f0,width:2,alpha:.55});for(let i=0;i<5;i++)aura.star((i-2)*12,-h-20,4,3,1.5).fill({color:0xffdfa5,alpha:.7})}if(u.stars&&stars>=2){const color=stars===5?0xffdf87:stars===4?0xd6b4ff:0xbce7ff;aura.ellipse(0,-4,25+stars,8+stars).stroke({color,width:stars>=4?2:1,alpha:.6});for(let n=0;n<stars;n++)aura.star((n-(stars-1)/2)*8,-h-20,4,3,1.5).fill({color,alpha:.85});if(stars>=4)aura.ellipse(0,-25,30,35).stroke({color,width:1,alpha:.25})}
   root.addChild(shadow,aura,halo,sprite,barBg,bar,breakBar,barrier,label);root.eventMode='static';root.cursor='pointer';root.hitArea=new Rectangle(-34,-h,68,h+20);root.on('pointertap',()=>this.select(u.id))
   this.camera.addChild(root);this.camera.sortableChildren=true;this.effects.zIndex=1000
   return{root,sprite,bar,barBg,breakBar,label,halo,barrier,aura,unit:u,pose:-1,walking:false,time:this.clock,home}
@@ -56,7 +57,7 @@ export class BattleView{
   let a=0,e=0
   for(const u of state.units){let actor=this.actors.get(u.id);if(!actor){actor=this.actor(u,u.side==='ally'?a:e);this.actors.set(u.id,actor)}if(u.side==='ally')a++;else e++
    actor.unit=u;actor.bar.scale.x=Math.max(0,u.hp/u.maxHp);actor.breakBar.scale.x=u.maxToughness?Math.max(0,u.toughness/u.maxToughness):0;actor.breakBar.visible=u.maxToughness>0;actor.label.text=u.broken?'BREAK':u.name.length>9?u.name.slice(0,9)+'…':u.name;actor.root.alpha=u.hp>0?1:.32;actor.barrier.visible=u.hp>0&&(u.shield>0||u.statuses.some(e=>e.type==='counter'))
-   if(u.hp<=0){actor.pose=16;actor.root.eventMode='none'}
+   if(u.hp<=0){if(actor.pose!==16){void this.tween(this.reduced?120:520,p=>{actor!.sprite.alpha=1-p*.85;actor!.sprite.y=p*8})}actor.pose=16;actor.root.eventMode='none'}
    else actor.root.eventMode='static'
   }
  }
@@ -66,7 +67,7 @@ export class BattleView{
   for(const t of [...this.tweens]){const p=Math.min(1,(this.clock-t.start)/t.duration);t.draw(p);if(p===1){this.tweens.splice(this.tweens.indexOf(t),1);t.done()}}
   for(const a of this.actors.values()){
    let frame=a.pose
-   if(a.unit.hp>0&&frame<0)frame=a.unit.side==='enemy'?0:this.reduced?2:Math.floor((this.clock+a.home.y*3)/1100)%5===0?9:2
+   if(a.unit.hp>0&&frame<0)frame=a.unit.side==='enemy'?(this.reduced?0:Math.floor(this.clock/850)%2):this.reduced?2:Math.floor((this.clock+a.home.y*3)/1100)%5===0?9:2
    if(a.walking)frame=a.unit.side==='enemy'?(Math.floor((this.clock-a.time)/140)%2?10:0):5+Math.floor((this.clock-a.time)/95)%4
    a.sprite.texture=this.texture(a.unit,frame)
    a.halo.visible=a.unit.hp>0&&(a.unit.id===this.selected||a.unit.id===this.current||this.preview.includes(a.unit.id));a.halo.alpha=this.reduced?.8:.65+Math.sin(this.clock/240)*.2
@@ -116,8 +117,20 @@ export class BattleView{
   else{g.circle(0,-35,15).stroke({color,width:2,alpha:.8})}
   void this.tween(this.reduced?120:380,p=>{g.alpha=1-p;g.scale.set(1+p*.2)}).then(()=>g.destroy())
  }
+ private regionalSpell(a:Actor){
+  if(a.unit.side!=='enemy'||!hdMonster(a.unit.art)||this.ephemeral>=(this.quality?46:14))return
+  const region=a.unit.art,g=new Graphics(),large=a.unit.boss?1.5:1,n=this.reduced?3:this.quality?8:4
+  if(region==='eclipse'){g.arc(0,-45,29,Math.PI*.2,Math.PI*1.7).stroke({color:0xb595eb,width:5});g.ellipse(0,-3,38,12).stroke({color:0x8d73be,width:2})}
+  else if(region==='heaven'){for(let i=0;i<3;i++)g.rect(-24+i*22,-88,4,82).fill({color:0xffe4a1,alpha:.5});g.ellipse(0,-4,34,11).stroke({color:0xffe4a1,width:2})}
+  else if(region==='garden'){for(let i=0;i<n;i++){const angle=i*Math.PI*2/n;g.ellipse(Math.cos(angle)*27,-34+Math.sin(angle)*22,5,10).fill({color:0xdcb2e7,alpha:.8})}g.moveTo(-30,0).bezierCurveTo(-45,-30,40,-50,30,-75).stroke({color:0x9bce9a,width:3})}
+  else if(region==='dream'){for(let i=0;i<n;i++)g.poly([i*9-30,-55,i*9-20,-45,i*9-28,-26]).fill({color:0xc4c3f8,alpha:.65})}
+  else if(region==='skycastle'){for(let i=0;i<3;i++)g.arc(0,-20-i*15,20+i*8,.2,Math.PI*1.6).stroke({color:0xbde5ff,width:2});g.moveTo(12,-80).lineTo(0,-50).lineTo(15,-50).lineTo(-3,-20).stroke({color:0xf7eeaf,width:2})}
+  else{g.circle(0,-40,28).stroke({color:0xe7c47c,width:2});for(let i=0;i<n;i++){const angle=i*Math.PI*2/n;g.star(Math.cos(angle)*28,-40+Math.sin(angle)*28,4,4,2).fill(0xffe5a4)}g.moveTo(0,-40).lineTo(0,-63).moveTo(0,-40).lineTo(16,-30).stroke({color:0xffe5a4,width:2})}
+  g.scale.set(large);g.position.set(a.root.x,a.root.y);this.effects.addChild(g);this.ephemeral++
+  void this.tween(this.reduced?140:650,p=>{g.alpha=1-p;g.rotation=this.reduced?0:p*.15;g.y=a.root.y-p*10}).then(()=>{g.destroy();this.ephemeral--})
+ }
  async intro(boss=false){
-  if(boss){const a=[...this.actors.values()].find(a=>a.unit.boss);if(!a)return;a.sprite.tint=0x101e29;this.cinematic({type:'boss',name:a.unit.name,art:a.unit.art});await this.zoom(1.12,235,280*this.yScale);await this.wait(450);a.sprite.tint=0xffffff;this.ring(a.root.x,a.root.y,0x99e3cd);void this.shake(3);await this.wait(500);this.cinematic(null);await this.zoom(1)}else{await this.wait(250)}
+  if(boss){const a=[...this.actors.values()].find(a=>a.unit.boss);if(!a)return;a.sprite.tint=0x101e29;this.cinematic({type:'boss',name:a.unit.name,art:a.unit.art});await this.zoom(1.12,235,280*this.yScale);await this.wait(450);a.sprite.tint=0xffffff;this.ring(a.root.x,a.root.y,0x99e3cd);this.regionalSpell(a);void this.shake(3);await this.wait(500);this.cinematic(null);await this.zoom(1)}else{await this.wait(250)}
  }
  async previewCutin(unit:Unit,skillName:string){const highest=!!unit.stars&&starsOf(unit)===5;if(highest){const a=this.actors.get(unit.id);if(a){this.ring(a.root.x,a.root.y,0xffe3a1,1.8);this.spark(a.root.x,a.root.y-40,0xffe3a1,this.quality?16:4,'light')}}this.cinematic({type:'cutin',name:unit.name,art:unit.art,skill:(highest?'★★★★★ · ':'')+skillName});await this.wait(this.shortCutin||this.reduced?260:850);this.cinematic(null)}
  async play(action:Action,onImpact:()=>void){
@@ -126,6 +139,8 @@ export class BattleView{
   if(a.unit.art.startsWith('adv-'))this.actionPoses.set(a.unit.id,k.id==='basic'?10:k.id==='active1'?11:14)
   try{
    if(action.ultimate)await this.previewCutin(a.unit,k.name)
+   if(k.id!=='basic')this.regionalSpell(a)
+   if(k.id==='cataclysm'){this.cinematic({type:'boss',name:a.unit.name,art:a.unit.art,skill:k.name});await this.wait(this.reduced?140:450);this.cinematic(null)}
    await this.zoom(action.ultimate?1.1:k.style==='dragon'?1.075:k.style==='eclipse'?1.065:k.style==='phoenix'?1.05:k.style==='aegis'?1.025:1.035,k.style==='eclipse'?230:195,(k.style==='dragon'?260:285)*this.yScale)
    a.pose=k.style==='counter'?17:['carrot','slam','dash','shadow'].includes(k.style)?18:ranged?13:10
    await this.wait(k.style==='slam'?230:140)

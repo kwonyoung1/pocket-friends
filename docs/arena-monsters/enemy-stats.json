@@ -1,0 +1,665 @@
+[
+  {
+    "chapter": 1,
+    "stage": "1-5",
+    "rank": "normal",
+    "monster": "dew",
+    "name": "이슬 슬라임",
+    "before": {
+      "hp": 112,
+      "atk": 20,
+      "def": 8
+    },
+    "after": {
+      "hp": 112,
+      "atk": 20,
+      "def": 8
+    }
+  },
+  {
+    "chapter": 1,
+    "stage": "1-5",
+    "rank": "boss",
+    "monster": "elder-tree",
+    "name": "숲의 수호자",
+    "before": {
+      "hp": 641,
+      "atk": 49,
+      "def": 26
+    },
+    "after": {
+      "hp": 641,
+      "atk": 49,
+      "def": 26
+    }
+  },
+  {
+    "chapter": 2,
+    "stage": "2-5",
+    "rank": "normal",
+    "monster": "droplet",
+    "name": "물방울 정령",
+    "before": {
+      "hp": 215,
+      "atk": 38,
+      "def": 16
+    },
+    "after": {
+      "hp": 215,
+      "atk": 38,
+      "def": 16
+    }
+  },
+  {
+    "chapter": 2,
+    "stage": "2-5",
+    "rank": "boss",
+    "monster": "mist-serpent",
+    "name": "안개의 이무기",
+    "before": {
+      "hp": 1225,
+      "atk": 88,
+      "def": 48
+    },
+    "after": {
+      "hp": 1225,
+      "atk": 88,
+      "def": 48
+    }
+  },
+  {
+    "chapter": 3,
+    "stage": "3-5",
+    "rank": "normal",
+    "monster": "crystal-mite",
+    "name": "수정 벌레",
+    "before": {
+      "hp": 294,
+      "atk": 49,
+      "def": 23
+    },
+    "after": {
+      "hp": 294,
+      "atk": 49,
+      "def": 23
+    }
+  },
+  {
+    "chapter": 3,
+    "stage": "3-5",
+    "rank": "boss",
+    "monster": "crystal-colossus",
+    "name": "수정 거신",
+    "before": {
+      "hp": 1691,
+      "atk": 119,
+      "def": 64
+    },
+    "after": {
+      "hp": 1691,
+      "atk": 119,
+      "def": 64
+    }
+  },
+  {
+    "chapter": 4,
+    "stage": "4-10",
+    "rank": "normal",
+    "monster": "sand-priest",
+    "name": "모래 사제",
+    "before": {
+      "hp": 517,
+      "atk": 63,
+      "def": 56
+    },
+    "after": {
+      "hp": 517,
+      "atk": 63,
+      "def": 56
+    }
+  },
+  {
+    "chapter": 4,
+    "stage": "4-10",
+    "rank": "elite",
+    "monster": "ruin-sentinel",
+    "name": "유적 파수병",
+    "before": {
+      "hp": 977,
+      "atk": 118,
+      "def": 84
+    },
+    "after": {
+      "hp": 977,
+      "atk": 118,
+      "def": 84
+    }
+  },
+  {
+    "chapter": 4,
+    "stage": "4-10",
+    "rank": "boss",
+    "monster": "ruins-sovereign",
+    "name": "봉인의 거신",
+    "before": {
+      "hp": 2852,
+      "atk": 168,
+      "def": 93
+    },
+    "after": {
+      "hp": 2852,
+      "atk": 168,
+      "def": 93
+    }
+  },
+  {
+    "chapter": 5,
+    "stage": "5-10",
+    "rank": "normal",
+    "monster": "basalt-imp",
+    "name": "현무암 도깨비",
+    "before": {
+      "hp": 616,
+      "atk": 76,
+      "def": 67
+    },
+    "after": {
+      "hp": 862,
+      "atk": 122,
+      "def": 80
+    }
+  },
+  {
+    "chapter": 5,
+    "stage": "5-10",
+    "rank": "elite",
+    "monster": "lava-knight",
+    "name": "용암 기사",
+    "before": {
+      "hp": 1158,
+      "atk": 138,
+      "def": 98
+    },
+    "after": {
+      "hp": 1621,
+      "atk": 221,
+      "def": 118
+    }
+  },
+  {
+    "chapter": 5,
+    "stage": "5-10",
+    "rank": "boss",
+    "monster": "canyon-sovereign",
+    "name": "용암의 심장",
+    "before": {
+      "hp": 3379,
+      "atk": 195,
+      "def": 107
+    },
+    "after": {
+      "hp": 4731,
+      "atk": 312,
+      "def": 128
+    }
+  },
+  {
+    "chapter": 6,
+    "stage": "6-10",
+    "rank": "normal",
+    "monster": "snow-owl",
+    "name": "눈꽃 부엉이",
+    "before": {
+      "hp": 721,
+      "atk": 85,
+      "def": 79
+    },
+    "after": {
+      "hp": 1082,
+      "atk": 153,
+      "def": 103
+    }
+  },
+  {
+    "chapter": 6,
+    "stage": "6-10",
+    "rank": "elite",
+    "monster": "ice-golem",
+    "name": "얼음 골렘",
+    "before": {
+      "hp": 1361,
+      "atk": 152,
+      "def": 112
+    },
+    "after": {
+      "hp": 2042,
+      "atk": 274,
+      "def": 146
+    }
+  },
+  {
+    "chapter": 6,
+    "stage": "6-10",
+    "rank": "boss",
+    "monster": "snow-sovereign",
+    "name": "빙관의 수호자",
+    "before": {
+      "hp": 3978,
+      "atk": 222,
+      "def": 122
+    },
+    "after": {
+      "hp": 5967,
+      "atk": 400,
+      "def": 159
+    }
+  },
+  {
+    "chapter": 7,
+    "stage": "7-10",
+    "rank": "normal",
+    "monster": "night-wisp",
+    "name": "밤의 등불",
+    "before": {
+      "hp": 840,
+      "atk": 100,
+      "def": 92
+    },
+    "after": {
+      "hp": 1344,
+      "atk": 200,
+      "def": 129
+    }
+  },
+  {
+    "chapter": 7,
+    "stage": "7-10",
+    "rank": "elite",
+    "monster": "phantom-knight",
+    "name": "환영 기사",
+    "before": {
+      "hp": 1590,
+      "atk": 176,
+      "def": 128
+    },
+    "after": {
+      "hp": 2544,
+      "atk": 352,
+      "def": 179
+    }
+  },
+  {
+    "chapter": 7,
+    "stage": "7-10",
+    "rank": "boss",
+    "monster": "shadow-sovereign",
+    "name": "영야의 늑대왕",
+    "before": {
+      "hp": 4643,
+      "atk": 256,
+      "def": 138
+    },
+    "after": {
+      "hp": 7429,
+      "atk": 512,
+      "def": 193
+    }
+  },
+  {
+    "chapter": 8,
+    "stage": "8-10",
+    "rank": "normal",
+    "monster": "astral-priest",
+    "name": "성역 사제",
+    "before": {
+      "hp": 979,
+      "atk": 108,
+      "def": 107
+    },
+    "after": {
+      "hp": 1664,
+      "atk": 238,
+      "def": 161
+    }
+  },
+  {
+    "chapter": 8,
+    "stage": "8-10",
+    "rank": "elite",
+    "monster": "eclipse-sentinel",
+    "name": "일식 파수병",
+    "before": {
+      "hp": 1841,
+      "atk": 198,
+      "def": 148
+    },
+    "after": {
+      "hp": 3130,
+      "atk": 436,
+      "def": 222
+    }
+  },
+  {
+    "chapter": 8,
+    "stage": "8-10",
+    "rank": "boss",
+    "monster": "sanctuary-sovereign",
+    "name": "성계의 문지기",
+    "before": {
+      "hp": 5386,
+      "atk": 288,
+      "def": 159
+    },
+    "after": {
+      "hp": 9156,
+      "atk": 634,
+      "def": 239
+    }
+  },
+  {
+    "chapter": 9,
+    "stage": "9-10",
+    "rank": "normal",
+    "monster": "curse-priest",
+    "name": "저주의 사제",
+    "before": {
+      "hp": 1395,
+      "atk": 152,
+      "def": 149
+    },
+    "after": {
+      "hp": 2511,
+      "atk": 365,
+      "def": 238
+    }
+  },
+  {
+    "chapter": 9,
+    "stage": "9-10",
+    "rank": "elite",
+    "monster": "void-knight",
+    "name": "공허 기사",
+    "before": {
+      "hp": 2628,
+      "atk": 267,
+      "def": 202
+    },
+    "after": {
+      "hp": 4730,
+      "atk": 641,
+      "def": 323
+    }
+  },
+  {
+    "chapter": 9,
+    "stage": "9-10",
+    "rank": "boss",
+    "monster": "eclipse-sovereign",
+    "name": "월식의 대군주",
+    "before": {
+      "hp": 7700,
+      "atk": 385,
+      "def": 216
+    },
+    "after": {
+      "hp": 13860,
+      "atk": 924,
+      "def": 346
+    }
+  },
+  {
+    "chapter": 10,
+    "stage": "10-10",
+    "rank": "normal",
+    "monster": "gate-chanter",
+    "name": "문지기의 성가",
+    "before": {
+      "hp": 1817,
+      "atk": 180,
+      "def": 190
+    },
+    "after": {
+      "hp": 3361,
+      "atk": 450,
+      "def": 314
+    }
+  },
+  {
+    "chapter": 10,
+    "stage": "10-10",
+    "rank": "elite",
+    "monster": "dawn-knight",
+    "name": "새벽 기사",
+    "before": {
+      "hp": 3430,
+      "atk": 333,
+      "def": 257
+    },
+    "after": {
+      "hp": 6346,
+      "atk": 833,
+      "def": 424
+    }
+  },
+  {
+    "chapter": 10,
+    "stage": "10-10",
+    "rank": "boss",
+    "monster": "heaven-sovereign",
+    "name": "여명의 재판관",
+    "before": {
+      "hp": 9997,
+      "atk": 477,
+      "def": 274
+    },
+    "after": {
+      "hp": 18494,
+      "atk": 1193,
+      "def": 452
+    }
+  },
+  {
+    "chapter": 11,
+    "stage": "11-10",
+    "rank": "normal",
+    "monster": "crystal-dryad",
+    "name": "수정 드리아드",
+    "before": {
+      "hp": 1941,
+      "atk": 197,
+      "def": 206
+    },
+    "after": {
+      "hp": 3688,
+      "atk": 512,
+      "def": 350
+    }
+  },
+  {
+    "chapter": 11,
+    "stage": "11-10",
+    "rank": "elite",
+    "monster": "comet-mantis",
+    "name": "혜성 사마귀",
+    "before": {
+      "hp": 3663,
+      "atk": 353,
+      "def": 275
+    },
+    "after": {
+      "hp": 6960,
+      "atk": 918,
+      "def": 468
+    }
+  },
+  {
+    "chapter": 11,
+    "stage": "11-10",
+    "rank": "boss",
+    "monster": "garden-keeper",
+    "name": "별의 정원지기",
+    "before": {
+      "hp": 9301,
+      "atk": 509,
+      "def": 292
+    },
+    "after": {
+      "hp": 17672,
+      "atk": 1323,
+      "def": 496
+    }
+  },
+  {
+    "chapter": 12,
+    "stage": "12-10",
+    "rank": "normal",
+    "monster": "mirror-healer",
+    "name": "거울 치유사",
+    "before": {
+      "hp": 2040,
+      "atk": 201,
+      "def": 219
+    },
+    "after": {
+      "hp": 3978,
+      "atk": 543,
+      "def": 383
+    }
+  },
+  {
+    "chapter": 12,
+    "stage": "12-10",
+    "rank": "elite",
+    "monster": "labyrinth-rook",
+    "name": "미궁의 룩",
+    "before": {
+      "hp": 3858,
+      "atk": 373,
+      "def": 289
+    },
+    "after": {
+      "hp": 7523,
+      "atk": 1007,
+      "def": 506
+    }
+  },
+  {
+    "chapter": 12,
+    "stage": "12-10",
+    "rank": "boss",
+    "monster": "nightmare-mage",
+    "name": "악몽의 마법사",
+    "before": {
+      "hp": 9801,
+      "atk": 532,
+      "def": 307
+    },
+    "after": {
+      "hp": 19112,
+      "atk": 1436,
+      "def": 537
+    }
+  },
+  {
+    "chapter": 13,
+    "stage": "13-10",
+    "rank": "normal",
+    "monster": "wind-bard",
+    "name": "바람 음유시인",
+    "before": {
+      "hp": 2159,
+      "atk": 214,
+      "def": 232
+    },
+    "after": {
+      "hp": 4318,
+      "atk": 599,
+      "def": 418
+    }
+  },
+  {
+    "chapter": 13,
+    "stage": "13-10",
+    "rank": "elite",
+    "monster": "sky-lancer",
+    "name": "천공 창기사",
+    "before": {
+      "hp": 4062,
+      "atk": 390,
+      "def": 303
+    },
+    "after": {
+      "hp": 8124,
+      "atk": 1092,
+      "def": 545
+    }
+  },
+  {
+    "chapter": 13,
+    "stage": "13-10",
+    "rank": "boss",
+    "monster": "sky-sovereign",
+    "name": "천공의 수호왕",
+    "before": {
+      "hp": 10325,
+      "atk": 551,
+      "def": 326
+    },
+    "after": {
+      "hp": 20650,
+      "atk": 1543,
+      "def": 587
+    }
+  },
+  {
+    "chapter": 14,
+    "stage": "14-10",
+    "rank": "normal",
+    "monster": "astral-oracle",
+    "name": "별의 예언자",
+    "before": {
+      "hp": 2263,
+      "atk": 218,
+      "def": 250
+    },
+    "after": {
+      "hp": 4639,
+      "atk": 632,
+      "def": 463
+    }
+  },
+  {
+    "chapter": 14,
+    "stage": "14-10",
+    "rank": "elite",
+    "monster": "zodiac-sentinel",
+    "name": "황도 파수병",
+    "before": {
+      "hp": 4272,
+      "atk": 397,
+      "def": 318
+    },
+    "after": {
+      "hp": 8758,
+      "atk": 1151,
+      "def": 588
+    }
+  },
+  {
+    "chapter": 14,
+    "stage": "14-10",
+    "rank": "boss",
+    "monster": "star-arbiter",
+    "name": "별의 심판자",
+    "before": {
+      "hp": 10861,
+      "atk": 571,
+      "def": 341
+    },
+    "after": {
+      "hp": 22265,
+      "atk": 1656,
+      "def": 631
+    }
+  }
+]

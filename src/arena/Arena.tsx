@@ -6,7 +6,7 @@ import {starsOf} from './fusion.ts'
 import type {ResonanceHit} from './types.ts'
 import {arenaOwner} from './identity.ts'
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react'
-import {HEROES,heroById,current,skillIssue,equippedArenaBonus,enemyIntent} from './model.ts'
+import {HEROES,heroById,current,skillIssue,equippedArenaBonus} from './model.ts'
 import type {State,Action,Skill,Move,Unit} from './types.ts'
 import {BattleView} from './Battle.ts'
 import type {Cinematic} from './Battle.ts'
@@ -18,7 +18,7 @@ import type {Entry} from './Party.tsx'
 import type {CloudGame} from '../cloud/protocol.ts'
 import type {ArenaTicket,ArenaReward} from './state.ts'
 import {ARENA_LIMITS} from './state.ts'
-import {extendsCheckpoint,replay,ticketBattle,actForRules,enemyForRules,heroForRules} from './replay.ts'
+import {extendsCheckpoint,replay,ticketBattle,actForRules,enemyForRules,heroForRules,intentForRules} from './replay.ts'
 import {stageById,regionById} from './stages.ts'
 import {elementNames} from './characters.ts'
 import './styles.css'
@@ -46,7 +46,7 @@ function App({friends,cloud,checkpoint}:{friends:readonly ArenaFriend[];cloud?:C
  function defeat(){const t=latestRun.current,c=latestCloud.current;if(!t||!c||winSent.current)return;winSent.current=true;void c.send({type:'arena-abandon',runId:t.id})}
  const receipt=mine?.id===run?.id&&mine?.status==='claimed'?mine.reward:undefined
  const retry=()=>{if(!run||!cloud)return;void cloud.retry();void cloud.send({type:'arena-complete',runId:run.id,moves:structuredClone(moves.current)})}
- return <><div hidden={!!battle}><Party friends={friends} cloud={cloud} start={start} starting={!!requested} error={error} resume={()=>{if(mine?.status==='active')open(mine)}}/></div>{battle&&<Combat key={serial} initial={battle} back={()=>{saveCheckpoint();setBattle(null)}} restart={()=>{if(entry.current)start(entry.current)}} record={record} checkpoint={saveCheckpoint} onWin={finish} onLose={defeat} settling={cloud?.busy} official={!!run} rules={run?.rules??6} receipt={receipt} rewardError={cloud?.error} retry={retry}/>}</>
+ return <><div hidden={!!battle}><Party friends={friends} cloud={cloud} start={start} starting={!!requested} error={error} resume={()=>{if(mine?.status==='active')open(mine)}}/></div>{battle&&<Combat key={serial} initial={battle} back={()=>{saveCheckpoint();setBattle(null)}} restart={()=>{if(entry.current)start(entry.current)}} record={record} checkpoint={saveCheckpoint} onWin={finish} onLose={defeat} settling={cloud?.busy} official={!!run} rules={run?.rules??7} receipt={receipt} rewardError={cloud?.error} retry={retry}/>}</>
 }
 function Combat({initial,back,restart,record,checkpoint,onWin,onLose,settling,official,rules,receipt,rewardError,retry}:{initial:State;back:()=>void;restart:()=>void;record:(move:Move)=>void;checkpoint:()=>void;onWin:()=>void;onLose:()=>void;settling?:boolean;official:boolean;rules:number;receipt?:ArenaReward;rewardError?:string;retry:()=>void}){
  const[selectedSkill,setSelectedSkill]=useState('basic'),[echoes,setEchoes]=useState<ResonanceHit[]>([])
@@ -97,7 +97,7 @@ function Combat({initial,back,restart,record,checkpoint,onWin,onLose,settling,of
    <div className="skill-preview"><details><summary>{selected?`${elementNames[actor.element]} · ${skillScope(selected)} · ${preview.length}명 선택`:"적의 행동 중"}</summary>{selected&&<p>{arenaText(skillSummary(selected))} · {arenaText(selected.description)}</p>}</details><button onClick={()=>selected&&useSkill(selected)} disabled={busy||!selected||!hero||!!skillIssue(actor,selected)||!preview.length}>선택한 스킬 사용</button></div>
    <div className="target-line"><span>대상 <b>{preview.map(u=>u.name).join(' · ')||aliveEnemies[0]?.name||'전투 종료'}</b></span><small>필드·아군을 눌러 선택</small></div>
   </section>
-  <div className="enemy-hud" aria-label="적 약점과 상태">{aliveEnemies.map(u=><button key={u.id} data-preview={preview.some(t=>t.id===u.id)} disabled={busy} onClick={()=>setTarget(u.id)} aria-pressed={target===u.id}><b>{u.name}</b><small>약점 {u.weakness.map(e=>elementNames[e]).join('·')} · {u.broken?'BREAK':`${u.toughness}/${u.maxToughness}`}</small><small>{u.statuses.map(statusLabel).join(' · ')}</small>{rules>=6&&<small className="enemy-intent">{enemyIntent(state,u).label}</small>}</button>)}</div>
+  <div className="enemy-hud" aria-label="적 약점과 상태">{aliveEnemies.map(u=><button key={u.id} data-preview={preview.some(t=>t.id===u.id)} disabled={busy} onClick={()=>setTarget(u.id)} aria-pressed={target===u.id}><b>{u.name}</b><small>약점 {u.weakness.map(e=>elementNames[e]).join('·')} · {u.broken?'BREAK':`${u.toughness}/${u.maxToughness}`}</small><small>{u.statuses.map(statusLabel).join(' · ')}</small>{rules>=6&&<small className="enemy-intent">{intentForRules(rules,state,u).label}</small>}</button>)}</div>
   <div className="battle-log" role="log"><span>{arenaLog(state.log[0],state.units)}</span>{echoes.length>0&&<span data-testid="resonance-results">최근 속성 · {[...new Set(echoes.map(h=>h.element))].map(e=>`${resonanceName(e)} +${echoes.filter(h=>h.element===e).reduce((n,h)=>n+h.damage,0)}`).join(' · ')}</span>}</div>
   {error&&<div className="battle-error" role="alert">{error}<button onClick={back}>편성으로</button></div>}
   {state.phase!=='battle'&&!busy&&<div className="result-overlay"><div className="result-card"><span className="result-crest"><Icon name={state.phase==='victory'?'star':'shield'} size={46}/></span><span className="eyebrow">{state.phase==='victory'?'A LITTLE LIGHT, A GREAT ADVENTURE':'REST, AND TRY AGAIN'}</span><h2>{state.phase==='victory'?'다시 별빛이 반짝여요':'잠시 쉬어 가도 괜찮아요'}</h2><p>{state.phase==='victory'?'친구들의 작은 용기가 새로운 길을 열었어요.':'편성과 스킬을 바꾸어 다시 도전해 보세요.'}</p><div className="result-stats"><span>행동<b>{state.actions}</b></span><span>가한 피해<b>{state.totalDamage}</b></span><span>회복<b>{state.totalHeal}</b></span></div><button className="enter-button" onClick={back}>파티 다시 편성하기 <Icon name="arrow"/></button><button className="quiet-button" disabled={official&&(settling||state.phase==='victory'&&!receipt)} onClick={restart}>같은 파티로 다시 도전</button>{official?<section className="reward-receipt" role="status">{receipt?<><b>{receipt.capped?'오늘 코인 한도 · 지급된 상자와 진행은 보존돼요.':`${receipt.coins}코인 · 친구별 XP 최대 ${receipt.xp}${receipt.stones?' · 강화석 '+receipt.stones:''}`}</b><p>{receipt.first?'첫 클리어':'반복 클리어'}{receipt.treasure?' · 희귀 보물 획득':''}{receipt.chests?' · 보물상자 '+Object.values(receipt.chests).reduce((n,v)=>n+(v??0),0)+'개':''}</p></>:state.phase==='victory'?<><p>{rewardError||'서버가 전투 기록과 보상을 확인하고 있어요…'}</p>{rewardError&&<button className="quiet-button" onClick={retry}>같은 기록으로 보상 다시 확인</button>}</>:<p>클리어 보상 없이 안전하게 귀환해요.</p>}</section>:<small>연습 전투 · 코인·경험치·아이템 지급 없음</small>}</div></div>}

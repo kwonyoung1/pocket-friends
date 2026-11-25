@@ -58,3 +58,16 @@ test('Chanmi heals and shields about thirty percent more at equal target health 
  const heal=act(s,'active1',target.id).hits.find(h=>h.id===target.id)!.heal,oldHeal=v2.act(s as never,'active1',target.id).hits.find(h=>h.id===target.id)!.heal
  expect(heal/oldHeal).toBeCloseTo(1.3,2);const shield=act(s,'active2',target.id).hits.find(h=>h.id===target.id)!.shield,oldShield=v2.act(s as never,'active2',target.id).hits.find(h=>h.id===target.id)!.shield;expect(shield/oldShield).toBeCloseTo(1.3,2);expect(heroById('special-girl').passive).toEqual(v2.heroById('special-girl').passive)
 })
+
+test('rules7 native echoes retain both source elements even when priest armor blocks damage',()=>{
+ const ids=['special-boy','beast-lumi','beast-nebula','beast-phynix'],profiles=Object.fromEntries(ids.map(id=>[id,{name:id,level:50,mastery:id.startsWith('beast-')?2:undefined}]))
+ const s=createBattle(ids,50,20261121,profiles,'8-4');expect(current(s).id).toBe('beast-lumi')
+ const priest=s.units.find(u=>u.monsterId==='astral-priest')!,mote=s.units.find(u=>u.monsterId==='star-mote')!,before=structuredClone(s)
+ const blocked=act(s,'basic',priest.id),hit=act(s,'basic',mote.id)
+ expect(blocked.resonances!.map(h=>[h.element,h.damage,h.absorbed])).toEqual([['fire',0,0],['dark',0,0]])
+ expect(blocked.hits[0].damage).toBeGreaterThan(0)
+ expect(hit.resonances!.map(h=>[h.element,h.damage,h.absorbed])).toEqual([['fire',7,0],['dark',1,0]])
+ expect(hit.resonances!.map(h=>h.sources)).toEqual([['beast-phynix'],['beast-nebula']])
+ expect(hit.resonances!.reduce((n,h)=>n+h.damage+h.absorbed,0)).toBeLessThanOrEqual(Math.floor(current(s).atk*.5))
+ expect(s).toEqual(before)
+})
