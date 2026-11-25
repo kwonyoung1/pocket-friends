@@ -14,3 +14,14 @@ export function startSeason2(save:Save,p:ArenaProgress,now:number){if(p.season==
  for(const a of Object.values(accounts)){a.growth=Object.fromEntries(save.friends.map(f=>[f.id,{level:1,xp:0}]));for(const b of Object.values(a.beasts)){b.level=1;b.xp=0}for(const h of Object.values(a.adventurers??{})){h.level=1;h.xp=0}a.cleared={}}
  p.cleared={};p.season=2;return `시즌 2 전환 완료 · 계정 ${archive.counts.accounts} · 아레나 성장 ${archive.counts.friends+archive.counts.beasts} · 일반 클리어 ${archive.counts.clears}건. 기존 기록은 복구용으로 보관했어요.`
 }
+
+/** Current compatibility entry: preserve all progress, including never-transitioned accounts. */
+export function continueSeason2(save:Save,p:ArenaProgress){
+ if(p.season===2)return '기존 아레나 성장과 진행을 그대로 이어가요.'
+ for(const a of Object.values(p.accounts??{})){
+  a.growth??={}
+  for(const f of save.friends)a.growth[f.id]??={level:f.growth?.level??1,xp:f.growth?.xp??0}
+ }
+ p.season=2
+ return '기존 레벨·성급·강화·스테이지 기록을 초기화하지 않고 이어가요.'
+}

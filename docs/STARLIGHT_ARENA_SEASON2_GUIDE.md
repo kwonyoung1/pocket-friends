@@ -1,3 +1,5 @@
+> 이 문서는 이전 시즌 전환 당시의 기록입니다. 현재 업데이트는 초기화하지 않습니다. [최신 안내서](STARLIGHT_FAIRY_CHAPTERS_DEPLOY_GUIDE.md)를 이용하세요.
+
 # 별빛 아레나 시즌 2 — 사용·초기화·배포 클릭 안내서
 
 운영 게임: https://kwonyoung1.github.io/pocket-friends/

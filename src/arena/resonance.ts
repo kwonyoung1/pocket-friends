@@ -3,7 +3,7 @@ import {starsOf} from './fusion.ts'
 import type {Element,ResonanceHit,State,Unit} from './types.ts'
 const elements:Element[]=['fire','water','nature','earth','light','dark']
 export type Resonance={element:Element;ratio:number;sources:string[];stars:number}
-export const resonanceName=(element:Element)=>`${elementNames[element]} 공명`
+export const resonanceName=(element:Element)=>`${elementNames[element]} 속성`
 /** Only living OTHER beasts contribute. Each distinct native element fires once. */
 export type ResonanceSource=Pick<Unit,'side'|'hp'|'id'|'heroId'|'kind'|'element'|'stars'>
 export function activeResonances(units:readonly ResonanceSource[],actorId?:string):Resonance[]{

@@ -1,3 +1,4 @@
+import {energyDay,settleEnergy} from '../arena/energy.ts'
 import {arenaCommand,validateArena} from '../arena/server.ts'
 import {bulkCare} from '../care/bulk.ts'
 import {changeRoomTheme} from '../room/theme.ts'
@@ -242,6 +243,7 @@ export function applyCommand(
       message = lifeCommand(save, c, now)
       break
     case 'refresh':
+      for(const account of Object.values(save.world?.arena?.accounts??{}))if(energyDay(now)>(account.energy.lastMidnight??energyDay(account.energy.at)))account.energy=settleEnergy(account.energy,now)
       break
     case 'buy':
       message = buy(save, c.id, now)
