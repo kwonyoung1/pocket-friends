@@ -32,7 +32,7 @@ export function openChest(a:ArenaAccount,id:ChestId,nonce:number,now:number,rand
  a.chests[id]=(a.chests[id]??0)-1;a.opens=nonce;a.lastOpening=result;return result
 }
 export function trainBeast(a:ArenaAccount,id:string,training:'xp'|'mastery'){
- const b=a.beasts[id];if(!b||!beastById(id))throw Error('보유한 환수를 골라 주세요.')
- if(training==='mastery'){if(b.mastery>=5)throw Error('환수 별자리가 최고 단계예요.');const cost=(b.mastery+1)*10;if(b.shards<cost)throw Error(`전용 조각 ${cost}개가 필요해요.`);b.shards-=cost;b.mastery++;return '환수 별자리를 강화했어요. HP·공격·방어가 단계마다 3% 증가해요.'}
- if(b.level>=50)throw Error('이미 최고 레벨 환수예요.');if(b.shards<5)throw Error('전용 조각 5개가 필요해요.');return ''
+ const b=a.beasts[id];if(!b||!beastById(id))throw Error('보유한 요정를 골라 주세요.')
+ if(training==='mastery'){if(b.mastery>=5)throw Error('요정 별자리가 최고 단계예요.');const cost=(b.mastery+1)*10;if(b.shards<cost)throw Error(`전용 조각 ${cost}개가 필요해요.`);b.shards-=cost;b.mastery++;return '요정 별자리를 강화했어요. HP·공격·방어가 단계마다 3% 증가해요.'}
+ if(b.level>=50)throw Error('이미 최고 레벨 요정예요.');if(b.shards<5)throw Error('전용 조각 5개가 필요해요.');return ''
 }

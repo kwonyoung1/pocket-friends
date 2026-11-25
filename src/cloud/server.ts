@@ -119,7 +119,7 @@ export function createGameHandler(options: {
       }
       const compatible = body.sync === syncProtocol
       const known = compatible && Number.isSafeInteger(body.knownRevision) && body.knownRevision >= 0 ? body.knownRevision as number : undefined
-      const checkArenaClient=(row:ServerWorld)=>{if(row.data?.world?.arena?.sharedOwner&&body.arenaSharing!==1)throw new ArenaClientUpdateError('아레나가 자동 공유 방식으로 업데이트되었어요. 저장 데이터를 지우지 말고 새로고침해 주세요.');if(body.arenaRules!==5&&Object.keys(row.data?.world?.arena?.accounts??{}).length)throw new ArenaClientUpdateError('별빛 아레나 시즌 2가 업데이트되었어요. 저장 데이터를 지우지 말고 새로고침해 주세요.')}
+      const checkArenaClient=(row:ServerWorld)=>{if(row.data?.world?.arena?.sharedOwner&&body.arenaSharing!==1)throw new ArenaClientUpdateError('아레나가 자동 공유 방식으로 업데이트되었어요. 저장 데이터를 지우지 말고 새로고침해 주세요.');if(body.arenaRules!==6&&Object.keys(row.data?.world?.arena?.accounts??{}).length)throw new ArenaClientUpdateError('별빛 아레나 시즌 2가 업데이트되었어요. 저장 데이터를 지우지 말고 새로고침해 주세요.')}
       const wire = (row: ServerWorld, base?: WorldRow) => {checkArenaClient(row);const prior=base??(known===undefined?undefined:cached(known));return compatible?worldPayload(publicRow(row),prior?{...prior,data:publicData(prior.data)}:undefined):{row:publicRow(row)}}
       if (body.action === 'login') {
         const password = options.password()
@@ -174,7 +174,7 @@ export function createGameHandler(options: {
       )
         return reply({ error: '올바른 작업 번호가 필요해요.' }, 400)
       if(['arena-share','arena-select'].includes(body.command?.type)&&body.arenaSharing!==1)return reply({error:'아레나 자동 공유를 지원하는 최신 화면으로 새로고침해 주세요.',rejected:true},409)
-      if(typeof body.command?.type==='string'&&body.command.type.startsWith('arena-')&&body.arenaRules!==5)return reply({error:'별빛 아레나가 업데이트되었어요. 새로고침 후 다시 입장해 주세요.',rejected:true},409)
+      if(typeof body.command?.type==='string'&&body.command.type.startsWith('arena-')&&body.arenaRules!==6)return reply({error:'별빛 아레나가 업데이트되었어요. 새로고침 후 다시 입장해 주세요.',rejected:true},409)
       if (![2,3,4,5,6,7,8,9,10,11,12].includes(body.clientVersion) && (await load()).data?.world?.expansion)
         return reply(
           {

@@ -1,5 +1,13 @@
-import {stageEnergy} from './energy.ts'
-/** Preserve the original forty stages; later regions increase coin/energy efficiency under the shared daily cap. */
-export const REWARD_MULTIPLIERS=[1,1.5,2.5,4,6,9,13,20] as const
-export function stageTerms(index:number,boss:boolean){const coins=index>=40?[180,200,220,240,270,330,360,390,430,500][index-40]:Math.round(6*REWARD_MULTIPLIERS[Math.floor(index/5)]);return{energy:stageEnergy(index),repeat:{coins,xp:Math.min(180,30+index*4)},first:{coins:coins*3,xp:Math.min(240,60+index*6),stones:boss?1:0,treasure:boss}}}
-export function stageDifficulty(index:number){if(index>=40){const p=(index-40)/9;return{hp:2.1+p*.9,atk:1.85+p*.6,def:1.7+p*.6,spd:7+Math.floor(p*4),toughness:4+Math.floor(p*3),shield:.18+p*.07,phase:true}}const p=index/39;return{hp:1+p*.9,atk:1+p*.7,def:1+p*.55,spd:Math.floor(p*6),toughness:Math.floor(p*3),shield:index>=20?.12:index>=10?.06:0,phase:index>=30}}
+import {stageTerms as originalTerms,stageDifficulty as originalDifficulty} from './legacy-v5/balance.ts'
+export {REWARD_MULTIPLIERS} from './legacy-v5/balance.ts'
+/** Currency/entry costs of existing IDs are unchanged; XP efficiency increases along the expanded path. */
+export function stageTerms(index:number,boss:boolean,originalIndex=Math.min(index,49)){
+ const old=originalTerms(originalIndex,boss),xp=Math.round(old.energy*(4.5+Math.min(index,14)*.7+Math.max(0,index-14)*.12))
+ return{energy:old.energy,repeat:{coins:old.repeat.coins,xp},first:{...old.first,xp:Math.round(xp*1.35+old.energy*3)}}
+}
+export function stageDifficulty(index:number){
+ const chapter=index<15?Math.floor(index/5):3+Math.floor((index-15)/10),part=index<15?index%5:(index-15)%10
+ const old=originalDifficulty(Math.min(49,chapter*5+Math.min(part,4)))
+ const factor=chapter===0?1.08:chapter<3?1.3:Math.min(2.2,1.5+(chapter-3)*.035)+Math.max(0,part-4)*.025
+ return{hp:old.hp*factor,atk:old.atk*factor,def:old.def*factor,spd:old.spd+(chapter>=3?2:0),toughness:old.toughness+(chapter>=3?1:0),shield:Math.min(.28,old.shield+(chapter>=3?.03:0)),phase:old.phase||chapter>=3}
+}

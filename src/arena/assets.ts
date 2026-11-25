@@ -1,3 +1,11 @@
+import new_bg_0 from './art/bg-garden.svg?url'
+import new_enemies_0 from './art/enemies-garden.svg?url'
+import new_bg_1 from './art/bg-dream.svg?url'
+import new_enemies_1 from './art/enemies-dream.svg?url'
+import new_bg_2 from './art/bg-skycastle.svg?url'
+import new_enemies_2 from './art/enemies-skycastle.svg?url'
+import new_bg_3 from './art/bg-star-temple.svg?url'
+import new_enemies_3 from './art/enemies-star-temple.svg?url'
 import cardaria from './art/card-adv-aria.webp?url'
 import spritearia from './art/sprite-adv-aria.png?url'
 import cardleon from './art/card-adv-leon.webp?url'
@@ -74,7 +82,16 @@ import a50 from './art/sprite-momo.png'
 import a51 from './art/sprite-mungchi.png'
 import a52 from './art/sprite-toto.png'
 import a53 from './art/sprite-youngi.png'
-export const ASSETS:Record<string,string>={ 'card-adv-aria':cardaria,
+export const ASSETS:Record<string,string>={
+ 'bg-garden':new_bg_0,
+ 'enemies-garden':new_enemies_0,
+ 'bg-dream':new_bg_1,
+ 'enemies-dream':new_enemies_1,
+ 'bg-skycastle':new_bg_2,
+ 'enemies-skycastle':new_enemies_2,
+ 'bg-star-temple':new_bg_3,
+ 'enemies-star-temple':new_enemies_3,
+ 'card-adv-aria':cardaria,
  'sprite-adv-aria':spritearia,
  'card-adv-leon':cardleon,
  'sprite-adv-leon':spriteleon,
