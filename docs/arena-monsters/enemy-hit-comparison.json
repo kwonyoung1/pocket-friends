@@ -1,0 +1,704 @@
+[
+  {
+    "chapter": 1,
+    "stage": "1-5",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 6.2,
+    "after": 6.2,
+    "changePercent": 0
+  },
+  {
+    "chapter": 1,
+    "stage": "1-5",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 1,
+    "after": 1,
+    "changePercent": 0
+  },
+  {
+    "chapter": 1,
+    "stage": "1-5",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 35.9,
+    "after": 35.9,
+    "changePercent": 0
+  },
+  {
+    "chapter": 1,
+    "stage": "1-5",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 1,
+    "after": 1,
+    "changePercent": 0
+  },
+  {
+    "chapter": 2,
+    "stage": "2-5",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 30.8,
+    "after": 30.8,
+    "changePercent": 0
+  },
+  {
+    "chapter": 2,
+    "stage": "2-5",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 1,
+    "after": 1,
+    "changePercent": 0
+  },
+  {
+    "chapter": 2,
+    "stage": "2-5",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 89.2,
+    "after": 89.2,
+    "changePercent": 0
+  },
+  {
+    "chapter": 2,
+    "stage": "2-5",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 30.8,
+    "after": 30.8,
+    "changePercent": 0
+  },
+  {
+    "chapter": 3,
+    "stage": "3-5",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 44,
+    "after": 44,
+    "changePercent": 0
+  },
+  {
+    "chapter": 3,
+    "stage": "3-5",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 1,
+    "after": 1,
+    "changePercent": 0
+  },
+  {
+    "chapter": 3,
+    "stage": "3-5",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 126.1,
+    "after": 126.1,
+    "changePercent": 0
+  },
+  {
+    "chapter": 3,
+    "stage": "3-5",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 70.7,
+    "after": 70.7,
+    "changePercent": 0
+  },
+  {
+    "chapter": 4,
+    "stage": "4-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 60.5,
+    "after": 60.5,
+    "changePercent": 0
+  },
+  {
+    "chapter": 4,
+    "stage": "4-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 4.1,
+    "after": 4.1,
+    "changePercent": 0
+  },
+  {
+    "chapter": 4,
+    "stage": "4-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 125,
+    "after": 125,
+    "changePercent": 0
+  },
+  {
+    "chapter": 4,
+    "stage": "4-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 68.7,
+    "after": 68.7,
+    "changePercent": 0
+  },
+  {
+    "chapter": 4,
+    "stage": "4-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 183.5,
+    "after": 183.5,
+    "changePercent": 0
+  },
+  {
+    "chapter": 4,
+    "stage": "4-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 128.1,
+    "after": 128.1,
+    "changePercent": 0
+  },
+  {
+    "chapter": 5,
+    "stage": "5-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 75.8,
+    "after": 130.2,
+    "changePercent": 71.8
+  },
+  {
+    "chapter": 5,
+    "stage": "5-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 19.5,
+    "after": 73.8,
+    "changePercent": 278.5
+  },
+  {
+    "chapter": 5,
+    "stage": "5-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 148.6,
+    "after": 245.5,
+    "changePercent": 65.2
+  },
+  {
+    "chapter": 5,
+    "stage": "5-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 92.3,
+    "after": 190.7,
+    "changePercent": 106.6
+  },
+  {
+    "chapter": 5,
+    "stage": "5-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 215.3,
+    "after": 345.3,
+    "changePercent": 60.4
+  },
+  {
+    "chapter": 5,
+    "stage": "5-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 159.9,
+    "after": 298.3,
+    "changePercent": 86.6
+  },
+  {
+    "chapter": 6,
+    "stage": "6-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 86.1,
+    "after": 166.1,
+    "changePercent": 92.9
+  },
+  {
+    "chapter": 6,
+    "stage": "6-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 27.6,
+    "after": 99.4,
+    "changePercent": 260.1
+  },
+  {
+    "chapter": 6,
+    "stage": "6-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 165.1,
+    "after": 303.4,
+    "changePercent": 83.8
+  },
+  {
+    "chapter": 6,
+    "stage": "6-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 98.4,
+    "after": 227.6,
+    "changePercent": 131.3
+  },
+  {
+    "chapter": 6,
+    "stage": "6-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 248,
+    "after": 350,
+    "changePercent": 41.1
+  },
+  {
+    "chapter": 6,
+    "stage": "6-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 172.3,
+    "after": 361.8,
+    "changePercent": 110
+  },
+  {
+    "chapter": 7,
+    "stage": "7-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 119,
+    "after": 254.1,
+    "changePercent": 113.5
+  },
+  {
+    "chapter": 7,
+    "stage": "7-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 48.1,
+    "after": 166.1,
+    "changePercent": 245.3
+  },
+  {
+    "chapter": 7,
+    "stage": "7-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 222.4,
+    "after": 350,
+    "changePercent": 57.4
+  },
+  {
+    "chapter": 7,
+    "stage": "7-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 137.3,
+    "after": 345.4,
+    "changePercent": 151.6
+  },
+  {
+    "chapter": 7,
+    "stage": "7-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 331.1,
+    "after": 350,
+    "changePercent": 5.7
+  },
+  {
+    "chapter": 7,
+    "stage": "7-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 231.7,
+    "after": 534,
+    "changePercent": 130.5
+  },
+  {
+    "chapter": 8,
+    "stage": "8-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 112.8,
+    "after": 264.5,
+    "changePercent": 134.5
+  },
+  {
+    "chapter": 8,
+    "stage": "8-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 51.3,
+    "after": 189.6,
+    "changePercent": 269.6
+  },
+  {
+    "chapter": 8,
+    "stage": "8-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 219.3,
+    "after": 350,
+    "changePercent": 59.6
+  },
+  {
+    "chapter": 8,
+    "stage": "8-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 163.9,
+    "after": 443.9,
+    "changePercent": 170.8
+  },
+  {
+    "chapter": 8,
+    "stage": "8-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 324.9,
+    "after": 350,
+    "changePercent": 7.7
+  },
+  {
+    "chapter": 8,
+    "stage": "8-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 269.6,
+    "after": 677.5,
+    "changePercent": 151.3
+  },
+  {
+    "chapter": 9,
+    "stage": "9-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 189.7,
+    "after": 350,
+    "changePercent": 84.5
+  },
+  {
+    "chapter": 9,
+    "stage": "9-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 109.7,
+    "after": 360.8,
+    "changePercent": 228.9
+  },
+  {
+    "chapter": 9,
+    "stage": "9-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 345.4,
+    "after": 350,
+    "changePercent": 1.3
+  },
+  {
+    "chapter": 9,
+    "stage": "9-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 244.9,
+    "after": 685.3,
+    "changePercent": 179.8
+  },
+  {
+    "chapter": 9,
+    "stage": "9-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 495.3,
+    "after": 350,
+    "changePercent": -29.3
+  },
+  {
+    "chapter": 9,
+    "stage": "9-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 384.4,
+    "after": 994,
+    "changePercent": 158.6
+  },
+  {
+    "chapter": 10,
+    "stage": "10-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 197.8,
+    "after": 350,
+    "changePercent": 76.9
+  },
+  {
+    "chapter": 10,
+    "stage": "10-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 142.4,
+    "after": 460.3,
+    "changePercent": 223.2
+  },
+  {
+    "chapter": 10,
+    "stage": "10-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 377.4,
+    "after": 350,
+    "changePercent": -7.3
+  },
+  {
+    "chapter": 10,
+    "stage": "10-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 322.9,
+    "after": 895.2,
+    "changePercent": 177.2
+  },
+  {
+    "chapter": 10,
+    "stage": "10-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 535.1,
+    "after": 350,
+    "changePercent": -34.6
+  },
+  {
+    "chapter": 10,
+    "stage": "10-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 492.1,
+    "after": 994,
+    "changePercent": 102
+  },
+  {
+    "chapter": 11,
+    "stage": "11-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 218.3,
+    "after": 350,
+    "changePercent": 60.3
+  },
+  {
+    "chapter": 11,
+    "stage": "11-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 186.6,
+    "after": 614,
+    "changePercent": 229
+  },
+  {
+    "chapter": 11,
+    "stage": "11-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 399.3,
+    "after": 350,
+    "changePercent": -12.3
+  },
+  {
+    "chapter": 11,
+    "stage": "11-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 397.8,
+    "after": 994,
+    "changePercent": 149.9
+  },
+  {
+    "chapter": 11,
+    "stage": "11-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 538,
+    "after": 350,
+    "changePercent": -34.9
+  },
+  {
+    "chapter": 11,
+    "stage": "11-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 609.9,
+    "after": 994,
+    "changePercent": 63
+  },
+  {
+    "chapter": 12,
+    "stage": "12-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 256.3,
+    "after": 350,
+    "changePercent": 36.6
+  },
+  {
+    "chapter": 12,
+    "stage": "12-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 167.1,
+    "after": 569.9,
+    "changePercent": 241.1
+  },
+  {
+    "chapter": 12,
+    "stage": "12-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 480.1,
+    "after": 350,
+    "changePercent": -27.1
+  },
+  {
+    "chapter": 12,
+    "stage": "12-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 370,
+    "after": 994,
+    "changePercent": 168.6
+  },
+  {
+    "chapter": 12,
+    "stage": "12-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 538,
+    "after": 350,
+    "changePercent": -34.9
+  },
+  {
+    "chapter": 12,
+    "stage": "12-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 557.5,
+    "after": 994,
+    "changePercent": 78.3
+  },
+  {
+    "chapter": 13,
+    "stage": "13-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 237.8,
+    "after": 350,
+    "changePercent": 47.2
+  },
+  {
+    "chapter": 13,
+    "stage": "13-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 182.4,
+    "after": 636.5,
+    "changePercent": 249
+  },
+  {
+    "chapter": 13,
+    "stage": "13-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 440.1,
+    "after": 350,
+    "changePercent": -20.5
+  },
+  {
+    "chapter": 13,
+    "stage": "13-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 389.5,
+    "after": 994,
+    "changePercent": 155.2
+  },
+  {
+    "chapter": 13,
+    "stage": "13-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 538,
+    "after": 350,
+    "changePercent": -34.9
+  },
+  {
+    "chapter": 13,
+    "stage": "13-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 579.1,
+    "after": 994,
+    "changePercent": 71.6
+  },
+  {
+    "chapter": 14,
+    "stage": "14-10",
+    "rank": "normal",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 242.9,
+    "after": 350,
+    "changePercent": 44.1
+  },
+  {
+    "chapter": 14,
+    "stage": "14-10",
+    "rank": "normal",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 187.6,
+    "after": 675.5,
+    "changePercent": 260.1
+  },
+  {
+    "chapter": 14,
+    "stage": "14-10",
+    "rank": "elite",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 447.8,
+    "after": 350,
+    "changePercent": -21.8
+  },
+  {
+    "chapter": 14,
+    "stage": "14-10",
+    "rank": "elite",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 397.8,
+    "after": 994,
+    "changePercent": 149.9
+  },
+  {
+    "chapter": 14,
+    "stage": "14-10",
+    "rank": "boss",
+    "defender": "Lv30 영이 · 무강화",
+    "before": 538,
+    "after": 350,
+    "changePercent": -34.9
+  },
+  {
+    "chapter": 14,
+    "stage": "14-10",
+    "rank": "boss",
+    "defender": "Lv50 코코 · 마스터리5/훈련30",
+    "before": 602.8,
+    "after": 994,
+    "changePercent": 64.9
+  }
+]

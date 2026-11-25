@@ -18,3 +18,17 @@ const defs:Omit<BeastDefinition,'beast'|'art'|'color'>[]=[
 export const BEASTS:BeastDefinition[]=defs.map(d=>({...d,beast:true,art:d.id,color:rarityColors[d.rarity],supportPower:d.id==='beast-seraphia'?1.3:d.id==='beast-selena'?1.25:1}))
 for(const b of BEASTS){const k=b.skills.find(k=>k.id==='active2')!;if(b.id==='beast-lumi')k.effects=[effect('speed-up',2,.24),effect('advance',0,1)];if(b.id==='beast-nebula')Object.assign(k,{targetCount:3,pierce:.15});if(b.id==='beast-selena'){k.cleanseLimit=1;k.effects=[...(k.effects??[]),effect('cleanse',0,0)]}if(b.id==='beast-pola')k.effects=[...(k.effects??[]),effect('counter',2,.35,'self')];if(b.id==='beast-phynix')k.effects=[...(k.effects??[]),effect('regen',2,.04)];if(b.id==='beast-astra')Object.assign(k,{targetCount:2,hits:2,power:1.55});if(b.id==='beast-eclipse')Object.assign(k,{targetCount:3,hits:2,power:.95});if(b.id==='beast-seraphia'){k.shieldAll=.08;k.effects=[...(k.effects??[]),effect('regen',2,.06)]}}
 export const beastById=(id:string)=>BEASTS.find(b=>b.id===id)
+// Rules 7 rarity identity: no saved levels/stars are changed. Rules 6 owns its snapshot.
+for(const b of BEASTS){
+ if(b.rarity==='legendary'){b.hp=Math.round(b.hp*1.6);b.atk=Math.round(b.atk*2.4);b.def=Math.round(b.def*1.4)}
+ if(b.rarity==='mythic'){b.hp=Math.round(b.hp*1.5);b.atk=Math.round(b.atk*1.35);b.def=Math.round(b.def*1.5);b.supportPower=2.4;b.passive.helpHeal=.2
+  const sanctuary=b.skills.find(k=>k.id==='active1')!;sanctuary.effects=[effect('regen',2,.12),effect('cleanse',0,0)]
+ }
+}
+
+// The dragon protects its team while committing to its slow artillery turn.
+const astraWard=BEASTS.find(b=>b.id==='beast-astra')!
+for(const k of astraWard.skills)if(k.power>0){k.shieldAll=k.id==='basic'?.1:.18;k.description+=' · 전원 별빛 보호막'}
+const sanctuary=BEASTS.find(b=>b.id==='beast-seraphia')!.skills.find(k=>k.id==='active1')!
+sanctuary.effects=[...(sanctuary.effects??[]),effect('attack-up',2,.25)]
+sanctuary.description='전원 보호막 · 재생 · 정화 · 공격 강화'
