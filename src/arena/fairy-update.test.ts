@@ -1,3 +1,5 @@
+import {battlePolicy} from '../../scripts/arena-benchmark-policy.ts'
+import * as combat from './model.ts'
 import {test,expect} from 'vitest'
 import {freshWorld} from '../cloud/engine.ts'
 import {grantSpecialFriends} from '../humans/model.ts'
@@ -20,11 +22,7 @@ const now=Date.parse('2026-11-25T03:00:00Z'),owner='11111111-1111-4111-8111-1111
 function fixture(){const save=freshWorld(now);grantSpecialFriends(save,now);const p=arenaProgress(save,now);p.season=2;p.sharedOwner=owner;const a=arenaAccount(p,owner,now);a.growth=Object.fromEntries(save.friends.map(f=>[f.id,{level:35,xp:7}]));return{save,p,a}}
 function play(initial:State){let s=initial;const moves:Move[]=[];for(let n=0;n<700&&s.phase==='battle';n++){
  const actor=current(s);if(actor.side==='enemy'){s=enemyAction(s).next;continue}
- const allies=s.units.filter(u=>u.side==='ally'&&u.hp>0),weak=[...allies].sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0],foes=s.units.filter(u=>u.side==='enemy'&&u.hp>0)
- let skill='basic',target=foes.find(u=>/치유|사제|드리아드|음유|예언/.test(u.name))?.id??foes[0].id
- if(actor.id==='special-girl'&&actor.mp>=1&&weak.hp/weak.maxHp<.85){skill='active1';target=weak.id}
- else if(actor.id==='special-boy'&&actor.mp>=1&&allies.some(u=>u.attackBuff<1.2)){skill='active1';target=allies[0].id}
- else if(!['special-boy','special-girl'].includes(actor.id)&&actor.mp>=1)skill=actor.mp>=3?'ultimate':'active1'
+ const {skill,target}=battlePolicy(combat,s)
  moves.push({skill,target});s=act(s,skill,target).next
  }return{s,moves}}
 
@@ -118,7 +116,7 @@ test('new XP goes to all participating growth types, uses the raised cap, and ne
  const paid=structuredClone(save);arenaCommand(save,{type:'arena-complete',runId:t.id,moves},owner,now+11000);expect(save).toEqual(paid)
 })
 test('final bosses telegraph guard then area attacks and trained five-person parties can clear every chapter',()=>{
- const ids=['special-boy','special-girl','beast-astra','beast-nebula','beast-phynix']
+ const ids=['special-boy','special-girl','beast-astra','beast-seraphia','beast-lumi']
  const profiles=Object.fromEntries(ids.map(id=>[id,{name:id,level:50,mastery:5,stars:5,training:{hp:30,atk:30,def:30},skillLevels:{basic:10,active1:10,active2:10,ultimate:10}}]))
  for(const region of REGIONS){const stage=STAGES.find(s=>s.region===region.id&&s.boss)!,initial=createBattle(ids,50,7,profiles,stage.id,15)
   const{s}=play(initial);expect(s.phase,stage.id).toBe('victory')

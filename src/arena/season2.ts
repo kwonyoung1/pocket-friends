@@ -2,7 +2,7 @@ import type {Save} from '../game.ts'
 import type {ArenaProgress} from './state.ts'
 import type {ArenaAccount,ClearRecord} from './beast-state.ts'
 export type ArenaGrowth={level:number;xp:number}
-export type AdventurerOwned=ArenaGrowth&{at:number;shards:number;duplicates:number}
+export type AdventurerOwned=ArenaGrowth&{at:number;shards:number;duplicates:number;stars?:number}
 export type SeasonArchive={at:number;commonGrowth:Record<string,ArenaGrowth>;cleared:ArenaProgress['cleared'];accounts:Record<string,{cleared:Record<string,ClearRecord>;beastGrowth:Record<string,ArenaGrowth>;growth?:Record<string,ArenaGrowth>;adventurerGrowth?:Record<string,ArenaGrowth>}>;counts:{accounts:number;friends:number;beasts:number;clears:number;firstRewards:number}}
 export const arenaXpNeed=(level:number)=>20+8*level
 export function growArena(g:ArenaGrowth,amount:number){if(g.level>=50)return;g.xp+=Math.max(0,Math.floor(amount));while(g.level<50&&g.xp>=arenaXpNeed(g.level)){g.xp-=arenaXpNeed(g.level);g.level++}if(g.level>=50)g.xp=0}
