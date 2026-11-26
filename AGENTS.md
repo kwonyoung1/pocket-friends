@@ -24,7 +24,8 @@
   unrelated/unmerged feature branches and all player data. Keep changes reviewable.
 - Implement the requested change, focused mobile checks, server/integrity checks
   when shared code changes, automation tests when workflows change, and a build.
-  Required CI `build` still includes the complete existing browser/cloud suites.
+  Required CI `build` enforces the shared trusted risk policy below; FULL includes
+  the complete existing browser/cloud suites.
 - Commit and push the task branch. Use `npm run automation:submit` or the trusted
   auto-pr workflow to open/update its PR. Git transport access is not GitHub API
   access: report 403/permission failures accurately; never claim a PR exists.
