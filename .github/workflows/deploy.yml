@@ -10,54 +10,185 @@ on:
         description: Internal validation PR number (optional; main always releases)
         type: string
         default: ''
+      validation_mode:
+        description: Requested minimum validation (cannot lower the inferred risk)
+        type: choice
+        options: [AUTO, FAST, STANDARD, FULL]
+        default: AUTO
 permissions:
   contents: read
 concurrency:
   group: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'production-release' || format('validation-{0}', github.ref) }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' || github.event_name == 'pull_request' }}
 jobs:
-  unit:
+  changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     outputs:
-      validated_base: ${{ steps.base.outputs.sha }}
+      plan: ${{ steps.classify.outputs.plan }}
+      mode: ${{ steps.classify.outputs.mode }}
+      browser: ${{ steps.classify.outputs.browser }}
+      cloud: ${{ steps.classify.outputs.cloud }}
+      automation: ${{ steps.classify.outputs.automation }}
+      deno: ${{ steps.classify.outputs.deno }}
+      validated_base: ${{ steps.scope.outputs.validated_base }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Bind validation to the checked main base
-        id: base
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Find last verified production baseline (missing evidence forces FULL)
+        id: released
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              const repo=context.repo,runs=(await github.rest.actions.listWorkflowRuns({...repo,workflow_id:'deploy.yml',branch:'main',status:'success',per_page:30})).data.workflow_runs
+              for(const run of runs.filter(r=>r.id!==context.runId&&r.head_sha!==context.sha&&r.head_branch==='main'&&['push','workflow_dispatch'].includes(r.event)&&r.head_repository?.full_name===`${repo.owner}/${repo.repo}`).slice(0,10)){
+                const artifacts=(await github.rest.actions.listWorkflowRunArtifacts({...repo,run_id:run.id})).data.artifacts
+                if(artifacts.some(a=>a.name===`release-proof-${run.head_sha}`&&!a.expired)){core.setOutput('sha',run.head_sha);return}
+              }
+              core.warning('No verified released baseline; FULL is required.')
+            } catch { core.warning('Could not verify released baseline; FULL is required.') }
+      - name: Bind changes to exact head and trusted main policy
+        id: scope
         env:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RELEASED: ${{ steps.released.outputs.sha }}
         run: |
           set -euo pipefail
-          base="$(git rev-parse origin/main)"
-          if test "$REF" != refs/heads/main || test "$EVENT" = pull_request; then
-            git merge-base --is-ancestor "$base" HEAD || { echo 'Update this branch to current main before validating.'; exit 1; }
+          validated_base="$(git rev-parse origin/main)"
+          if test "$REF" = refs/heads/main && test "$EVENT" != pull_request; then
+            trusted="$(git rev-parse "$GITHUB_SHA^1")"
+            validated_base="$GITHUB_SHA"
           else
-            base="$GITHUB_SHA"
+            trusted="$validated_base"
+            git merge-base --is-ancestor "$trusted" "$HEAD_SHA" || { echo 'Update this branch to current main before validating.'; exit 1; }
           fi
-          printf 'sha=%s\n' "$base" >> "$GITHUB_OUTPUT"
+          diff_base="$trusted"
+          require_full='No verified cumulative release baseline'
+          if test -n "$RELEASED" && git merge-base --is-ancestor "$RELEASED" "$HEAD_SHA"; then
+            diff_base="$RELEASED"
+            require_full=''
+          fi
+          printf 'base=%s\nrequest_base=%s\nhead=%s\nvalidated_base=%s\nrequire_full=%s\n' "$diff_base" "$trusted" "$HEAD_SHA" "$validated_base" "$require_full" >> "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/validation-trusted"
+          for name in policy.mjs cli.mjs; do
+            if git cat-file -e "$trusted:scripts/validation/$name" 2>/dev/null; then
+              git show "$trusted:scripts/validation/$name" > "$RUNNER_TEMP/validation-trusted/$name"
+            fi
+          done
+      - name: Independently classify actual diff (FULL on missing or failed analysis)
+        id: classify
+        env:
+          DIFF_BASE: ${{ steps.scope.outputs.base }}
+          TESTED_HEAD: ${{ steps.scope.outputs.head }}
+          REQUESTED: ${{ inputs.validation_mode || 'AUTO' }}
+          REQUEST_BASE: ${{ steps.scope.outputs.request_base }}
+          REQUIRE_FULL: ${{ steps.scope.outputs.require_full }}
+        run: |
+          set -euo pipefail
+          if test -s "$RUNNER_TEMP/validation-trusted/policy.mjs" && test -s "$RUNNER_TEMP/validation-trusted/cli.mjs"; then
+            if node "$RUNNER_TEMP/validation-trusted/cli.mjs" plan --base "$DIFF_BASE" --head "$TESTED_HEAD" --requested "$REQUESTED" --request-base "$REQUEST_BASE" --require-full "$REQUIRE_FULL" --out "$RUNNER_TEMP/validation-plan.json"; then
+              if node --input-type=module <<'VERIFY'
+          import {readFileSync} from 'node:fs'
+          const p=JSON.parse(readFileSync(process.env.RUNNER_TEMP+'/validation-plan.json','utf8'))
+          if(p.version!==1||p.head!==process.env.TESTED_HEAD||p.base!==process.env.DIFF_BASE||!['FAST','STANDARD','FULL'].includes(p.mode)||p.required?.unit!==true)throw Error('Invalid independent plan')
+          for(const key of ['unitTests','browserTests','cloudTests'])if(!Array.isArray(p[key]))throw Error('Missing test selectors')
+          if(p.checks?.typecheck!==true||p.checks.build!==true)throw Error('Build/type checks must remain required')
+          if(p.mode==='FULL'&&(p.checks.allUnit!==true||p.checks.automation!==true||p.checks.deno!==true))throw Error('FULL checks cannot be omitted')
+          for(const key of ['allUnit','automation','deno'])if(typeof p.checks[key]!=='boolean')throw Error('Invalid check requirement')
+          if(!p.checks.allUnit&&!p.unitTests.length&&!p.skipped.unitSubset)throw Error('Missing related unit test coverage/reason')
+          if(p.mode!=='FULL'&&!/^[a-f0-9]{64}$/.test(p.policyHash))throw Error('Unbound selective policy')
+          for(const job of ['browser','cloud'])if(p.mode!=='FULL'&&p.required[job]&&!p[job+'Tests'].length)throw Error('Empty selective test list')
+          for(const key of ['browser','cloud'])if(typeof p.required[key]!=='boolean'||p.mode==='FULL'&&!p.required[key]||!p.required[key]&&!p.skipped[key])throw Error('Invalid job requirement')
+          if(p.mode==='STANDARD'&&!p.required.browser)throw Error('STANDARD requires a boot/browser check')
+          VERIFY
+              then exit 0; fi
+            fi
+          fi
+          node --input-type=module <<'JS'
+          import {writeFileSync,appendFileSync} from 'node:fs'
+          import {execFileSync} from 'node:child_process'
+          const modes=['AUTO','FAST','STANDARD','FULL'];let requested=process.env.REQUESTED??'AUTO'
+          try {
+            const changed=execFileSync('git',['diff','--name-only',process.env.REQUEST_BASE,process.env.TESTED_HEAD,'--','validation.request.json'],{encoding:'utf8'}).trim()
+            if(changed){const r=JSON.parse(execFileSync('git',['show',`${process.env.TESTED_HEAD}:validation.request.json`],{encoding:'utf8'}));requested=modes.includes(r.requested)&&r.base===process.env.REQUEST_BASE?modes[Math.max(modes.indexOf(requested),modes.indexOf(r.requested))]:'FULL'}
+          } catch { requested='FULL' }
+          const plan={version:1,base:process.env.DIFF_BASE,head:process.env.TESTED_HEAD,requested,minimum:'FULL',mode:'FULL',policyHash:'trusted-policy-unavailable-full',reasons:['Policy migration, missing trusted policy, or analysis failure: FULL required.'],unitTests:[],browserTests:[],cloudTests:[],required:{unit:true,browser:true,cloud:true},checks:{allUnit:true,automation:true,deno:true,typecheck:true,build:true},skipped:{browser:null,cloud:null,unitSubset:null}}
+          writeFileSync(process.env.RUNNER_TEMP+'/validation-plan.json',JSON.stringify(plan,null,2)+'\n')
+          for(const [key,value]of Object.entries({plan:JSON.stringify(plan),mode:'FULL',browser:'true',cloud:'true',automation:'true',deno:'true'}))appendFileSync(process.env.GITHUB_OUTPUT,`${key}=${value}\n`)
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Validation: FULL\n- Requested: ${plan.requested}\n- ${plan.reasons[0]}\n- Base: ${plan.base}\n- Head: ${plan.head}\n`)
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validation-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/validation-plan.json
+          retention-days: 7
+  unit:
+    needs: changes
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.fingerprint.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npm run test:automation
-      - run: npm test
+      - name: Run policy-selected unit tests and automation checks
+        env:
+          VALIDATION_PLAN: ${{ needs.changes.outputs.plan }}
+        run: |
+          node --input-type=module <<'JS'
+          import {execFileSync} from 'node:child_process'
+          const p=JSON.parse(process.env.VALIDATION_PLAN),run=(bin,args)=>execFileSync(bin,args,{stdio:'inherit'})
+          if(p.assetFiles?.length)run('node',['scripts/validation/assets.mjs',...p.assetFiles])
+          if(p.checks.automation)run('npm',['run','test:automation'])
+          if(p.checks.allUnit)run('npm',['test','--','--maxWorkers=2'])
+          else if(p.unitTests.length)run('npx',['vitest','run',...p.unitTests])
+          else console.log('No executable change with mapped unit tests: '+p.skipped.unitSubset)
+          JS
       - uses: denoland/setup-deno@v2
+        if: needs.changes.outputs.deno == 'true'
         with:
           deno-version: v2.9.6
       - name: Check Edge Function
+        if: needs.changes.outputs.deno == 'true'
         run: deno check --no-config --node-modules-dir=none --lock=supabase/functions/deno.lock --frozen supabase/functions/game/index.ts supabase/functions/treasure/index.ts
         env:
           DENO_NO_PACKAGE_JSON: '1'
+      # npm run build already includes TypeScript; do not run tsc a second time.
       - run: npm run build
         env:
           VITE_CLOUD_ENABLED: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'true' || vars.VITE_CLOUD_ENABLED }}
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      - name: Record actual validation environment
+        id: fingerprint
+        env:
+          VITE_CLOUD_ENABLED: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'true' || vars.VITE_CLOUD_ENABLED }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          node --input-type=module <<'JS'
+          import {appendFileSync,readFileSync} from 'node:fs'
+          import {execFileSync} from 'node:child_process'
+          import {createHash} from 'node:crypto'
+          const hash=value=>createHash('sha256').update(value).digest('hex')
+          const environment={node:process.version,os:process.platform,arch:process.arch,image:process.env.ImageVersion,tree:execFileSync('git',['rev-parse','HEAD^{tree}'],{encoding:'utf8'}).trim(),lock:hash(readFileSync('package-lock.json')),cloud:process.env.VITE_CLOUD_ENABLED??'',urlHash:hash(process.env.VITE_SUPABASE_URL??''),publicKeyHash:hash(process.env.VITE_SUPABASE_ANON_KEY??'')}
+          appendFileSync(process.env.GITHUB_OUTPUT,'environment='+JSON.stringify(environment)+'\n')
+          JS
       - uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
@@ -65,6 +196,8 @@ jobs:
           path: dist/
           retention-days: 14
   browser:
+    needs: changes
+    if: needs.changes.outputs.browser == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,15 +208,26 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Resolve installed Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}
       - run: npx playwright install --with-deps chromium
-      # Keep existing desktop compatibility and all mobile/economy regressions.
-      - run: npm run test:e2e
+      - name: Probe cached browser and repair corruption at most once
+        run: node scripts/validation/browser.mjs
+      - name: Run required browser coverage
         env:
+          VALIDATION_PLAN: ${{ needs.changes.outputs.plan }}
           VITE_CLOUD_ENABLED: 'false'
+        run: |
+          node --input-type=module <<'JS'
+          import {execFileSync} from 'node:child_process'
+          const p=JSON.parse(process.env.VALIDATION_PLAN)
+          execFileSync('npx',['playwright','test',...p.browserTests],{stdio:'inherit'})
+          JS
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -91,6 +235,8 @@ jobs:
           path: test-results/
           retention-days: 7
   cloud:
+    needs: changes
+    if: needs.changes.outputs.cloud == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -101,41 +247,78 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Resolve installed Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:cloud
+      - name: Probe cached browser and repair corruption at most once
+        run: node scripts/validation/browser.mjs
+      - name: Run required cloud coverage
+        env:
+          VALIDATION_PLAN: ${{ needs.changes.outputs.plan }}
+        run: |
+          node --input-type=module <<'JS'
+          import {execFileSync} from 'node:child_process'
+          const p=JSON.parse(process.env.VALIDATION_PLAN)
+          execFileSync('npx',['playwright','test','--config=playwright.cloud.config.ts',...p.cloudTests],{stdio:'inherit'})
+          JS
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: cloud-test-results
           path: test-results/
           retention-days: 7
-  # Preserve the existing required check name. Failure/skips never become success.
+  # Preserve the required check; only explicitly policy-omitted jobs may be skipped.
   build:
     if: always()
-    needs: [unit, browser, cloud]
+    needs: [changes, unit, browser, cloud]
     runs-on: ubuntu-latest
     steps:
-      - name: Require every validation job
+      - name: Require every selected validation job
         env:
+          CHANGES: ${{ needs.changes.result }}
           UNIT: ${{ needs.unit.result }}
           BROWSER: ${{ needs.browser.result }}
           CLOUD: ${{ needs.cloud.result }}
-        run: test "$UNIT" = success && test "$BROWSER" = success && test "$CLOUD" = success
+          VALIDATION_PLAN: ${{ needs.changes.outputs.plan }}
+        run: |
+          node --input-type=module <<'JS'
+          import {appendFileSync} from 'node:fs'
+          if(process.env.CHANGES!=='success')throw Error('Diff analysis did not complete')
+          const p=JSON.parse(process.env.VALIDATION_PLAN)
+          if(p.version!==1||!['FAST','STANDARD','FULL'].includes(p.mode)||p.required.unit!==true)throw Error('Invalid validation plan')
+          for(const job of ['unit','browser','cloud']){
+            const required=job==='unit'||p.mode==='FULL'||job==='browser'&&p.mode==='STANDARD'||p.required[job],result=process.env[job.toUpperCase()]
+            if(typeof p.required[job]!=='boolean')throw Error('Missing job requirement')
+            if(required&&result!=='success')throw Error(`${job}: required, received ${result}`)
+            if(!required&&(result!=='skipped'||!p.skipped[job]))throw Error(`${job}: missing explicit policy skip`)
+          }
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Required build gate passed\n- Applied: ${p.mode}\n- Every required job succeeded. Intentional skips: ${JSON.stringify(p.skipped)}\n`)
+          JS
       - name: Record exact validated PR head
         if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
         env:
           TESTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          VALIDATION_PLAN: ${{ needs.changes.outputs.plan }}
+          VALIDATION_ENV: ${{ needs.unit.outputs.environment }}
         run: |
           mkdir validation-proof
           printf '%s\n' "$TESTED_HEAD" > validation-proof/head.txt
+          node --input-type=module <<'JS'
+          import {writeFileSync} from 'node:fs'
+          if(JSON.parse(process.env.VALIDATION_PLAN).head!==process.env.TESTED_HEAD)throw Error('Proof head differs from tested head')
+          writeFileSync('validation-proof/plan.json',process.env.VALIDATION_PLAN+'\n')
+          writeFileSync('validation-proof/environment.json',process.env.VALIDATION_ENV+'\n')
+          JS
       - uses: actions/upload-artifact@v4
         if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
         with:
-          name: validated-head-${{ github.event.pull_request.head.sha || github.sha }}-base-${{ needs.unit.outputs.validated_base }}
+          name: validated-head-${{ github.event.pull_request.head.sha || github.sha }}-base-${{ needs.changes.outputs.validated_base }}
+          overwrite: true
           path: validation-proof/
           retention-days: 7
   plan:
@@ -284,11 +467,16 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Resolve installed Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.pw.outputs.version }}
       - run: npx playwright install --with-deps chromium
+      - name: Probe cached browser and repair corruption at most once
+        run: node scripts/validation/browser.mjs
       - name: Read-only live mobile boot check
         run: npx playwright test --config playwright.production.config.ts
         env:

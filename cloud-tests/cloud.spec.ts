@@ -204,7 +204,10 @@ test('two devices share new names, adoptees and furniture without modifying the 
  // bounding box can instead press a different friend walking across this spot.
  await lulu.locator('.friend-figure').hover()
  await page.mouse.down()
- await expect(lulu).toHaveAttribute('data-phase','pressing')
+ // The initial pressing phase can elapse while the browser protocol is busy.
+ // Keep verifying a real active hold before dragging, not a short-lived frame.
+ await expect(lulu).toHaveAttribute('data-phase',/^(pressing|petting|bonding)$/)
+ await expect.poll(()=>!!backend.row().holds.lulu).toBe(true)
  const box=await lulu.locator('.friend-figure').boundingBox()
  await page.mouse.move(box!.x+box!.width/2+35,box!.y+box!.height/2+15,{steps:4})
  await expect(lulu).toHaveAttribute('data-phase','dragging')
@@ -374,7 +377,7 @@ test('natural status balance syncs one elapsed interval to two devices after bro
   backend.setTime(epoch+15*60000)
   // Heartbeats must follow performance.now rather than the forged wall clock.
   await page.evaluate(()=>{Date.now=()=>Date.parse('2000-01-01T00:00:00Z')})
-  await page.clock.runFor(31000)
+  await page.clock.fastForward(31000)
   await expect.poll(()=>backend.row().data!.friends[0].stats.energy).toBeGreaterThanOrEqual(42)
   expect(backend.row().data!.friends[0].stats.energy).toBeCloseTo(expectedEnergy(),8)
   await second.getByRole('button',{name:'새로 동기화',exact:true}).click();await second.getByRole('button',{name:'모모 상태 확인'}).click();await page.getByRole('button',{name:'모모 상태 확인'}).click()
@@ -407,7 +410,7 @@ test('background refresh keeps the board usable and queued player work never fad
     await route.fallback()
   })
   try {
-    await page.clock.runFor(31000)
+    await page.clock.fastForward(31000)
     await expect(page.locator('.cloud-status')).toContainText('백그라운드 동기화 중')
     await expect(tiles.first()).toBeEnabled()
     await expect(tiles.first()).toHaveCSS('opacity', '1')

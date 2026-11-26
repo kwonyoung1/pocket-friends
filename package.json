@@ -22,7 +22,11 @@
     "test:automation": "node scripts/automation/tests.mjs",
     "automation:submit": "node scripts/automation/submit.mjs",
     "automation:watch": "node scripts/automation/watch.mjs",
-    "test:production": "playwright test --config playwright.production.config.ts"
+    "test:production": "playwright test --config playwright.production.config.ts",
+    "validate:plan": "node scripts/validation/cli.mjs plan --worktree",
+    "validate:request": "node scripts/validation/cli.mjs request",
+    "validate:run": "node scripts/validation/cli.mjs run",
+    "test:validation": "node --test scripts/validation/*.test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "^5.3.1",

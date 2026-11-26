@@ -15,7 +15,8 @@ test('only fixed special IDs speak ambiently after renaming, while quiet friends
  // Isolate the ambient scheduler from randomly initiated conversations.
  await page.addInitScript(()=>{Math.random=()=>.99})
  const s=fixture();s.friends[4].name='영이';s.friends[5].name='찬미';s.friends.forEach(f=>{f.nextSpeech=epoch+20000;f.socialAfter=epoch+999999})
- await seed(page,s);await page.clock.runFor(30000)
+ await seed(page,s);// Skip only the interval before speech is eligible; preserve both sequential speech slots.
+ await page.clock.fastForward(18000);await page.clock.runFor(12000)
  for(const id of ['momo','bibi','coco','dudu'])await expect(page.getByTestId(`room-${id}`).locator('.speech')).toHaveCount(0)
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('pocket-friends-v1')!))
  expect(saved.friends.filter((f:{id:string})=>f.id.startsWith('special-')).every((f:{bubble:string})=>/[가-힣]/.test(f.bubble)), JSON.stringify(saved.friends.map((f:{id:string;bubble:string;nextSpeech:number})=>({id:f.id,bubble:f.bubble,next:f.nextSpeech,saved:saved.savedAt})))).toBe(true)

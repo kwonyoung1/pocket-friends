@@ -56,7 +56,7 @@ test('competition plays an entire random 8x8 board, freezes time, displays one b
  }
  await expect(page.getByText('🎉 경쟁모드 완료!')).toBeVisible();const saved=await snapshot(page),record=saved.world.sichuan.bests[0]
  expect(saved.world.coins).toBe(300);expect(record.nickname).toBe('찬미');expect(record.elapsedMs).toBeGreaterThanOrEqual(31*600);expect(record.elapsedMs).toBeLessThan(32*1100)
- await page.clock.runFor(10000);expect((await snapshot(page)).world.sichuan.bests[0].elapsedMs).toBe(record.elapsedMs)
+ await page.clock.fastForward(10000);await page.clock.runFor(32);expect((await snapshot(page)).world.sichuan.bests[0].elapsedMs).toBe(record.elapsedMs)
  await page.getByRole('button',{name:'경쟁 시작',exact:true}).click();expect((await board(page)).tiles).not.toEqual(first.tiles)
  await page.screenshot({path:`/tmp/pocket-sichuan-${test.info().project.name}.png`,fullPage:true})
 })

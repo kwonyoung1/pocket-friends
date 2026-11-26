@@ -1,3 +1,4 @@
+import {parseRequest} from '../validation/policy.mjs'
 import {appendFileSync} from 'node:fs'
 import {plan,git} from './policy.mjs'
 export const internalMainRun=(run,repo)=>run.head_branch==='main'&&['push','workflow_dispatch'].includes(run.event)&&run.head_repository?.full_name===`${repo.owner}/${repo.repo}`
@@ -15,6 +16,16 @@ export async function submit({github,context,core,branch=context.ref.replace('re
  for(let attempt=0;attempt<3;attempt++){runs=(await github.rest.actions.listWorkflowRuns({...repo,workflow_id:'deploy.yml',head_sha:sha,per_page:30})).data.workflow_runs;if(runs.some(r=>r.head_sha===sha&&r.conclusion!=='cancelled'))break;if(attempt<2)await pause(2000)}
  if(!runs.some(r=>r.head_sha===sha&&r.conclusion!=='cancelled'))await github.rest.actions.createWorkflowDispatch({...repo,workflow_id:'deploy.yml',ref:branch,inputs:{validation_pr:String(pr.number)}})
  const files=await github.paginate(github.rest.pulls.listFiles,{...repo,pull_number:pr.number})
+ // Metadata is a request only. CI independently reads actual files with main's policy.
+ if(files.some(f=>f.filename==='validation.request.json')){
+  let requested='FULL'
+  try{const {data}=await github.rest.repos.getContent({...repo,path:'validation.request.json',ref:sha});requested=parseRequest(Buffer.from(data.content,'base64').toString('utf8'),pr.base.sha)}catch{/* Invalid/stale metadata never advertises a lower request. */}
+  const marker='<!-- pocket-validation-request -->',end='<!-- /pocket-validation-request -->',body=pr.body??'',start=body.indexOf(marker),stop=body.indexOf(end,start)
+  const block=`${marker}\n검증 등급 요청: **${requested}**\n실제 변경 위험도보다 낮은 요청은 CI에서 자동 상향됩니다.\n${end}`
+  const updated=start>=0&&stop>=start?body.slice(0,start)+block+body.slice(stop+end.length):body.trimEnd()+'\n\n'+block
+  await github.rest.pulls.update({...repo,pull_number:pr.number,body:updated})
+ }
+
  if(files.some(f=>/^(?:effects-lab\/|src\/effects-lab\/|public\/effects-lab\/|effects-tests\/|scripts\/.*effects|playwright.effects.config.ts$|package(?:-lock)?\.json$|vite.config.ts$)/.test(f.filename))){
   const effects=(await github.rest.actions.listWorkflowRuns({...repo,workflow_id:'effects-lab.yml',head_sha:sha,per_page:30})).data.workflow_runs
   if(!effects.some(r=>r.head_sha===sha&&r.conclusion!=='cancelled'))await github.rest.actions.createWorkflowDispatch({...repo,workflow_id:'effects-lab.yml',ref:branch})

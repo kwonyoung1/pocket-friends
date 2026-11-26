@@ -5,7 +5,7 @@ import {life} from '../src/expansion/model'
 const at=Date.parse('2026-10-19T03:00:00Z'),hour=3600000
 function sample(){const s=freshWorld(at);for(const f of s.friends){f.stats={hunger:100,hygiene:100,happiness:100,energy:40,affection:47};life(f,at)}return s}
 async function seed(page:Page,s=sample()){
- await page.clock.install({time:new Date(at)});await page.clock.pauseAt(new Date(at))
+ await page.clock.install({time:new Date(at-60000)});await page.clock.pauseAt(new Date(at))
  await page.addInitScript(raw=>{if(!sessionStorage.getItem('status-seed')){localStorage.setItem('pocket-friends-v1',raw);sessionStorage.setItem('status-seed','1')}},JSON.stringify(s))
  await page.goto('/');await expect(page.getByTestId('room-momo')).toBeVisible();await page.getByRole('button',{name:`${s.friends[0].name} 상태 확인`}).click()
 }
