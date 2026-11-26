@@ -4,7 +4,8 @@ import {freshWorld} from '../src/cloud/engine'
 import {newSichuan} from '../src/sichuan/state'
 const epoch=Date.parse('2026-10-17T14:59:58Z')
 async function seed(page:Page,s=freshWorld(epoch)){
- await page.clock.install({time:new Date(s.savedAt)});await page.clock.pauseAt(new Date(s.savedAt))
+ // Leave headroom between installing a ticking clock and pausing at the exact test epoch.
+ await page.clock.install({time:new Date(s.savedAt-60000)});await page.clock.pauseAt(new Date(s.savedAt))
  await page.addInitScript(s=>{if(!sessionStorage.getItem('recovery-seed')){localStorage.setItem('pocket-friends-v1',JSON.stringify(s));sessionStorage.setItem('recovery-seed','1')}},s)
  await page.goto('/');await expect(page.getByTestId('room-momo')).toBeVisible()
 }

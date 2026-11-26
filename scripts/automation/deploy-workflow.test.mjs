@@ -36,15 +36,18 @@ test('pull requests and non-main dispatches never deploy to production',()=>{
  assert.equal(scheduled({ref:'refs/heads/codex/fix',event:'workflow_dispatch'}),false)
  assert.equal(scheduled({event:'workflow_dispatch'}),true)
 })
-test('independent browser and cloud jobs start in parallel while build still requires every full validation suite',()=>{
+test('browser and cloud start after independent classification; required build keeps the policy-aware failure gate',()=>{
  const browser=workflow.split('\n  browser:\n')[1].split('\n  cloud:\n')[0]
  const cloud=workflow.split('\n  cloud:\n')[1].split('\n  build:\n')[0]
  const build=workflow.split('\n  build:\n')[1].split('\n  plan:\n')[0]
- for(const job of [browser,cloud])assert.doesNotMatch(job,/^    needs:/m)
- assert.match(browser,/run: npm run test:e2e/)
- assert.match(cloud,/run: npm run test:cloud/)
- assert.match(build,/needs: \[unit, browser, cloud\]/)
- assert.match(build,/test "\$UNIT" = success && test "\$BROWSER" = success && test "\$CLOUD" = success/)
+ for(const job of [browser,cloud])assert.match(job,/^    needs: changes$/m)
+ assert.match(browser,/needs.changes.outputs.browser == 'true'/)
+ assert.match(cloud,/needs.changes.outputs.cloud == 'true'/)
+ assert.match(browser,/p.browserTests/);assert.match(cloud,/p.cloudTests/)
+ assert.match(build,/needs: \[changes, unit, browser, cloud\]/)
+ assert.match(build,/required&&result!=='success'/)
+ assert.match(build,/result!=='skipped'\|\|!p.skipped\[job\]/)
+ assert.match(build,/validated-head-.*-base-/)
 })
 
 test('Pages release and rollback pass the immutable upload ID through the bounded OIDC publisher',()=>{

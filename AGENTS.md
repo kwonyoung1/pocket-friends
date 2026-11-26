@@ -47,3 +47,32 @@
   and URL/SHA verification separately. Do not claim production completion before
   verification. If first-time setup/API access is blocked, link AUTO_DEPLOY_SETUP.md
   and name exactly what remains incomplete; settings docs do not grant access.
+
+## Shared risk-based validation (default AUTO)
+
+- Read `docs/VALIDATION_POLICY.md`; local and CI decisions use
+  `scripts/validation/policy.mjs`. A prompt may specify `검증 등급: AUTO`, `FAST`,
+  `STANDARD` or `FULL`. Choose the higher of requested and inferred risk.
+- Before local checks, use `npm run validate:plan -- --base origin/main --out /tmp/pocket-validation-plan.json`.
+  This includes tracked worktree edits and untracked files. Uncertain classification
+  means FULL, never assume a filename alone proves safety.
+- For an explicit request, run `npm run validate:request -- --mode FAST --base origin/main`
+  (substitute the requested mode), and commit the base-bound `validation.request.json`.
+  The auto-PR annotation mirrors that file; body/labels/commit text cannot lower CI.
+  An unchanged file inherited from a previous task does not carry its request forward.
+- FAST: mapped unit checks, one production build (already includes TypeScript),
+  relevant asset checks; omit unrelated E2E/cloud and long simulation tools.
+- STANDARD: related units, selected feature browser/cloud coverage, one build.
+- FULL: all units, automation/validation tests, frozen Deno checks, one build,
+  full existing browser and cloud suites. Tooling/workflow changes require FULL.
+- Do not repeat a passing check for unchanged relevant code and environment. A
+  changed implementation, failed check or new unresolved concern justifies reruns
+  of affected checks. Local results never substitute for CI's independent decision.
+- CI executes the classifier from trusted main/base, not the candidate branch's
+  policy. First policy migration or unavailable/failed analysis runs FULL.
+- Preserve protected reviews, exact head/base proof and all production SHA/asset/
+  read-only boot/server gates. Only explicitly policy-omitted jobs may be skipped;
+  required failures, cancellations, missing jobs and unexpected skips block `build`.
+- On a resource-limited local machine, run the FULL browser/cloud tasks sequentially;
+  separate CI jobs have separate CPUs, but simultaneous local software-GPU suites
+  can create unrelated timeouts. Recheck only failed affected cases after diagnosis.

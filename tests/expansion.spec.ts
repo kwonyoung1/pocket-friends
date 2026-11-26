@@ -183,7 +183,7 @@ test('three silent hamsters roam independently; recovery preserves the full disc
     })
   await seed(page, s)
   await expect(page.locator('.room-hamster')).toHaveCount(3)
-  await page.clock.runFor(12000)
+  await page.clock.fastForward(12000);await page.clock.runFor(32)
   await expect(page.locator('.room-hamster .speech')).toHaveCount(0)
   await life(page)
   await page.getByRole('button', { name: '햄스터', exact: true }).click()
