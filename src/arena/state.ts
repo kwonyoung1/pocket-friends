@@ -1,5 +1,5 @@
 import type {Move,Profiles} from './types.ts'
-export const ARENA_RULES=7
+export const ARENA_RULES=8
 export const ARENA_LIMITS={moves:160,tickets:16,ticketMs:6*3600000,rewardedClears:5,coinsPerDay:120,xpPerFriendDay:100,seasonXpPerDay:16000,maxCoins:1e12} as const
 export type ArenaReward={coins:number;xp:number;stones:number;treasure?:string;first:boolean;capped:boolean;chests?:Partial<Record<import('./beast-state.ts').ChestId,number>>}
 export type ArenaTicket={id:string;owner:string;stageId:string;party:string[];profiles:Profiles;seed:number;rules:number;startedAt:number;expiresAt:number;moves:Move[];status:'active'|'claimed'|'abandoned';reward?:ArenaReward;energyCost?:number;costLimit?:number}
@@ -25,7 +25,7 @@ export function restoreArena(value:unknown):ArenaProgress{
   if(a.energy.lastMidnight!==undefined&&!/^\d{4}-\d{2}-\d{2}$/.test(a.energy.lastMidnight))throw Error('에너지 날짜를 확인해 주세요.')
   if(a.layoutVersion!==undefined&&a.layoutVersion!==2||a.chapterAccess!==undefined&&!integer(a.chapterAccess,1,14))throw Error('챕터 진행 기록을 확인해 주세요.')
  }
- for(const a of Object.values(p.accounts??{})){const f=a.lastFusion;if(f&&(!a.beasts[f.beastId]||!integer(f.fromStars,1,4)||f.toStars!==f.fromStars+1||!integer(f.shards,1,999999)||!Number.isFinite(f.at)))throw Error('합성 결과 기록을 확인해 주세요.')}
+ for(const a of Object.values(p.accounts??{})){const f=a.lastFusion;if(f&&(!(a.beasts[f.beastId]??a.adventurers?.[f.beastId])||!integer(f.fromStars,1,4)||f.toStars!==f.fromStars+1||!integer(f.shards,1,999999)||!Number.isFinite(f.at)))throw Error('합성 결과 기록을 확인해 주세요.')}
  for(const a of Object.values(p.accounts??{})){
   if(a.commandRelic!==undefined&&typeof a.commandRelic!=='boolean')throw Error('지휘 인장 기록을 확인해 주세요.')
   if(a.eventClears&&Object.keys(a.eventClears).length>32)throw Error('이벤트 진행 기록이 너무 많아요.')
@@ -33,6 +33,6 @@ export function restoreArena(value:unknown):ArenaProgress{
   const s=a.shop;if(s){if(!s.training||!s.skills||!s.scrolls||!integer(s.command,0,3)||Object.keys(s.training).length>64||Object.keys(s.skills).length>64||Object.keys(s.scrolls).length>4)throw Error('별빛 상점 기록을 확인해 주세요.');for(const t of Object.values(s.training))if(!integer(t.hp,0,30)||!integer(t.atk,0,30)||!integer(t.def,0,30))throw Error('훈련 기록을 확인해 주세요.');for(const skills of Object.values(s.skills))for(const [id,n]of Object.entries(skills))if(!['basic','active1','active2','ultimate'].includes(id)||!integer(n,0,10))throw Error('스킬 강화 기록을 확인해 주세요.');for(const [id,n]of Object.entries(s.scrolls))if(!['small','medium','large','legendary'].includes(id)||!integer(n,0,9999))throw Error('주문서 기록을 확인해 주세요.')}
  }
  if(p.season!==undefined&&p.season!==2)throw Error('아레나 시즌을 확인해 주세요.')
- for(const a of Object.values(p.accounts??{})){if(Object.keys(a.growth??{}).length>64||Object.keys(a.adventurers??{}).length>8)throw Error('아레나 전용 성장 범위를 확인해 주세요.');for(const g of [...Object.values(a.growth??{}),...Object.values(a.adventurers??{})])if(!integer(g.level,1,50)||!integer(g.xp,0,100000))throw Error('아레나 전용 성장 기록을 확인해 주세요.');for(const h of Object.values(a.adventurers??{}))if(!integer(h.shards,0,999999)||!integer(h.duplicates,0,Number.MAX_SAFE_INTEGER)||!Number.isFinite(h.at))throw Error('모험가 소유 기록을 확인해 주세요.')}
+ for(const a of Object.values(p.accounts??{})){if(Object.keys(a.growth??{}).length>64||Object.keys(a.adventurers??{}).length>8)throw Error('아레나 전용 성장 범위를 확인해 주세요.');for(const g of [...Object.values(a.growth??{}),...Object.values(a.adventurers??{})])if(!integer(g.level,1,50)||!integer(g.xp,0,100000))throw Error('아레나 전용 성장 기록을 확인해 주세요.');for(const h of Object.values(a.adventurers??{}))if(!integer(h.shards,0,999999)||!integer(h.duplicates,0,Number.MAX_SAFE_INTEGER)||!Number.isFinite(h.at)||(h.stars!==undefined&&!integer(h.stars,1,5)))throw Error('모험가 소유 기록을 확인해 주세요.')}
  return p
 }

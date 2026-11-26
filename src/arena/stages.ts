@@ -50,7 +50,14 @@ export type Stage={id:string;index:number;region:RegionId;number:number;name:str
 export const STAGES:Stage[]=REGIONS.flatMap((r,ri)=>Array.from({length:ri<3?5:10},(_,si)=>{
  const index=ri<3?ri*5+si:15+(ri-3)*10+si,id=`${ri+1}-${si+1}`,[a,b,e,mid]=r.monsters,boss=ri<3?si===4:si===9,midBoss=ri>=3&&si===4
  const final=ri>=3&&ri<10?r.id+'-sovereign':mid
- const waves=si===9?[[e,b],[a,e],[final,b]]:si===4?[[a,b],[ri>=10?e:mid,b]]:si===8?[[e,a],[b,e]]:si===7?[[e,e,b]]:si===6?[[e,b,e]]:si===5?[[a,b],[e,a]]:si===0?[[a,...(ri?[b]:[])]]:si===1?[[a,a]]:si===2?[[e,b]]:[[b,e,a]]
+ const originalWaves=si===9?[[e,b],[a,e],[final,b]]:si===4?[[a,b],[ri>=10?e:mid,b]]:si===8?[[e,a],[b,e]]:si===7?[[e,e,b]]:si===6?[[e,b,e]]:si===5?[[a,b],[e,a]]:si===0?[[a,...(ri?[b]:[])]]:si===1?[[a,a]]:si===2?[[e,b]]:[[b,e,a]]
+ const chapter=ri+1,range=chapter<=3?null:chapter===4?[2,3]:chapter<=6?[3,4]:chapter===7?[4,4]:chapter<=9?[4,5]:[5,6]
+ const waves=originalWaves.map((wave,wi)=>{
+  if(!range)return wave
+  const count=range[(si+wi)%2],line=[...wave],pool=[a,b,a,b,e]
+  for(let n=0;line.length<count;n++)line.push(pool[(si+wi+n)%pool.length])
+  return line
+ })
  const oldIndex=ri*5+Math.min(si,4)
  return{id,index,chapter:ri+1,region:r.id,number:si+1,name:`${r.name} ${id}`,level:index<15?[1,1,2,5,7,10,14,17,20,23,26,29,32,35,35][index]:Math.min(50,35+Math.floor((index-14)/5)),boss,midBoss,waves,requires:index?`${si?ri+1:ri}-${si||(ri<=3?5:10)}`:undefined,...stageTerms(index,boss||midBoss,Math.min(49,oldIndex))}
 }))

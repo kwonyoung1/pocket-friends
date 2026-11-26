@@ -1,3 +1,4 @@
+import {stageById as stage7} from './legacy-v7/stages.ts'
 import {stageById as stage6} from './legacy-v6/stages.ts'
 import {stageById as stage5} from './legacy-v5/stages.ts'
 import {continueSeason2,arenaGrowth,growArena} from './season2.ts'
@@ -20,7 +21,7 @@ import type {ArenaAccount} from './beast-state.ts'
 import {BEAST_LIMITS,addBeastXp} from './beast-state.ts'
 import {beastById} from './beasts.ts'
 import {chestById,chestForStage,openChest,trainBeast} from './chests.ts'
-import {fuseBeast} from './fusion.ts'
+import {fuseBeast,fusionHero} from './fusion.ts'
 import {energySpend,settleEnergy,energyDay} from './energy.ts'
 import {extendsCheckpoint,replay} from './replay.ts'
 const text=(x:unknown,n=100):x is string=>typeof x==='string'&&x.length>0&&x.length<=n
@@ -37,7 +38,7 @@ export function validateArena(value:Record<string,unknown>):ArenaCommand{
   if(['scroll-buy','scroll-use'].includes(value.item as string)&&(!scrollById(value.scrollId as string)||!Number.isInteger(value.quantity)||(value.quantity as number)<1||(value.quantity as number)>99))throw Error('주문서와 수량을 확인해 주세요.')
   return value as ArenaCommand
  }
- if(value.type==='arena-fuse'){if(!text(value.beastId,40)||!beastById(value.beastId)||!Number.isInteger(value.fromStars)||(value.fromStars as number)<1||(value.fromStars as number)>4)throw Error('합성할 요정와 성급을 확인해 주세요.');return value as ArenaCommand}
+ if(value.type==='arena-fuse'){if(!text(value.beastId,40)||!fusionHero(value.beastId)||!Number.isInteger(value.fromStars)||(value.fromStars as number)<1||(value.fromStars as number)>4)throw Error('합성할 요정와 성급을 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-share'||value.type==='arena-season-start')return {type:value.type}
  if(value.type==='arena-select'){if(!validArenaId(value.accountId)||!validArenaId(value.previousOwner))throw Error('보존된 아레나 기록을 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-start'){if(!text(value.stageId,12)||!stageById(value.stageId)||!Array.isArray(value.party)||!value.party.length||value.party.length>5||value.party.some(x=>!text(x,60)))throw Error('스테이지와 파티를 확인해 주세요.');return value as ArenaCommand}
@@ -56,7 +57,7 @@ export function arenaAccount(p:ArenaProgress,user:string,now:number):ArenaAccoun
 }
 function ownTicket(p:ArenaProgress,user:string,runId:string,now:number,allowExpired=false):ArenaTicket{const t=p.tickets[user];if(!t||t.owner!==user||t.id!==runId)throw Error('이 계정의 진행 중인 전투가 아니에요.');if(t.status==='abandoned')throw Error('이미 종료한 전투예요.');if(!allowExpired&&t.expiresAt<now)throw Error('전투 유효 시간이 지났어요. 새 전투로 시작해 주세요.');return t}
 function firstProfiles(save:Save,a:ArenaAccount,party:string[]):Profiles{return Object.fromEntries(party.map(id=>{
- if(adventurerById(id)){const b=a.adventurers?.[id];if(!b)throw Error('보유한 모험가만 출전할 수 있어요.');return[id,{level:b.level,name:adventurerById(id)!.name,training:{...trainingOf(a.shop,id)},skillLevels:{...a.shop?.skills[id]}}]}
+ if(adventurerById(id)){const b=a.adventurers?.[id];if(!b)throw Error('보유한 모험가만 출전할 수 있어요.');return[id,{level:b.level,name:adventurerById(id)!.name,stars:b.stars??1,training:{...trainingOf(a.shop,id)},skillLevels:{...a.shop?.skills[id]}}]}
  if(beastById(id)){const b=a.beasts[id];if(!b)throw Error('보유한 요정만 출전할 수 있어요.');return[id,{level:b.level,name:beastById(id)!.name,mastery:b.mastery,stars:b.stars??1,training:{...trainingOf(a.shop,id)},skillLevels:{...a.shop?.skills[id]}}]}
  const f=save.friends.find(f=>f.id===id);if(!f||!heroById(id,f.kind))throw Error('보유한 친구만 출전할 수 있어요.');const level=arenaGrowth(a,id).level;if(!Number.isInteger(level)||level<1||level>50)throw Error('친구의 실제 성장 레벨을 확인해 주세요.');const gear=equippedArenaBonus(save.world?.equipment?.instances??[],id);return[id,{level,name:/^(남자아이|여자아이)$/.test(f.name)?heroById(id,f.kind).name:f.name,kind:f.kind,gear,training:{...trainingOf(a.shop,id)},skillLevels:{...a.shop?.skills[id]}}]
  }))}
@@ -81,7 +82,7 @@ export function arenaCommand(save:Save,c:ArenaCommand,user:string,now:number,see
  if(['arena-start','arena-shop','arena-open','arena-train','arena-fuse','arena-adventurer-train'].includes(c.type)&&p.season!==2)throw Error('시즌 2 전환을 먼저 완료해 주세요. 기존 기록은 보관돼요.')
  if(c.type==='arena-shop')return shopCommand(save,a,c,now)
  if(c.type==='arena-adventurer-train'){const h=a.adventurers?.[c.adventurerId];if(!h||h.level>=50||h.shards<5)throw Error('보유한 모험가의 레벨과 전용 조각을 확인해 주세요.');h.shards-=5;growArena(h,100);return '모험가 조각 5개로 아레나 경험치 100을 얻었어요.'}
- if(c.type==='arena-fuse'){const result=fuseBeast(a,c.beastId,c.fromStars,now);return `${beastById(c.beastId)!.name} ★${result.toStars} 합성 완료! 전용 조각 ${result.shards}개를 사용했어요.`}
+ if(c.type==='arena-fuse'){const result=fuseBeast(a,c.beastId,c.fromStars,now);return `${fusionHero(c.beastId)!.name} ★${result.toStars} 합성 완료! 전용 조각 ${result.shards}개를 사용했어요.`}
  if(c.type==='arena-open'){
   const repeated=c.nonce===a.opens&&a.lastOpening?.nonce===c.nonce,result=openChest(a,c.chest,c.nonce,now,random);if(repeated)return '이미 개봉한 상자의 결과를 다시 확인했어요.'
   if(result.coins){result.coins=grantCoins(save,p,result.coins,'별빛 상자 보상',now);if(!result.coins)result.stones=1}
@@ -109,7 +110,7 @@ export function arenaCommand(save:Save,c:ArenaCommand,user:string,now:number,see
  if(c.type==='arena-checkpoint'){t.moves=structuredClone(c.moves);return '전투 행동 기록을 안전하게 보관했어요.'}
  if(result.phase!=='victory')throw Error('서버에서 승리를 확인하지 못했어요.')
  if(now<t.startedAt+Math.min(3000,c.moves.length*160))throw Error('전투 완료를 너무 빠르게 요청했어요.')
- const stage=t.rules===1?{...legacyStage(t.stageId)!,event:undefined}:t.rules<=4?stage4(t.stageId)!:t.rules===5?stage5(t.stageId)!:t.rules===6?stage6(t.stageId)!:stageById(t.stageId)!,oldClears=t.rules<=4&&p.season===2&&p.season1Archive?((p.legacyCleared??={})[owner]??=structuredClone(p.season1Archive.accounts[owner]?.cleared??p.season1Archive.cleared)):undefined,cleared=stage.event?(a.eventClears??={}):oldClears??(t.rules===1?p.cleared:a.cleared),old=cleared[stage.id],first=!old?.firstRewarded,firstLoot=!(old?.firstBonusGranted??old?.firstRewarded),terms=first?stage.first:stage.repeat,eligible=t.rules===1?p.daily.clears<ARENA_LIMITS.rewardedClears&&p.daily.coins<ARENA_LIMITS.coinsPerDay:p.daily.coins+(t.rules>=4&&first?terms.coins:0)<=(t.rules>=4&&first?BEAST_LIMITS.worldCoinsPerDay:BEAST_LIMITS.worldCoinsPerDay-1)
+ const stage=t.rules===1?{...legacyStage(t.stageId)!,event:undefined}:t.rules<=4?stage4(t.stageId)!:t.rules===5?stage5(t.stageId)!:t.rules===6?stage6(t.stageId)!:t.rules===7?stage7(t.stageId)!:stageById(t.stageId)!,oldClears=t.rules<=4&&p.season===2&&p.season1Archive?((p.legacyCleared??={})[owner]??=structuredClone(p.season1Archive.accounts[owner]?.cleared??p.season1Archive.cleared)):undefined,cleared=stage.event?(a.eventClears??={}):oldClears??(t.rules===1?p.cleared:a.cleared),old=cleared[stage.id],first=!old?.firstRewarded,firstLoot=!(old?.firstBonusGranted??old?.firstRewarded),terms=first?stage.first:stage.repeat,eligible=t.rules===1?p.daily.clears<ARENA_LIMITS.rewardedClears&&p.daily.coins<ARENA_LIMITS.coinsPerDay:p.daily.coins+(t.rules>=4&&first?terms.coins:0)<=(t.rules>=4&&first?BEAST_LIMITS.worldCoinsPerDay:BEAST_LIMITS.worldCoinsPerDay-1)
  const reward:ArenaReward={coins:0,xp:0,stones:0,first,capped:!eligible}
  if(t.rules!==1){const box=stage.event?'christmas':chestForStage(stage.index,stage.boss,random),count=stage.event?1:(t.rules>=4?firstLoot:first)&&stage.boss?2:1;if((a.chests[box]??0)+count>BEAST_LIMITS.chests)throw Error('보물상자를 먼저 개봉하고 같은 결과로 다시 확인해 주세요.');a.chests[box]=(a.chests[box]??0)+count;reward.chests={[box]:count}}
  if(eligible){

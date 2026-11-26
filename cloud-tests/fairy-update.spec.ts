@@ -1,6 +1,8 @@
 import {test} from './fixture'
 import {expect} from '@playwright/test'
 import type {Page} from '@playwright/test'
+// Keep software-GPU work bounded; all four CSS portrait sizes and real touch stay intact.
+test.use({deviceScaleFactor:1})
 test.skip(({isMobile})=>!isMobile,'Touch-first portrait coverage')
 async function login(page:Page,secret:string){await page.goto('/');await page.getByLabel('접속 비밀번호').fill(secret);await page.getByRole('button',{name:'입장하기',exact:true}).click();await page.getByRole('button',{name:'새 공유 월드로 시작하기',exact:true}).click();await page.getByRole('button',{name:'확인하고 공유 월드 만들기',exact:true}).click();await page.getByRole('button',{name:'이 클라우드 월드 사용하기',exact:true}).click();await page.getByRole('button',{name:'별빛 아레나',exact:true}).tap()}
 async function reopen(page:Page){await page.reload();await page.getByRole('button',{name:'이 클라우드 월드 사용하기',exact:true}).click();await page.getByRole('button',{name:'별빛 아레나',exact:true}).tap()}
@@ -46,7 +48,7 @@ test('six late regions render their own lazy HD battle assets and 10-stage navig
   if(i===0){await page.getByRole('button',{name:'전투 연출 설정',exact:true}).tap();await page.getByLabel('풍부한 이펙트').uncheck();await page.getByRole('button',{name:'전투 연출 설정',exact:true}).tap()}
   if(await page.locator('.battle-view').getAttribute('data-phase')==='battle'){
    await page.getByTestId('skill-basic').tap();await page.getByRole('button',{name:'선택한 스킬 사용',exact:true}).tap()
-   await expect.poll(async()=>await page.locator('.battle-view').getAttribute('data-phase')!=='battle'||await page.locator('.battle-view').getAttribute('data-busy')==='false',{timeout:30000}).toBe(true)
+   await expect.poll(async()=>await page.locator('.battle-view').getAttribute('data-phase')!=='battle'||await page.locator('.battle-view').getAttribute('data-busy')==='false'&&await page.locator('.battle-view').getAttribute('data-side')==='ally',{timeout:30000}).toBe(true)
    await page.screenshot({path:test.info().outputPath(`hit-${keys[i]}.png`)})
   }
   if(await page.locator('.battle-view').getAttribute('data-phase')==='battle')await page.getByRole('button',{name:'편성으로 돌아가기',exact:true}).tap()
