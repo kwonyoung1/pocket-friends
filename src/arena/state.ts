@@ -1,5 +1,5 @@
 import type {Move,Profiles} from './types.ts'
-export const ARENA_RULES=8
+export const ARENA_RULES=9
 export const ARENA_LIMITS={moves:160,tickets:16,ticketMs:6*3600000,rewardedClears:5,coinsPerDay:120,xpPerFriendDay:100,seasonXpPerDay:16000,maxCoins:1e12} as const
 export type ArenaReward={coins:number;xp:number;stones:number;treasure?:string;first:boolean;capped:boolean;chests?:Partial<Record<import('./beast-state.ts').ChestId,number>>}
 export type ArenaTicket={id:string;owner:string;stageId:string;party:string[];profiles:Profiles;seed:number;rules:number;startedAt:number;expiresAt:number;moves:Move[];status:'active'|'claimed'|'abandoned';reward?:ArenaReward;energyCost?:number;costLimit?:number}
