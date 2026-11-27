@@ -1,0 +1,18 @@
+/* Original cut-in composition using the existing character art. No video, remote font or borrowed asset. */
+.starlight-arena .cinematic.cutin{isolation:isolate;background:linear-gradient(115deg,#07121be8,#28385be6 48%,#07121bf2);overflow:hidden}
+.starlight-arena .cinematic.cutin:before{content:'';position:absolute;inset:12% -20%;z-index:-1;transform:rotate(-12deg);background:linear-gradient(90deg,transparent,#d3d9e630,transparent);border-block:1px solid #e4daac66}
+.starlight-arena .cinematic.cutin>img{position:relative;z-index:2;max-height:94%;object-fit:contain;filter:drop-shadow(0 5px 16px #bad6ff22);animation:arena-cut-slide .3s cubic-bezier(.2,.8,.2,1) both}
+.starlight-arena .cutin-constellation{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:0}
+.starlight-arena .cutin-constellation i{position:absolute;width:180px;aspect-ratio:1;border:1px solid #dccb9c80;transform:rotate(25deg);box-shadow:inset 0 0 20px #c3ceff18;animation:arena-sigil-drift 3s linear infinite}
+.starlight-arena .cutin-constellation i:nth-child(2){width:220px;border-radius:50%;border-style:dashed;animation-direction:reverse}
+.starlight-arena .cutin-constellation i:nth-child(3){width:140px;transform:rotate(70deg);border-width:2px}
+.starlight-arena .tier-4 .cutin-constellation i{border-color:#ffe8a8bf;box-shadow:0 0 15px #c6b9ff20}
+.starlight-arena .cutin-copy{z-index:3;text-shadow:0 2px 6px #000,0 0 18px #000}
+.starlight-arena .cinematic.element-fire{background:linear-gradient(120deg,#211325f5,#69394be6,#101b30f5)}
+.starlight-arena .cinematic.element-water{background:linear-gradient(120deg,#102639f5,#2b5c7ee6,#151c37f5)}
+.starlight-arena .cinematic.element-dark{background:linear-gradient(120deg,#16132ef5,#4a306fe6,#101b30f5)}
+.starlight-arena .battle-settings{max-height:min(380px,65dvh);overflow:auto;z-index:30}
+.starlight-arena .battle-settings select{min-height:44px;margin-left:10px;background:#19344c;color:#f4e4bd;border:1px solid #c8b783;border-radius:8px;padding:6px 10px}
+@keyframes arena-cut-slide{from{transform:translateX(-18px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes arena-sigil-drift{to{transform:rotate(385deg)}}
+@media(prefers-reduced-motion:reduce){.starlight-arena .cinematic.cutin>img,.starlight-arena .cutin-constellation i{animation:none}}
