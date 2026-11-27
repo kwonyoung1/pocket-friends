@@ -1,3 +1,4 @@
+import {balancedSkills} from './skill-balance.ts'
 import {ADVENTURERS} from './adventurers.ts'
 import {BEASTS} from './beasts.ts'
 import type {BaseDefinition,Definition,Element,Effect,Skill,Style} from './types.ts'
@@ -44,6 +45,7 @@ const changes:Record<string,Record<string,Partial<Skill>>>= {
 }
 export const HEROES:Definition[]=[...classic,...additional].map(h=>({...h,...identities[h.id],supportPower:h.id==='special-girl'?1.3:1,skills:h.skills.map(k=>({...k,...changes[h.id]?.[k.id],unlock:k.id==='active1'?20:k.unlock}))}))
 for(const h of HEROES){const k=h.skills.find(k=>k.id==='active2')!;if(h.id==='special-boy')Object.assign(k,{name:'별의 심판',target:'enemy',targetCount:3,primaryExtra:1,style:'judgment',power:1.9});else if(h.id==='special-girl')Object.assign(k,{name:'달빛의 기적',target:'all-allies',style:'heal',power:1.65,shieldAll:.22,effects:[effect('cleanse',0,0),effect('regen',2,.07)]});else if(k.power>0)k.power*=1.2;else if(k.effects)k.effects=k.effects.map(e=>({...e,power:e.power*1.15}))}
+for(const h of HEROES)h.skills=balancedSkills(h.id,h.skills)
 const byId=new Map([...HEROES,...BEASTS,...ADVENTURERS].map(h=>[h.id,h]))
 const byKind:Record<Kind,string>={boy:'special-boy',girl:'special-girl',cat:'lulu',bunny:'bibi',bear:'toto',fox:'dudu',dog:'mungchi'}
 /** Future owned friends get a documented species archetype until an explicit ID config is registered. */

@@ -1,3 +1,4 @@
+import {balancedSkills} from './skill-balance.ts'
 import type {Definition,Skill,Effect} from './types.ts'
 import type {BeastRarity} from './beast-state.ts'
 export const rarityNames:Record<BeastRarity,string>={rare:'희귀',heroic:'영웅',legendary:'전설',mythic:'신화'}
@@ -32,3 +33,5 @@ for(const k of astraWard.skills)if(k.power>0){k.shieldAll=k.id==='basic'?.1:.18;
 const sanctuary=BEASTS.find(b=>b.id==='beast-seraphia')!.skills.find(k=>k.id==='active1')!
 sanctuary.effects=[...(sanctuary.effects??[]),effect('attack-up',2,.25)]
 sanctuary.description='전원 보호막 · 재생 · 정화 · 공격 강화'
+
+for(const h of BEASTS)h.skills=balancedSkills(h.id,h.skills)

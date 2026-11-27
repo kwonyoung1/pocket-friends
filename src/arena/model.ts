@@ -31,7 +31,7 @@ export function createBattle(ids:string[],level=35,seed=20261121,profiles?:Profi
  if(units.some(u=>['coco','toto'].includes(u.heroId!))&&units.some(u=>['special-girl','lulu'].includes(u.heroId!))){synergies.push('수호와 치유 · 재생 +10%')}
  if(units.some(u=>u.element==='fire')&&units.some(u=>u.heroId==='dudu'))synergies.push('불꽃과 그림자 · 지속 피해 +10%')
  const stage=stageId?stageById(stageId):undefined;if(stageId&&!stage)throw Error('없는 스테이지예요.')
- const s:State={units:units.concat(enemies(stage?.level??level,1,stageId)),order:[],cursor:0,round:1,wave:1,phase:'battle',seed:seed>>>0,level:stage?.level??level,actions:0,allyActions:0,totalDamage:0,totalHeal:0,log:[stage?.name??'달빛 숲의 길을 열어 주세요.'],stageId,rules:8,costLimit,maxWaves:stage?.waves.length??2,synergies};s.order=sorted(s);return s
+ const s:State={units:units.concat(enemies(stage?.level??level,1,stageId)),order:[],cursor:0,round:1,wave:1,phase:'battle',seed:seed>>>0,level:stage?.level??level,actions:0,allyActions:0,totalDamage:0,totalHeal:0,log:[stage?.name??'달빛 숲의 길을 열어 주세요.'],stageId,rules:9,costLimit,maxWaves:stage?.waves.length??2,synergies};s.order=sorted(s);return s
 }
 export function current(s:State){return s.units.find(u=>u.id===s.order[s.cursor])!}
 export function skillIssue(u:Unit,k:Skill){if(u.level<k.unlock)return `Lv.${k.unlock} 해금`;if(u.mp<k.cost)return `별빛 ${k.cost}개 필요`;return ''}

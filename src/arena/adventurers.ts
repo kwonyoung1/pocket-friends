@@ -1,3 +1,4 @@
+import {balancedSkills} from './skill-balance.ts'
 import type {Definition,Skill,Effect} from './types.ts'
 import type {BeastRarity} from './beast-state.ts'
 export type Adventurer=Definition&{adventurer:true;rarity:BeastRarity}
@@ -14,4 +15,5 @@ export const ADVENTURERS:Adventurer[]=[
  {...base,id:'adv-rose',art:'adv-rose',name:'로제',kind:'girl',title:'천재 연금술사',role:'독 · 화상',rarity:'legendary',cost:4,hp:260,atk:54,def:13,spd:18,element:'fire',passive:{name:'반응식의 발견',description:'Lv.10 기본 공격 후 작은 회복',helpHeal:.02,debuff40:.2},skills:[k('basic','연금탄',1,'enemy','potion',1.05),k('active1','불안정한 물약',20,'enemy','potion',1.4,1,{targetCount:2,effects:[e('poison',2,.05)]}),k('active2','대폭발 실험',35,'all-enemies','alchemy',1.85,1,{effects:[e('burn',2,.05),e('poison',2,.04)]}),k('ultimate','현자의 새벽',50,'all-enemies','alchemy',1.1,3,{effects:[e('burn',2,.06)]})]},
  {...base,id:'adv-lucian',art:'adv-lucian',name:'루시안',kind:'boy',title:'별의 검사',role:'검기 · 추가 타격',rarity:'mythic',cost:5,hp:320,atk:73,def:19,spd:21,element:'light',passive:{name:'천공의 맹세',description:'Lv.10 치명타 +14%',crit:.22,damage40:.15},skills:[k('basic','별의 일격',1,'enemy','slash',1.15),k('active1','유성검',20,'enemy','judgment',1,2),k('active2','천공의 별빛참',35,'all-enemies','judgment',1.9,1,{primaryExtra:1,pierce:.2}),k('ultimate','열두 별의 서약',50,'all-enemies','judgment',1.05,3,{primaryExtra:1})]},
 ]
+for(const h of ADVENTURERS)h.skills=balancedSkills(h.id,h.skills)
 export const adventurerById=(id:string)=>ADVENTURERS.find(h=>h.id===id)
