@@ -1,5 +1,6 @@
 import {specialGrowth} from './special-growth.ts'
-import {enemyLayout} from './battle-layout.ts'
+import {sceneLayout,backgroundFrame,alphaFootprint} from './battle-layout.ts'
+import type {SceneLayout,Footprint,Slot} from './battle-layout.ts'
 import {hdMonster,monsterArtRow,monsterArtCell} from './monster-art.ts'
 import {starsOf} from './fusion.ts'
 import {elementNames} from './characters.ts'
@@ -7,63 +8,74 @@ import {stageById,monsterById} from './stages.ts'
 import {Application,Container,Sprite,Texture,Rectangle,Graphics,Text,ImageSource} from 'pixi.js'
 import {ASSETS} from './assets'
 import type {State,Unit,Action} from './model'
-type Actor={root:Container;sprite:Sprite;bar:Graphics;barBg:Graphics;breakBar:Graphics;label:Text;halo:Graphics;barrier:Graphics;aura:Graphics;unit:Unit;pose:number;walking:boolean;time:number;home:{x:number;y:number}}
+type Actor={shadow:Graphics;bodyHeight:number;slot:Slot;root:Container;sprite:Sprite;bar:Graphics;barBg:Graphics;breakBar:Graphics;label:Text;halo:Graphics;barrier:Graphics;aura:Graphics;unit:Unit;pose:number;walking:boolean;time:number;home:{x:number;y:number}}
 type Tween={start:number;duration:number;draw:(p:number)=>void;done:()=>void}
 export type Cinematic={type:'boss'|'cutin';name:string;art:string;skill?:string}|null
 const COLORS={meteor:0xbac4ff,supernova:0xe9b7ff,judgment:0xffe8a1,arrow:0xb7d98c,'arrow-rain':0xd0e6ac,potion:0xcbb2f2,alchemy:0xffb9b0,slash:0xb9efff,orb:0xe1d0ff,claw:0xffb58b,kick:0xffcbe2,slam:0xe8bc72,command:0xffe3a1,heal:0x97f2c5,dash:0xff9a66,carrot:0xffb66b,jump:0xffc4e6,shield:0xa3cfff,fire:0xff9554,'enemy-spit':0x84e9ef,vine:0xc591e1,shadow:0xb7a4f9,frost:0xb2eaff,water:0x8bdeef,root:0xa9d990,rally:0xf6df9c,purify:0xd8f4b5,counter:0xd2bc92,nebula:0xc6a6ff,phoenix:0xffa35d,dragon:0xa2d5ff,eclipse:0xb29bea,aegis:0xffe9c9}
 export class BattleView{
- app=new Application();camera=new Container();effects=new Container();actors=new Map<string,Actor>();frames=new Map<string,Texture[]>();clock=0;speed=1;quality=true;reduced=false;shortCutin=false;dead=false;selected='';current='';tweens:Tween[]=[];ephemeral=0;private sources=new Set<ImageSource>();private foreground?:Sprite;private inAction=false;private hasBoss=false;private allyCount=0;private enemyCount=0;private height=465;private yScale=1;private preview:string[]=[];private slowFrames=0;private actionPoses=new Map<string,number>()
+ app=new Application();camera=new Container();effects=new Container();actors=new Map<string,Actor>();frames=new Map<string,Texture[]>();clock=0;speed=1;quality=true;reduced=false;shortCutin=false;dead=false;selected='';current='';tweens:Tween[]=[];ephemeral=0;private sources=new Set<ImageSource>();private foreground?:Sprite;private inAction=false;private enemyCount=0;private layout?:SceneLayout;private layoutKey='';private displayState?:State;private background?:Sprite;private resizeObserver?:ResizeObserver;private pendingHeight=0;private metrics=new Map<Texture,Footprint>();private height=465;private yScale=1;private preview:string[]=[];private slowFrames=0;private actionPoses=new Map<string,number>()
  constructor(private host:HTMLElement,private select:(id:string)=>void,private cinematic:(c:Cinematic)=>void){}
  async init(state:State){
   this.quality=(navigator.hardwareConcurrency??8)>4&&((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)>4
-  const box=this.host.getBoundingClientRect();this.height=Math.max(210,Math.min(465,Math.round((box.height||465)*390/(box.width||390))));this.yScale=this.height/465
+  const box=this.host.getBoundingClientRect();this.height=Math.max(260,Math.min(560,Math.round((box.height||465)*390/(box.width||390))));this.yScale=this.height/465
   await this.app.init({width:390,height:this.height,backgroundAlpha:0,antialias:true,resolution:Math.min(devicePixelRatio||1,2),autoDensity:true,preference:'webgl',powerPreference:'low-power'})
   if(this.dead){this.app.destroy(true);return}
-  this.host.appendChild(this.app.canvas);this.app.canvas.setAttribute('aria-label','달빛 숲 도트 전투 필드');this.app.canvas.setAttribute('role','img')
+  this.host.appendChild(this.app.canvas);this.app.canvas.setAttribute('aria-label','별빛 아레나 · 지면 진형 전투 필드');this.app.canvas.setAttribute('role','img')
   const load=async(key:string)=>{const img=new Image();img.src=ASSETS[key];await img.decode();if(this.dead)throw Error('Arena closed');const source=new ImageSource({resource:img,scaleMode:key.startsWith('sprite-')||key.startsWith('enemies-')?'nearest':'linear'});this.sources.add(source);return new Texture({source})}
   const stage=state.stageId?stageById(state.stageId):undefined,enemyKey=stage?'enemies-'+stage.region:'enemies'
   for(const id of new Set([...state.units.filter(u=>u.side==='ally').map(u=>u.art),enemyKey])){
    const isEnemy=id==='enemies'||id.startsWith('enemies-'),atlas=await load(id==='enemies'?'sprite-enemies':isEnemy?id:'sprite-'+id),frames:Texture[]=[]
    const hd=hdMonster(id.replace('enemies-','')),tile=hd?128:64,count=hd||id==='enemies-christmas'?20:id.startsWith('enemies-')?16:id==='enemies'?12:20,cols=isEnemy?4:5
-   for(let n=0;n<count;n++)frames.push(new Texture({source:atlas.source,frame:new Rectangle(n%cols*tile,Math.floor(n/cols)*tile,tile,tile)}));this.frames.set(id,frames)
+   const measure=document.createElement('canvas');measure.width=measure.height=tile;const ctx=measure.getContext('2d',{willReadFrequently:true})!
+   for(let n=0;n<count;n++){const frame=new Rectangle(n%cols*tile,Math.floor(n/cols)*tile,tile,tile),texture=new Texture({source:atlas.source,frame});frames.push(texture);ctx.clearRect(0,0,tile,tile);ctx.drawImage(atlas.source.resource as HTMLImageElement,frame.x,frame.y,tile,tile,0,0,tile,tile);this.metrics.set(texture,alphaFootprint(ctx.getImageData(0,0,tile,tile).data,tile,tile,tile))}this.frames.set(id,frames)
   }
   if(this.dead)return
-  const bg=new Sprite(await load(stage&&stage.region!=='forest'?'bg-'+stage.region:'forest'));bg.position.set(-14,-10);bg.width=418;bg.height=this.height+35
-  this.camera.pivot.set(195,this.height*.54);this.camera.position.set(195,this.height*.54);this.camera.addChild(bg)
-  const pool=new Graphics().ellipse(205,342*this.yScale,168,82*this.yScale).fill({color:0x75c8b5,alpha:.045}).ellipse(205,342*this.yScale,144,70*this.yScale).stroke({color:0xb6e4d4,alpha:.15,width:1});this.camera.addChild(pool)
+  const bg=new Sprite(await load(stage&&stage.region!=='forest'?'bg-'+stage.region:'forest'));this.background=bg
+  this.camera.pivot.set(195,this.height*.57);this.camera.position.set(195,this.height*.57);this.camera.addChild(bg)
   this.app.stage.addChild(this.camera);this.camera.addChild(this.effects)
-  if(!stage||stage.region==='forest'){const fg=new Sprite(await load('foliage'));fg.width=390;fg.height=this.height;fg.alpha=.68;this.foreground=fg;this.app.stage.addChild(fg)}
+  if(!stage||stage.region==='forest'){const fg=new Sprite(await load('foliage'));fg.width=390;fg.height=this.height;fg.alpha=.18;this.foreground=fg;this.app.stage.addChild(fg)}
   this.app.ticker.add(t=>this.tick(t.deltaMS));document.addEventListener('visibilitychange',this.visibility)
-  this.sync(state);this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches
+  this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;this.sync(state)
+  this.resizeObserver=new ResizeObserver(()=>{const b=this.host.getBoundingClientRect(),next=Math.max(260,Math.min(560,Math.round(b.height*390/Math.max(1,b.width))));if(this.inAction){this.pendingHeight=Math.abs(next-this.height)>1?next:0;return}if(Math.abs(next-this.height)>1)this.resize(next)});this.resizeObserver.observe(this.host)
  }
+ private alignFoot(a:Actor){const fp=this.metrics.get(a.sprite.texture);if(!fp)return;a.sprite.x=(fp.tile/2-fp.footX)*a.sprite.scale.x;a.sprite.y=(fp.tile-fp.footY)*a.sprite.scale.y}
+ private footprint(u:Unit){const a=this.metrics.get(this.texture(u,u.side==='ally'?2:0))!,b=this.metrics.get(this.texture(u,u.side==='ally'?9:1))??a;return{...a,width:Math.max(a.width,b.width),height:Math.max(a.height,b.height)}}
+ private arrange(state:State){
+  const region=state.stageId?stageById(state.stageId)?.region:'forest',key=this.height+'|'+region+'|'+state.units.map(u=>u.id).join(',');if(key===this.layoutKey)return;this.layoutKey=key
+  this.layout=sceneLayout(state.units.map(u=>({...u,footprint:this.footprint(u)})),this.height,region)
+  const bg=this.background!,frame=backgroundFrame(390,this.height,bg.texture.width,bg.texture.height,this.layout.preset);bg.position.set(frame.x,frame.y);bg.width=frame.width;bg.height=frame.height
+  this.camera.pivot.set(195,this.height*.57);this.camera.position.set(195,this.height*.57)
+  this.host.dataset.scene=JSON.stringify(this.layout)
+ }
+ private resize(height:number){if(this.dead||!this.displayState||height===this.height)return;this.height=height;this.yScale=height/465;this.app.renderer.resize(390,height);for(const a of this.actors.values()){this.camera.removeChild(a.root);a.root.destroy({children:true})}this.actors.clear();if(this.foreground)this.foreground.height=height;this.sync(this.displayState)}
  private visibility=()=>{if(this.dead)return;if(document.hidden)this.app.ticker.stop();else this.app.ticker.start()}
  private texture(unit:Unit,frame:number){if(unit.side==='enemy'){const monster=unit.monsterId?monsterById(unit.monsterId):undefined,row=monster?monsterArtRow(monster.region,monster.row,monster.id,unit.boss):(unit.art==='slime'?0:unit.art==='thorn'?1:2),key=monster?'enemies-'+monster.region:'enemies';const cell=monster?monsterArtCell(frame,hdMonster(monster.region)):(frame===15?(unit.boss?3:2):frame===16?3:[10,13,17,18].includes(frame)?1:[11,12,14,19].includes(frame)?(unit.boss?2:1):frame<4?frame:0);return this.frames.get(key)![row*4+cell]}if(unit.art.startsWith('adv-')&&![15,16].includes(frame)&&frame>=10)frame=this.actionPoses.get(unit.id)??frame;return this.frames.get(unit.art)![frame]}
  private actor(u:Unit,index:number):Actor{
-  const slots=u.side==='ally'?(this.allyCount===5?[{x:48,y:310},{x:140,y:260},{x:48,y:425},{x:140,y:350},{x:140,y:440}]:[{x:63,y:318},{x:128,y:361},{x:57,y:401},{x:124,y:438}]):u.boss?[{x:286,y:335}]:this.hasBoss?[{x:243,y:204},{x:328,y:232}]:[{x:270,y:215},{x:325,y:292},{x:253,y:364}]
-  const dense=u.side==='enemy'&&this.enemyCount>3,enemy=enemyLayout(index,this.enemyCount,u.boss,this.yScale),slot=slots[index%slots.length],home=u.side==='enemy'?{x:enemy.x,y:Math.min(enemy.y,this.height-24)}:{x:slot.x,y:Math.min(slot.y*this.yScale,this.height-24)},root=new Container(),shadow=new Graphics().ellipse(0,0,u.boss?32:22,u.boss?8:5).fill({color:0x081521,alpha:.5})
+  const slot=this.layout!.slots.find(s=>s.id===u.id)!,home={x:slot.x,y:slot.y},root=new Container(),shadow=new Graphics().ellipse(0,0,slot.shadow.width/2,slot.shadow.height).fill({color:0x07111e,alpha:slot.shadow.alpha*.55}).ellipse(0,0,slot.shadow.width*.37,slot.shadow.height*.6).fill({color:0x07111e,alpha:slot.shadow.alpha})
   root.position.set(home.x,home.y);root.zIndex=home.y
-  const halo=new Graphics().ellipse(0,0,u.boss?38:27,u.boss?10:8).stroke({color:0xffd88b,width:2,alpha:.9});halo.visible=false
-  const sprite=new Sprite(this.texture(u,u.side==='ally'?2:0));sprite.anchor.set(.5,1);sprite.scale.set((u.side==='enemy'?enemy.scale:u.side==='ally'&&this.allyCount===5?1.1:1.27)*(u.side==='enemy'&&hdMonster(u.art)?.5:1))
-  const h=dense?64*enemy.scale:u.boss?116:u.side==='ally'&&this.allyCount===5?65:76,barBg=new Graphics().roundRect(-21,-h-12,42,4,2).fill({color:0x101b2d,alpha:.95}),bar=new Graphics().roundRect(-21,-h-12,42,4,2).fill(u.side==='ally'?0xa3dfc0:0xf7aaad)
-  const breakBar=new Graphics().roundRect(-21,-h-5,42,2,1).fill(0xead28a);breakBar.visible=u.maxToughness>0
-  const label=new Text({text:u.name.length>9?u.name.slice(0,9)+'…':u.name,style:{fontFamily:'sans-serif',fontSize:u.boss?11:9,fill:0xf5f1df,stroke:{color:0x122334,width:3},fontWeight:'600'}});label.anchor.set(.5,0);label.position.set(0,5)
-  const barrier=new Graphics().ellipse(0,-h*.45,u.boss?48:31,h*.58).fill({color:0x9bcffe,alpha:.06}).stroke({color:0xb7ddff,alpha:.65,width:1.5});barrier.visible=false
-  const stars=starsOf(u),aura=new Graphics();if(u.side==='enemy'&&u.boss){aura.ellipse(0,-3,34,10).stroke({color:0xd1b3f0,width:2,alpha:.55});for(let i=0;i<5;i++)aura.star((i-2)*12,-h-20,4,3,1.5).fill({color:0xffdfa5,alpha:.7})}if(u.stars&&stars>=2){const color=stars===5?0xffdf87:stars===4?0xd6b4ff:0xbce7ff;aura.ellipse(0,-4,25+stars,8+stars).stroke({color,width:stars>=4?2:1,alpha:.6});for(let n=0;n<stars;n++)aura.star((n-(stars-1)/2)*8,-h-20,4,3,1.5).fill({color,alpha:.85});if(stars>=4)aura.ellipse(0,-25,30,35).stroke({color,width:1,alpha:.25})}
-  root.addChild(shadow,aura,halo,sprite,barBg,bar,breakBar,barrier,label);root.eventMode='static';root.cursor='pointer';root.hitArea=new Rectangle(dense?-30:-34,-h,dense?60:68,h+20);root.on('pointertap',()=>this.select(u.id))
+  const halo=new Graphics().ellipse(0,0,slot.width*.57,Math.max(5,slot.width*.16)).stroke({color:0xffd88b,width:2,alpha:.9});halo.visible=false
+  const sprite=new Sprite(this.texture(u,u.side==='ally'?2:0));sprite.anchor.set(.5,1);sprite.scale.set(slot.scale)
+  const h=slot.height,hx=slot.label.x+slot.label.width/2-slot.x,hy=slot.label.y-slot.y,plate=new Graphics().roundRect(hx-slot.label.width/2-2,hy-2,slot.label.width+4,19,4).fill({color:0x10233b,alpha:.8}).stroke({color:0xa4bdc9,alpha:.25,width:.6}),barBg=new Graphics().roundRect(hx-20,hy+10,40,3,1.5).fill({color:0x101b2d,alpha:.95}),bar=new Graphics().roundRect(0,0,40,3,1.5).fill(u.side==='ally'?0xa3dfc0:0xf7aaad)
+  bar.position.set(hx-20,hy+10)
+  const breakBar=new Graphics().roundRect(hx-20,hy+15,40,2,1).fill(0xead28a);breakBar.visible=u.maxToughness>0
+  const label=new Text({text:`${index+1} · ${u.name.length>4?u.name.slice(0,4)+'…':u.name}`,style:{fontFamily:'sans-serif',fontSize:7.5,fill:0xf5f1df,stroke:{color:0x10233b,width:1},fontWeight:'600'}});label.anchor.set(.5,1);label.position.set(slot.label.x+slot.label.width/2-slot.x,slot.label.y-slot.y+8)
+  const barrier=new Graphics().ellipse(0,-h*.45,slot.width*.64,h*.58).fill({color:0x9bcffe,alpha:.06}).stroke({color:0xb7ddff,alpha:.65,width:1.5});barrier.visible=false
+  const stars=starsOf(u),aura=new Graphics();if(u.side==='enemy'&&u.boss){aura.ellipse(0,-3,34,10).stroke({color:0xd1b3f0,width:2,alpha:.55});for(let i=0;i<(this.enemyCount>=4?0:5);i++)aura.star((i-2)*12,-h-20,4,3,1.5).fill({color:0xffdfa5,alpha:.7})}if(u.stars&&stars>=2){const color=stars===5?0xffdf87:stars===4?0xd6b4ff:0xbce7ff;aura.ellipse(0,-4,25+stars,8+stars).stroke({color,width:stars>=4?2:1,alpha:.6});for(let n=0;n<(this.enemyCount>=4?0:stars);n++)aura.star((n-(stars-1)/2)*8,-h-20,4,3,1.5).fill({color,alpha:.85});if(stars>=4)aura.ellipse(0,-25,30,35).stroke({color,width:1,alpha:.25})}
+  root.addChild(shadow,aura,halo,sprite,plate,barBg,bar,breakBar,barrier,label);root.eventMode='static';root.cursor='pointer';root.hitArea=new Rectangle(-Math.max(24,slot.width/2),-Math.max(32,h),Math.max(48,slot.width),Math.max(44,h+12));root.on('pointertap',()=>this.select(u.id))
   this.camera.addChild(root);this.camera.sortableChildren=true;this.effects.zIndex=1000
-  return{root,sprite,bar,barBg,breakBar,label,halo,barrier,aura,unit:u,pose:-1,walking:false,time:this.clock,home}
+  return{shadow,bodyHeight:h,slot,root,sprite,bar,barBg,breakBar,label,halo,barrier,aura,unit:u,pose:-1,walking:false,time:this.clock,home}
  }
  sync(state:State){
-  this.allyCount=state.units.filter(u=>u.side==='ally').length;this.enemyCount=state.units.filter(u=>u.side==='enemy').length;this.hasBoss=state.units.some(u=>u.boss); this.current=state.order[state.cursor]??''
+  this.displayState=state;this.enemyCount=state.units.filter(u=>u.side==='enemy').length;this.arrange(state); this.current=state.order[state.cursor]??''
   for(const [id,actor]of this.actors)if(!state.units.some(u=>u.id===id)){this.camera.removeChild(actor.root);actor.root.destroy({children:true});this.actors.delete(id)}
   let a=0,e=0
   for(const u of state.units){let actor=this.actors.get(u.id);if(!actor){actor=this.actor(u,u.side==='ally'?a:e);this.actors.set(u.id,actor)}if(u.side==='ally')a++;else e++
-   actor.unit=u;actor.bar.scale.x=Math.max(0,u.hp/u.maxHp);actor.breakBar.scale.x=u.maxToughness?Math.max(0,u.toughness/u.maxToughness):0;actor.breakBar.visible=u.maxToughness>0;actor.label.text=u.broken?'BREAK':u.name.length>9?u.name.slice(0,9)+'…':u.name;actor.root.alpha=u.hp>0?1:.32;actor.barrier.visible=u.hp>0&&(u.shield>0||!!u.moonGrace||u.statuses.some(e=>e.type==='counter'))
-   if(u.hp<=0){if(actor.pose!==16){void this.tween(this.reduced?120:520,p=>{actor!.sprite.alpha=1-p*.85;actor!.sprite.y=p*8})}actor.pose=16;actor.root.eventMode='none'}
+   actor.unit=u;actor.bar.scale.x=Math.max(0,u.hp/u.maxHp);actor.breakBar.scale.x=u.maxToughness?Math.max(0,u.toughness/u.maxToughness):0;actor.breakBar.visible=u.maxToughness>0;actor.label.text=u.broken?'BREAK':`${actor.slot.index+1} · ${u.name.length>4?u.name.slice(0,4)+'…':u.name}`;actor.root.alpha=u.hp>0?1:.32;actor.barrier.visible=u.hp>0&&(u.shield>0||!!u.moonGrace||u.statuses.some(e=>e.type==='counter'))
+   if(u.hp<=0){if(actor.pose!==16){void this.tween(this.reduced?120:520,p=>{actor!.sprite.alpha=1-p*.85})}actor.pose=16;actor.root.eventMode='none'}
    else actor.root.eventMode='static'
   }
  }
- choose(id:string,preview:string[]=[]){this.selected=preview.length?'':id;this.preview=preview}
+ choose(id:string,preview:string[]=[]){this.selected=id;this.preview=preview}
  private tick(dt:number){
   if(this.dead)return;if(dt>45&&dt<250)this.slowFrames++;else this.slowFrames=Math.max(0,this.slowFrames-1);if(this.slowFrames>=45)this.quality=false;this.clock+=Math.min(dt,60)*this.speed
   for(const t of [...this.tweens]){const p=Math.min(1,(this.clock-t.start)/t.duration);t.draw(p);if(p===1){this.tweens.splice(this.tweens.indexOf(t),1);t.done()}}
@@ -71,19 +83,19 @@ export class BattleView{
    let frame=a.pose
    if(a.unit.hp>0&&frame<0)frame=a.unit.side==='enemy'?(this.reduced?0:Math.floor(this.clock/850)%2):this.reduced?2:Math.floor((this.clock+a.home.y*3)/1100)%5===0?9:2
    if(a.walking)frame=a.unit.side==='enemy'?(Math.floor((this.clock-a.time)/140)%2?10:0):5+Math.floor((this.clock-a.time)/95)%4
-   a.sprite.texture=this.texture(a.unit,frame)
-   a.halo.visible=a.unit.hp>0&&(a.unit.id===this.selected||a.unit.id===this.current||this.preview.includes(a.unit.id));a.halo.alpha=this.reduced?.8:.65+Math.sin(this.clock/240)*.2
+   a.sprite.texture=this.texture(a.unit,frame);this.alignFoot(a)
+   a.halo.visible=a.unit.hp>0&&(a.unit.id===this.selected||a.unit.id===this.current||this.preview.includes(a.unit.id));a.halo.tint=a.unit.id===this.selected?0xffdb98:0x9fd9eb;a.halo.alpha=a.unit.id===this.selected?.95:this.preview.includes(a.unit.id)?.6:.35
    a.aura.visible=a.unit.hp>0;a.aura.alpha=this.reduced?.8:.65+Math.sin(this.clock/(starsOf(a.unit)===5?420:700))*.2
-   if(a.unit.hp>0&&a.pose<0&&!a.walking)a.sprite.y=this.reduced?0:Math.sin(this.clock/850+a.home.y)*.65
+   a.label.visible=a.unit.hp>0;(a.root.hitArea as Rectangle).width=Math.max(48,a.slot.width)
   }
   if(this.quality&&!this.reduced&&Math.floor(this.clock/300)!==Math.floor((this.clock-dt*this.speed)/300))this.spark(18+Math.random()*354,(100+Math.random()*310)*this.yScale,0xf2edbd,1,'light')
  }
  private tween(ms:number,draw:(p:number)=>void){return new Promise<void>(done=>{if(this.dead){done();return}this.tweens.push({start:this.clock,duration:Math.max(1,ms),draw,done})})}
  wait(ms:number){return this.tween(ms,()=>{})}
- private async zoom(scale:number,x=195,y=this.height*.54){const before=this.camera.scale.x,bx=this.camera.pivot.x,by=this.camera.pivot.y;await this.tween(this.reduced?1:160,p=>{this.camera.scale.set(before+(scale-before)*p);this.camera.pivot.set(bx+(x-bx)*p,by+(y-by)*p)})}
- private async shake(strength:number){if(this.reduced||!this.quality)return;await this.tween(135,p=>{this.camera.position.set(195+Math.sin(p*32)*strength*(1-p),this.height*.54+Math.cos(p*38)*strength*.4*(1-p));if(this.foreground)this.foreground.x=-Math.sin(p*32)*strength*.3});this.camera.position.set(195,this.height*.54);if(this.foreground)this.foreground.x=0}
- private async move(a:Actor,x:number,y:number,ms=260,jump=0,trail=0){const sx=a.root.x,sy=a.root.y,dx=x-sx;a.walking=true;a.time=this.clock;a.sprite.scale.x=Math.abs(a.sprite.scale.x)*(dx<0?-1:1)*(a.unit.side==='enemy'?-1:1);await this.tween(this.reduced?80:ms,p=>{const e=p*p*(3-2*p);a.root.position.set(sx+(x-sx)*e,sy+(y-sy)*e-Math.sin(p*Math.PI)*jump);a.root.zIndex=a.root.y;if(trail&&this.quality&&Math.floor(p*16)!==Math.floor(Math.max(0,p-.035)*16))this.spark(a.root.x,a.root.y-10,trail,2,trail===0xff9a66?'fire':'spark')});a.walking=false}
- private number(a:Actor,text:string,color:number){const n=new Text({text,style:{fontFamily:'sans-serif',fontSize:text.length>5?12:18,fontWeight:'800',fill:color,stroke:{color:0x142132,width:4}}});n.anchor.set(.5);n.position.set(a.root.x,a.root.y-(a.unit.boss?110:75));this.effects.addChild(n);const y=n.y;void this.tween(650,p=>{n.y=y-p*30;n.alpha=1-p}).then(()=>n.destroy())}
+ private async zoom(scale:number,x=195,y=this.height*.57){scale=Math.min(scale,this.layout?.camera.maxZoom??1.025);x=195;y=this.height*.57;const before=this.camera.scale.x,bx=this.camera.pivot.x,by=this.camera.pivot.y;await this.tween(this.reduced?1:160,p=>{this.camera.scale.set(before+(scale-before)*p);this.camera.pivot.set(bx+(x-bx)*p,by+(y-by)*p)})}
+ private async shake(strength:number){if(this.reduced||!this.quality)return;await this.tween(135,p=>{this.camera.position.set(195+Math.sin(p*32)*strength*(1-p),this.height*.57+Math.cos(p*38)*strength*.4*(1-p));if(this.foreground)this.foreground.x=-Math.sin(p*32)*strength*.3});this.camera.position.set(195,this.height*.57);if(this.foreground)this.foreground.x=0}
+ private async move(a:Actor,x:number,y:number,ms=260,jump=0,trail=0){const v=this.layout!.viewport;x=Math.max(v.x+a.slot.width/2,Math.min(v.x+v.width-a.slot.width/2,x));y=Math.max(v.y+a.bodyHeight+18,Math.min(this.height-18,y));const sx=a.root.x,sy=a.root.y,dx=x-sx;a.walking=true;a.time=this.clock;a.sprite.scale.x=Math.abs(a.sprite.scale.x)*(dx<0?-1:1)*(a.unit.side==='enemy'?-1:1);await this.tween(this.reduced?80:ms,p=>{const e=p*p*(3-2*p);a.root.position.set(sx+(x-sx)*e,sy+(y-sy)*e-Math.sin(p*Math.PI)*jump);a.shadow.y=a.halo.y=Math.sin(p*Math.PI)*jump;a.root.zIndex=sy+(y-sy)*e;if(trail&&this.quality&&Math.floor(p*16)!==Math.floor(Math.max(0,p-.035)*16))this.spark(a.root.x,a.root.y-10,trail,2,trail===0xff9a66?'fire':'spark')});a.shadow.y=a.halo.y=0;a.walking=false}
+ private number(a:Actor,text:string,color:number){const n=new Text({text,style:{fontFamily:'sans-serif',fontSize:text.length>5?12:18,fontWeight:'800',fill:color,stroke:{color:0x142132,width:4}}});n.anchor.set(.5);n.position.set(Math.max(n.width/2+8,Math.min(382-n.width/2,a.root.x)),Math.max(50,a.root.y-a.bodyHeight-23));this.effects.addChild(n);const y=n.y;void this.tween(650,p=>{n.y=y-p*30;n.alpha=1-p}).then(()=>n.destroy())}
  private spark(x:number,y:number,color:number,count:number,kind='spark'){
   const cap=this.quality?48:16;count=Math.min(count,this.reduced?3:cap-this.ephemeral)
   for(let i=0;i<count;i++){
@@ -100,7 +112,7 @@ export class BattleView{
   g.destroy();this.spark(tx,ty,color,carrot?12:8);if(carrot)this.spark(tx,ty,0xa7d27b,5)
  }
  private async recoil(a:Actor){const x=a.root.x;a.pose=15;await this.tween(this.reduced?80:160,p=>{a.root.x=x+Math.sin(p*Math.PI)*(a.unit.side==='enemy'?7:-5);a.sprite.tint=p<.45?0xffd7d4:0xffffff});a.root.x=x;a.sprite.tint=0xffffff;a.pose=a.unit.hp>0?-1:16}
- private afterimages(a:Actor){if(!this.quality||this.reduced)return;for(let n=1;n<=2;n++){const sprite=new Sprite(a.sprite.texture);sprite.anchor.set(.5,1);sprite.scale.copyFrom(a.sprite.scale);sprite.tint=0x9b83e5;sprite.alpha=.28/n;sprite.position.set(a.root.x-n*14,a.root.y);this.effects.addChild(sprite);const x=sprite.x;void this.tween(300,p=>{sprite.x=x-p*20;sprite.alpha=(1-p)*.28/n}).then(()=>sprite.destroy())}}
+ private afterimages(a:Actor){if(!this.quality||this.reduced)return;for(let n=1;n<=2;n++){const sprite=new Sprite(a.sprite.texture);sprite.anchor.set(.5,1);sprite.scale.copyFrom(a.sprite.scale);sprite.tint=0x9b83e5;sprite.alpha=.28/n;sprite.position.set(a.root.x+a.sprite.x-n*10,a.root.y+a.sprite.y);this.effects.addChild(sprite);const x=sprite.x;void this.tween(300,p=>{sprite.x=x-p*20;sprite.alpha=(1-p)*.28/n}).then(()=>sprite.destroy())}}
  private impact(a:Actor,style:string,color:number,source?:string){
   const g=new Graphics(),x=a.root.x,y=a.root.y;g.position.set(x,y);this.effects.addChild(g)
   if(style==='supernova'){for(let n=0;n<6;n++){const a=n*Math.PI/3;g.star(Math.cos(a)*27,Math.sin(a)*20-32,4,7,3).fill(0xf5d3ff)}g.circle(0,-32,25).stroke({color:0xfdeecb,width:4}).circle(0,-32,36).stroke({color:0xd5acfb,width:2})}else if(style==='arrow-rain'){for(let n=-2;n<=2;n++)g.moveTo(n*10-18,-80).lineTo(n*10+5,-15).stroke({color:0xd1e8b0,width:2})}else if(style==='judgment'){g.moveTo(-38,-65).bezierCurveTo(30,-60,-10,-12,40,-10).stroke({color:0xffe8b1,width:7}).moveTo(-30,-10).lineTo(32,-65).stroke({color:0xd6ecff,width:3})}else if(style==='alchemy'){for(let n=0;n<6;n++)g.circle(Math.cos(n)*24,-30+Math.sin(n)*20,6+n%3).fill({color:[0xe8a5cf,0xbbe6a0,0xc5b8ff][n%3],alpha:.8})}else if(source==='special-boy'&&style==='slash'){g.star(0,-37,4,25,7).fill({color:0xe7f8ff,alpha:.7});g.moveTo(-30,-15).lineTo(25,-58).stroke({color:0xa7ddff,width:3})}
@@ -132,7 +144,7 @@ export class BattleView{
   void this.tween(this.reduced?140:650,p=>{g.alpha=1-p;g.rotation=this.reduced?0:p*.15;g.y=a.root.y-p*10}).then(()=>{g.destroy();this.ephemeral--})
  }
  async intro(boss=false){
-  if(boss){const a=[...this.actors.values()].find(a=>a.unit.boss);if(!a)return;a.sprite.tint=0x101e29;this.cinematic({type:'boss',name:a.unit.name,art:a.unit.art});await this.zoom(1.12,235,280*this.yScale);await this.wait(450);a.sprite.tint=0xffffff;this.ring(a.root.x,a.root.y,0x99e3cd);this.regionalSpell(a);void this.shake(3);await this.wait(500);this.cinematic(null);await this.zoom(1)}else{await this.wait(250)}
+  this.inAction=true;try{if(boss){const a=[...this.actors.values()].find(a=>a.unit.boss);if(!a)return;a.sprite.tint=0x101e29;this.cinematic({type:'boss',name:a.unit.name,art:a.unit.art});await this.zoom(1.12,235,280*this.yScale);await this.wait(450);a.sprite.tint=0xffffff;this.ring(a.root.x,a.root.y,0x99e3cd);this.regionalSpell(a);void this.shake(3);await this.wait(500);this.cinematic(null);await this.zoom(1)}else{await this.wait(250)}}finally{this.inAction=false;if(this.pendingHeight){const h=this.pendingHeight;this.pendingHeight=0;this.resize(h)}}
  }
  async previewCutin(unit:Unit,skillName:string){const highest=!!unit.stars&&starsOf(unit)===5;if(highest){const a=this.actors.get(unit.id);if(a){this.ring(a.root.x,a.root.y,0xffe3a1,1.8);this.spark(a.root.x,a.root.y-40,0xffe3a1,this.quality?16:4,'light')}}this.cinematic({type:'cutin',name:unit.name,art:unit.art,skill:(highest?'★★★★★ · ':'')+skillName});await this.wait(this.shortCutin||this.reduced?260:850);this.cinematic(null)}
  async play(action:Action,onImpact:()=>void){
@@ -148,7 +160,7 @@ export class BattleView{
    await this.wait(k.style==='slam'?230:140)
    if(k.style==='shadow'||k.style==='eclipse'||a.unit.heroId==='dudu')this.afterimages(a)
    if(k.style==='dash'){this.spark(a.root.x,a.root.y-8,color,10);this.ring(a.root.x,a.root.y,color)}
-   if(!ranged&&targets.length){const target=targets[0];if(this.allyCount===5&&a.unit.side==='ally'&&a.home.x<80)await this.move(a,a.home.x,140*this.yScale,110);await this.move(a,target.root.x+(a.unit.side==='ally'?-48:48),target.root.y+5,k.style==='dash'||k.style==='shadow'?180:280,k.style==='jump'?65:k.style==='kick'?24:0,k.style==='dash'?color:0);a.pose=k.style==='slam'||k.style==='dash'?19:11;await this.wait(k.style==='slam'?110:75)}
+   if(!ranged&&targets.length){const target=targets[0];await this.move(a,target.root.x+(a.unit.side==='ally'?-48:48),target.root.y+5,k.style==='dash'||k.style==='shadow'?180:280,k.style==='jump'?65:k.style==='kick'?24:0,k.style==='dash'?color:0);a.pose=k.style==='slam'||k.style==='dash'?19:11;await this.wait(k.style==='slam'?110:75)}
    else{a.pose=k.style==='carrot'?19:14;if(['orb','carrot','enemy-spit','water','frost','root','nebula','dragon','phoenix','aegis','meteor','supernova','arrow','arrow-rain','potion','alchemy'].includes(k.style))await Promise.all(targets.map(t=>this.projectile(a,t,k.style==='carrot',color,k.style)));else{await Promise.all(targets.map(t=>this.projectile(a,t,false,color)));for(const t of targets){this.ring(t.root.x,t.root.y,color);this.spark(t.root.x,t.root.y-35,color,9)}await this.wait(180)}}
    if(k.style==='dash'&&targets.length){this.spark(a.root.x,a.root.y-12,color,15);await this.move(a,Math.min(357,targets[targets.length-1].root.x+35),targets[targets.length-1].root.y,125,0,color);a.pose=19}
    for(const t of targets)this.impact(t,k.style,color,a.unit.heroId)
@@ -166,10 +178,10 @@ export class BattleView{
     await this.wait(this.reduced?35:95)
    }
    await this.wait(200)
-   if(!ranged){if(this.allyCount===5&&a.unit.side==='ally'&&a.home.x<80)await this.move(a,a.home.x,140*this.yScale,110);await this.move(a,a.home.x,a.home.y,260);a.pose=0;await this.wait(70)}
+   if(!ranged){await this.move(a,a.home.x,a.home.y,260);a.pose=0;await this.wait(70)}
    a.sprite.scale.x=Math.abs(a.sprite.scale.x);a.pose=a.unit.hp>0?-1:16;await this.zoom(1)
-  }finally{this.inAction=false;this.actionPoses.delete(a.unit.id)}
+  }finally{this.inAction=false;this.actionPoses.delete(a.unit.id);if(this.pendingHeight){const h=this.pendingHeight;this.pendingHeight=0;this.resize(h)}}
  }
  victory(){for(const a of this.actors.values())if(a.unit.side==='ally'&&a.unit.hp>0)a.pose=4;this.spark(195,150*this.yScale,0xf9dfa0,30)}
- destroy(){this.dead=true;document.removeEventListener('visibilitychange',this.visibility);for(const t of this.tweens)t.done();this.tweens=[];if(this.app.renderer){this.app.ticker.stop();setTimeout(()=>{this.app.destroy(true,{children:true,texture:false,textureSource:false});for(const source of this.sources)source.destroy();this.sources.clear();this.frames.clear()},0)}}
+ destroy(){this.dead=true;this.resizeObserver?.disconnect();document.removeEventListener('visibilitychange',this.visibility);for(const t of this.tweens)t.done();this.tweens=[];if(this.app.renderer){this.app.ticker.stop();setTimeout(()=>{this.app.destroy(true,{children:true,texture:false,textureSource:false});for(const source of this.sources)source.destroy();this.sources.clear();this.frames.clear();this.metrics.clear()},0)}}
 }
