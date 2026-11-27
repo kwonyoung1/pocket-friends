@@ -7,7 +7,7 @@ export function finalMode(requested='AUTO',minimum='FULL'){
 }
 const sensitive=/^(?:\.github\/|scripts\/|supabase\/|src\/cloud\/|src\/arena\/(?:server|state|beast-state|beast-owner|identity|fusion|beast-shop|shop|shop-state|season2|energy|replay|legacy[^/]*\/)|src\/(?:progression|trade|equipment|expansion)\/|src\/(?:game|interaction)\.ts$|package(?:-lock)?\.json$|AGENTS\.md$|(?:vite|vitest|playwright|tsconfig)|\.env)/
 const hazardous=/\b(?:supabase|localStorage|sessionStorage|indexedDB|fetch|XMLHttpRequest|coins|chests|inventory|ownership|owned|reward|rewards|firstRewarded|firstBonusGranted|growArena|save|load|authorize|authenticate|password|token)\b/i
-const numericFiles=new Set(['src/arena/balance.ts','src/arena/enemy-pressure.ts','src/arena/characters.ts','src/arena/beasts.ts','src/arena/stages.ts'])
+const numericFiles=new Set(['src/arena/tower/config.ts','src/arena/balance.ts','src/arena/enemy-pressure.ts','src/arena/characters.ts','src/arena/beasts.ts','src/arena/stages.ts'])
 const stats=new Set(['hp','atk','def','spd','power','supportPower','pierce','breakPower','bonusDebuff','drain'])
 /** Conservative lexical comparison: never evaluates candidate source. Unknown syntax refuses FAST. */
 export function tokens(source){
@@ -54,6 +54,7 @@ export function numericOnly(before,after,file){
  return changed>0
 }
 const areaTests={
+ tower:{unit:['src/arena/tower'],browser:['tests/tower.spec.ts'],cloud:['cloud-tests/tower.spec.ts']},
  arena:{unit:['src/arena'],browser:['tests/arena.spec.ts'],cloud:['cloud-tests/arena.spec.ts','cloud-tests/fusion.spec.ts','cloud-tests/fairy-update.spec.ts']},
  humans:{unit:['src/humans'],browser:['tests/humans.spec.ts'],cloud:[]},
  effects:{unit:['src/effects'],browser:['tests/care-effects.spec.ts'],cloud:[]},
@@ -70,6 +71,31 @@ export function staticCss(before,after){
  return typeof after==='string'&&!/expression\s*\(|behavior\s*:|-moz-binding/i.test(after)&&JSON.stringify(links(before??''))===JSON.stringify(links(after))
 }
 export function passiveSvg(source){return typeof source==='string'&&!/<!|<\s*(?:script|foreignObject|image|use|animate|set|iframe|object|embed)|\bon\w+\s*=|(?:href|url|@import)\s*[:=(]/i.test(source.replace(/url\(\s*['"]?#[\w.-]+['"]?\s*\)/gi,''))}
+/** Strength and execution scope are independent. Shared/tooling/unknown paths fail closed. */
+export function impactScope(changes,failure){
+ const reasons=[],areas=new Set();if(failure||!changes?.length)return {scope:'all',reasons:['Missing or failed dependency analysis']}
+ for(const c of changes){const p=c.path??'';if(!['A','M'].includes(c.status)||c.mode&&c.mode!=='100644')return{scope:'all',reasons:['Unverifiable status or mode: '+p]}
+  if(p==='validation.request.json'||/^docs\/.*\.(?:md|csv|json)$/.test(p)||/^(?:README|CHANGELOG)\.md$/.test(p))continue
+  let area=/^src\/arena\//.test(p)||/^(?:tests\/(?:arena|tower)|cloud-tests\/(?:arena[^/]*|tower|beasts|fusion|fairy-update|season2|shop-season|skill-balance|integrated-growth))\.spec\.tsx?$/.test(p)?'arena':/^src\/match3\//.test(p)||/^(?:tests|cloud-tests)\/match3[^/]*\.spec\.tsx?$/.test(p)?'match3':/^src\/sichuan\//.test(p)||/^tests\/sichuan[^/]*\.spec\.tsx?$/.test(p)?'sichuan':null
+  if(!area)return{scope:'all',reasons:['Shared, tooling or unmapped boundary: '+p]}
+  if(p.endsWith('.css')){const selectors=[...(c.after??'').matchAll(/(?:^|})\s*([^{}]+)\{/g)].flatMap(m=>m[1].split(','));if(!staticCss(c.before,c.after)||!selectors.length||selectors.some(s=>!/^\s*\.(?:tower-|starlight-arena|arena-|battle-|enemy-|party-|hero-|roster|skill-)/.test(s)))return{scope:'all',reasons:['Unresolved global CSS: '+p]}}
+  if(p.startsWith('src/')&&!/\.test\.tsx?$/.test(p)&&/\.tsx?$/.test(p)){
+   const imports=source=>[...(source??'').matchAll(/(?:from\s*|import\s*\(\s*|import\s*)['"]([^'"]+)['"]/g)].map(m=>m[1]),old=new Set(imports(c.before)),added=imports(c.after).filter(x=>!old.has(x))
+   // New relative imports may only stay within the owning feature; existing audited bridges remain unchanged.
+   const root=p.split('/').slice(0,2).join('/'),base=p.split('/').slice(0,-1)
+   for(const imp of added){if(!imp.startsWith('.')){if(!['react','pixi.js','gsap','lucide-react'].includes(imp))return{scope:'all',reasons:['Unresolved external dependency: '+p+' -> '+imp]};continue;}const parts=[...base];for(const part of imp.split('/')){if(part==='..')parts.pop();else if(part!=='.')parts.push(part)}if(!parts.join('/').startsWith(root+'/'))return{scope:'all',reasons:['New cross-feature dependency: '+p+' -> '+imp]}}
+   if(/\bimport\s*\(\s*[^'"\s]/.test(c.after??''))return{scope:'all',reasons:['Unresolved dynamic import: '+p]}
+  }
+  areas.add(area);reasons.push(p+': '+area+' feature boundary')
+ }
+ if(areas.size!==1)return{scope:'all',reasons:['Mixed or missing feature boundaries']}
+ return {scope:[...areas][0],reasons}
+}
+const scopedTests={
+ arena:{browser:['tests/arena.spec.ts','tests/tower.spec.ts'],cloud:['cloud-tests/arena-polish.spec.ts','cloud-tests/arena.spec.ts','cloud-tests/beasts.spec.ts','cloud-tests/fusion.spec.ts','cloud-tests/fairy-update.spec.ts','cloud-tests/season2.spec.ts','cloud-tests/shop-season.spec.ts','cloud-tests/skill-balance.spec.ts','cloud-tests/integrated-growth.spec.ts','cloud-tests/tower.spec.ts']},
+ match3:{browser:['tests/match3'],cloud:['cloud-tests/match3.spec.ts','cloud-tests/treasure-v4.spec.ts']},
+ sichuan:{browser:['tests/sichuan'],cloud:['cloud-tests/cloud.spec.ts','--grep','Sichuan|competition|shuffle|transient path']},
+}
 export function assess(changes,{requested='AUTO',failure,policyHash='unbound',base='',requestBase=base,head=''}={}){
  let minimum='FAST';const reasons=[],areas=new Set(),assetFiles=[];let unknown=!!failure,needsCloud=false
  if(!changes?.length){unknown=true;reasons.push('No verifiable changed files; FULL fallback')}
@@ -87,8 +113,8 @@ export function assess(changes,{requested='AUTO',failure,policyHash='unbound',ba
   if(p==='src/arena/assets.ts'&&c.status==='M'&&assetImportsOnly(c.before??'',c.after??'')){areas.add('arena');reasons.push(`${p}: static image import targets only`);continue}
   if(numericFiles.has(p)&&c.status==='M'&&typeof c.before==='string'&&typeof c.after==='string'&&numericOnly(c.before,c.after,p)){areas.add('arena');reasons.push(`${p}: verified existing stat/coefficient literals only`);continue}
   if(['src/arena/balance.ts','src/arena/stages.ts'].includes(p)){raise('FULL',`${p}: non-stat changes may affect rewards or unlocks`);continue}
-  if(/^src\/arena\/(?:model|characters|beasts|stages|balance|enemy-pressure|targeting|resonance|Battle|Arena|Party|integration|assets|monster-art)\.(?:ts|tsx)$/.test(p)){
-   areas.add('arena');needsCloud||=!/\/(?:Battle|assets|monster-art)\.(?:ts|tsx)$/.test(p);const a=tokens(c.before??''),b=tokens(c.after??''),oldValues=new Set(a?.map(t=>t.value)),newValues=new Set(b?.map(t=>t.value)),removed=a?.filter(t=>!newValues.has(t.value))??[],added=b?.filter(t=>!oldValues.has(t.value))??[]
+  if(p==='src/arena/tower/TowerPanel.tsx'||/^src\/arena\/(?:model|characters|beasts|stages|balance|enemy-pressure|targeting|resonance|Battle|Arena|Party|integration|assets|monster-art)\.(?:ts|tsx)$/.test(p)){
+   areas.add(p==='src/arena/tower/TowerPanel.tsx'?'tower':'arena');needsCloud||=!/\/(?:Battle|assets|monster-art)\.(?:ts|tsx)$/.test(p);const a=tokens(c.before??''),b=tokens(c.after??''),oldValues=new Set(a?.map(t=>t.value)),newValues=new Set(b?.map(t=>t.value)),removed=a?.filter(t=>!newValues.has(t.value))??[],added=b?.filter(t=>!oldValues.has(t.value))??[]
    const danger=[...removed,...added].some(t=>hazardous.test(t.value)),imports=source=>(source.match(/^\s*import[^\n]*/gm)??[]).join('\n')
    if(!a||!b||danger||imports(c.before??'')!==imports(c.after??''))raise('FULL',`${p}: uncertain imports or data-related logic`)
    else raise('STANDARD',`${p}: combat/party/UI control logic`)
@@ -99,11 +125,11 @@ export function assess(changes,{requested='AUTO',failure,policyHash='unbound',ba
  if(unknown)minimum='FULL'
  const mode=finalMode(requested,minimum);if(!['AUTO',...MODES].includes(requested))reasons.push('Invalid requested mode; FULL fallback')
  if(mode!==minimum)reasons.push(`Requested ${requested} raises ${minimum} to ${mode}`)
- const full=mode==='FULL',selected=[...areas].map(a=>areaTests[a]),union=key=>[...new Set(selected.flatMap(a=>a[key]))]
- const unitTests=full?[]:union('unit'),browserTests=full?[]:union('browser'),cloudTests=full||!needsCloud?[]:union('cloud')
+ const impact=impactScope(changes,failure),scope=mode==='FULL'?impact.scope:'all',full=mode==='FULL',selected=[...areas].map(a=>areaTests[a]),union=key=>[...new Set(selected.flatMap(a=>a[key]))]
+ const unitTests=full?[]:union('unit'),browserTests=full?(scopedTests[scope]?.browser??[]):union('browser'),cloudTests=full?(scopedTests[scope]?.cloud??[]):!needsCloud?[]:union('cloud')
  if(mode==='STANDARD'&&!browserTests.length)browserTests.push('tests/game.spec.ts')
  const browser=full||mode==='STANDARD',cloud=full||mode==='STANDARD'&&cloudTests.length>0
- return{version:POLICY_VERSION,base,requestBase,head,requested,minimum,mode,policyHash,reasons,assetFiles,unitTests,browserTests,cloudTests,required:{unit:true,browser,cloud},checks:{allUnit:full,relatedUnit:!full&&unitTests.length>0,automation:full,deno:full||mode==='STANDARD'&&needsCloud,typecheck:true,build:true,browser,cloud},skipped:{browser:browser?null:`${mode}: full browser suite outside required scope`,cloud:cloud?null:`${mode}: cloud suite outside required scope`,unitSubset:full?null:unitTests.length?null:'No executable changes with mapped unit tests'}}
+ return{version:POLICY_VERSION,scope,scopeReasons:impact.reasons,base,requestBase,head,requested,minimum,mode,policyHash,reasons,assetFiles,unitTests,browserTests,cloudTests,required:{unit:true,browser,cloud},checks:{allUnit:full,relatedUnit:!full&&unitTests.length>0,automation:full,deno:full||mode==='STANDARD'&&needsCloud,typecheck:true,build:true,browser,cloud},skipped:{browser:browser?null:`${mode}: full browser suite outside required scope`,cloud:cloud?null:`${mode}: cloud suite outside required scope`,unitSubset:full?null:unitTests.length?null:'No executable changes with mapped unit tests'}}
 }
 export function assertResults(plan,results){
  if(!plan||plan.version!==POLICY_VERSION||!MODES.includes(plan.mode)||!plan.required?.unit)throw Error('Missing or invalid validation plan')

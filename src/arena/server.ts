@@ -1,3 +1,9 @@
+import {TOWER_GROWTH} from './tower/config.ts'
+import {trainingWork} from './tower/work.ts'
+import {stageById as stage9} from './legacy-v9/stages.ts'
+import {freshTower,floorAllowed,decimal} from './tower/state.ts'
+import {towerLayout,createTowerBattle} from './tower/generator.ts'
+import {awardTower} from './tower/rewards.ts'
 import {stageById as stage8} from './legacy-v8/stages.ts'
 import {stageById as stage7} from './legacy-v7/stages.ts'
 import {stageById as stage6} from './legacy-v6/stages.ts'
@@ -24,11 +30,11 @@ import {beastById} from './beasts.ts'
 import {chestById,chestForStage,openChest,trainBeast} from './chests.ts'
 import {fuseBeast,fusionHero} from './fusion.ts'
 import {energySpend,settleEnergy,energyDay} from './energy.ts'
-import {extendsCheckpoint,replay} from './replay.ts'
+import {extendsCheckpoint,replay,ticketBattle} from './replay.ts'
 const text=(x:unknown,n=100):x is string=>typeof x==='string'&&x.length>0&&x.length<=n
 const id=(x:unknown):x is string=>text(x,36)&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x)
 export function validateArena(value:Record<string,unknown>):ArenaCommand{
- const keys=value.type==='arena-adventurer-train'?['type','adventurerId']:value.type==='arena-shop'?(value.item==='training'?['type','item','friendId','stat','expected']:value.item==='skill'?['type','item','friendId','skillId','expected']:value.item==='command'?['type','item','expected']:value.item==='scroll-buy'?['type','item','scrollId','quantity']:['type','item','scrollId','quantity','friendId']):value.type==='arena-fuse'?['type','beastId','fromStars']:['arena-share','arena-season-start'].includes(value.type as string)?['type']:value.type==='arena-select'?['type','accountId','previousOwner']:value.type==='arena-start'?['type','stageId','party']:value.type==='arena-link'?['type','accountId','secret']:value.type==='arena-open'?['type','chest','nonce']:value.type==='arena-train'?['type','beastId','training']:value.type==='arena-abandon'?['type','runId']:['type','runId','moves']
+ const keys=value.type==='arena-adventurer-train'?['type','adventurerId']:value.type==='arena-shop'?(value.item==='training'?['type','item','friendId','stat','expected']:value.item==='skill'?['type','item','friendId','skillId','expected']:value.item==='command'?['type','item','expected']:value.item==='scroll-buy'?['type','item','scrollId','quantity']:['type','item','scrollId','quantity','friendId']):value.type==='arena-fuse'?['type','beastId','fromStars']:['arena-share','arena-season-start'].includes(value.type as string)?['type']:value.type==='arena-select'?['type','accountId','previousOwner']:value.type==='arena-tower-start'?['type','floor','party']:value.type==='arena-start'?['type','stageId','party','proficiency']:value.type==='arena-link'?['type','accountId','secret']:value.type==='arena-open'?['type','chest','nonce']:value.type==='arena-train'?['type','beastId','training']:value.type==='arena-abandon'?['type','runId']:['type','runId','moves']
  if(Object.keys(value).some(k=>!keys.includes(k)))throw Error('전투에는 보상·레벨·확률·결과 값을 보낼 수 없어요.')
  if(value.type==='arena-adventurer-train'){if(!text(value.adventurerId,40)||!adventurerById(value.adventurerId))throw Error('모험가를 선택해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-shop'){
@@ -42,7 +48,8 @@ export function validateArena(value:Record<string,unknown>):ArenaCommand{
  if(value.type==='arena-fuse'){if(!text(value.beastId,40)||!fusionHero(value.beastId)||!Number.isInteger(value.fromStars)||(value.fromStars as number)<1||(value.fromStars as number)>4)throw Error('합성할 요정와 성급을 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-share'||value.type==='arena-season-start')return {type:value.type}
  if(value.type==='arena-select'){if(!validArenaId(value.accountId)||!validArenaId(value.previousOwner))throw Error('보존된 아레나 기록을 확인해 주세요.');return value as ArenaCommand}
- if(value.type==='arena-start'){if(!text(value.stageId,12)||!stageById(value.stageId)||!Array.isArray(value.party)||!value.party.length||value.party.length>5||value.party.some(x=>!text(x,60)))throw Error('스테이지와 파티를 확인해 주세요.');return value as ArenaCommand}
+ if(value.type==='arena-tower-start'){if(!decimal(value.floor)||value.floor==='0'||!Array.isArray(value.party)||!value.party.length||value.party.length>5||value.party.some(x=>!text(x,60)))throw Error('수련 층과 파티를 확인해 주세요.');return value as ArenaCommand}
+ if(value.type==='arena-start'){if(value.proficiency!==undefined&&value.proficiency!==1)throw Error('숙련 지원 버전을 확인해 주세요.');if(!text(value.stageId,12)||!stageById(value.stageId)||!Array.isArray(value.party)||!value.party.length||value.party.length>5||value.party.some(x=>!text(x,60)))throw Error('스테이지와 파티를 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-link'){if(!validArenaId(value.accountId)||!validArenaSecret(value.secret))throw Error('아레나 계정 연결 코드를 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-open'){if(!text(value.chest,20)||!chestById(value.chest)||!Number.isSafeInteger(value.nonce)||(value.nonce as number)<1)throw Error('상자와 개봉 번호를 확인해 주세요.');return value as ArenaCommand}
  if(value.type==='arena-train'){if(!text(value.beastId,40)||!beastById(value.beastId)||!['xp','mastery'].includes(value.training as string))throw Error('요정와 육성 방법을 확인해 주세요.');return value as ArenaCommand}
@@ -57,11 +64,12 @@ export function arenaAccount(p:ArenaProgress,user:string,now:number):ArenaAccoun
  const a=p.accounts[user];if(!a.lastParty&&p.tickets[user]){const ticket=p.tickets[user];a.lastParty={ids:[...ticket.party],owner:user,at:ticket.startedAt}}if(a.layoutVersion!==2){a.chapterAccess=legacyChapterAccess(a.cleared);a.layoutVersion=2}if(energyDay(now)>(a.energy.lastMidnight??energyDay(a.energy.at)))a.energy=settleEnergy(a.energy,now);if(a.daily.day!==dailyKey(now))a.daily={day:dailyKey(now),xp:{}};return a
 }
 function ownTicket(p:ArenaProgress,user:string,runId:string,now:number,allowExpired=false):ArenaTicket{const t=p.tickets[user];if(!t||t.owner!==user||t.id!==runId)throw Error('이 계정의 진행 중인 전투가 아니에요.');if(t.status==='abandoned')throw Error('이미 종료한 전투예요.');if(!allowExpired&&t.expiresAt<now)throw Error('전투 유효 시간이 지났어요. 새 전투로 시작해 주세요.');return t}
-function firstProfiles(save:Save,a:ArenaAccount,party:string[]):Profiles{return Object.fromEntries(party.map(id=>{
+function baseProfiles(save:Save,a:ArenaAccount,party:string[]):Profiles{return Object.fromEntries(party.map(id=>{
  if(adventurerById(id)){const b=a.adventurers?.[id];if(!b)throw Error('보유한 모험가만 출전할 수 있어요.');return[id,{level:b.level,name:adventurerById(id)!.name,stars:b.stars??1,training:{...trainingOf(a.shop,id)},skillLevels:{...a.shop?.skills[id]}}]}
  if(beastById(id)){const b=a.beasts[id];if(!b)throw Error('보유한 요정만 출전할 수 있어요.');return[id,{level:b.level,name:beastById(id)!.name,mastery:b.mastery,stars:b.stars??1,training:{...trainingOf(a.shop,id)},skillLevels:{...a.shop?.skills[id]}}]}
  const f=save.friends.find(f=>f.id===id);if(!f||!heroById(id,f.kind))throw Error('보유한 친구만 출전할 수 있어요.');const level=arenaGrowth(a,id).level;if(!Number.isInteger(level)||level<1||level>50)throw Error('친구의 실제 성장 레벨을 확인해 주세요.');const gear=equippedArenaBonus(save.world?.equipment?.instances??[],id);return[id,{level,name:/^(남자아이|여자아이)$/.test(f.name)?heroById(id,f.kind).name:f.name,kind:f.kind,gear,training:{...trainingOf(a.shop,id)},skillLevels:{...a.shop?.skills[id]}}]
  }))}
+function firstProfiles(save:Save,a:ArenaAccount,party:string[],proficiency=false):Profiles{return Object.fromEntries(Object.entries(baseProfiles(save,a,party)).map(([id,p])=>[id,{...p,...(proficiency?{proficiencyXp:a.tower?.proficiency[id]?.xp??'0'}:{})}]))}
 function grantCoins(save:Save,p:ArenaProgress,amount:number,label:string,now:number,cap:number=BEAST_LIMITS.worldCoinsPerDay){const n=Math.max(0,Math.min(amount,cap-p.daily.coins,ARENA_LIMITS.maxCoins-world(save,now).coins));if(!transact(world(save,now),n,label,now))throw Error('보상을 안전하게 지급하지 못했어요.');p.daily.coins+=n;return n}
 export function arenaCommand(save:Save,c:ArenaCommand,user:string,now:number,seed=seeded):string{
  const p=c.type==='arena-season-start'&&save.world?.arena?save.world.arena:arenaProgress(save,now)
@@ -80,7 +88,7 @@ export function arenaCommand(save:Save,c:ArenaCommand,user:string,now:number,see
   p.links??={};if(!p.links[user]&&Object.keys(p.links).length>=256)throw Error('아레나 기기 연결 공간이 가득 찼어요. 관리자에게 문의해 주세요.');p.links[user]=c.accountId;return '기존 아레나 계정의 요정·에너지·진행을 연결했어요.'
  }
  const owner=arenaOwner(p,user),a=arenaAccount(p,owner,now),random=()=>((seed()>>>0)/4294967296)
- if(['arena-start','arena-shop','arena-open','arena-train','arena-fuse','arena-adventurer-train'].includes(c.type)&&p.season!==2)throw Error('시즌 2 전환을 먼저 완료해 주세요. 기존 기록은 보관돼요.')
+ if(['arena-start','arena-tower-start','arena-shop','arena-open','arena-train','arena-fuse','arena-adventurer-train'].includes(c.type)&&p.season!==2)throw Error('시즌 2 전환을 먼저 완료해 주세요. 기존 기록은 보관돼요.')
  if(c.type==='arena-shop')return shopCommand(save,a,c,now)
  if(c.type==='arena-adventurer-train'){const h=a.adventurers?.[c.adventurerId];if(!h||h.level>=50||h.shards<5)throw Error('보유한 모험가의 레벨과 전용 조각을 확인해 주세요.');h.shards-=5;growArena(h,100);return '모험가 조각 5개로 아레나 경험치 100을 얻었어요.'}
  if(c.type==='arena-fuse'){const result=fuseBeast(a,c.beastId,c.fromStars,now);return `${fusionHero(c.beastId)!.name} ★${result.toStars} 합성 완료! 전용 조각 ${result.shards}개를 사용했어요.`}
@@ -91,27 +99,42 @@ export function arenaCommand(save:Save,c:ArenaCommand,user:string,now:number,see
   return result.adventurerId?`${adventurerById(result.adventurerId)!.name} ${result.duplicate?'중복! 전용 조각 '+result.shards+'개':'모험가 획득!'}`:result.beastId?`${beastById(result.beastId)!.name} ${result.duplicate?'중복! 전용 조각 '+result.shards+'개':'요정 획득!'}`:`상자 개봉! ${result.coins?result.coins+'코인':'강화석 '+result.stones+'개'}`
  }
  if(c.type==='arena-train'){const message=trainBeast(a,c.beastId,c.training);if(c.training==='xp'){const b=a.beasts[c.beastId];b.shards-=5;addBeastXp(b,100);return '전용 조각 5개로 요정 경험치 100을 얻었어요.'}return message}
+ if(c.type==='arena-tower-start'){
+  const tower=a.tower??freshTower();if(!floorAllowed(c.floor,tower))throw Error('해금된 층 또는 다음 한 층만 도전할 수 있어요.')
+  const profiles=firstProfiles(save,a,c.party,true),cap=costLimit(a.shop,c.party,profiles,!!a.commandRelic),errors=partyErrors(c.party,profiles,cap);if(errors.length)throw Error(errors[0]);const old=p.tickets[owner]
+  if(old?.status==='active'&&old.expiresAt>=now){if(old.tower?.floor===c.floor&&JSON.stringify(old.party)===JSON.stringify(c.party))return '진행 중인 수련을 이어갈 수 있어요.';throw Error('진행 중인 전투를 먼저 완료하거나 포기해 주세요.')}
+  for(const[key,t]of Object.entries(p.tickets))if(t.expiresAt<now)delete p.tickets[key]
+  if(old)delete p.tickets[owner]
+  if(Object.keys(p.tickets).length>=ARENA_LIMITS.tickets){const removable=Object.entries(p.tickets).filter(([,t])=>t.status!=='active').sort((a,b)=>a[1].startedAt-b[1].startedAt)[0];if(removable)delete p.tickets[removable[0]]}
+  if(Object.keys(p.tickets).length>=ARENA_LIMITS.tickets)throw Error('진행 중인 전투가 많아요. 잠시 후 다시 시도해 주세요.')
+  if(old?.tower&&old.status==='active'&&old.expiresAt<now)tower.streak=0
+  const battleSeed=seed()>>>0,layout=towerLayout(c.floor,battleSeed),run={floor:layout.floor,trait:layout.trait,special:layout.special,region:layout.region,growth:{...TOWER_GROWTH}}
+  a.tower=tower;tower.recent=c.floor;a.lastParty={ids:[...c.party],owner,at:now};p.tickets[owner]={id:crypto.randomUUID(),owner,stageId:layout.stageId,party:[...c.party],profiles,seed:battleSeed,rules:ARENA_RULES,startedAt:now,expiresAt:now+ARENA_LIMITS.ticketMs,moves:[],status:'active',energyCost:0,costLimit:cap,tower:run,towerWork:trainingWork(createTowerBattle(c.party,profiles,battleSeed,run,cap))};return `${c.floor}층 수련 시작 · 입장 에너지 0`
+ }
  if(c.type==='arena-start'){
   const stage=stageById(c.stageId)!;if(stage.event&&!eventOpen(now))throw Error('크리스마스 이벤트 입장 기간이 아니에요.');if(!stageUnlocked(stage.id,a.cleared,a.chapterAccess))throw Error('이전 스테이지를 먼저 클리어해 주세요.')
-  const profiles=firstProfiles(save,a,c.party),cap=costLimit(a.shop,c.party,profiles,!!a.commandRelic),errors=partyErrors(c.party,profiles,cap);if(errors.length)throw Error(errors[0]);const old=p.tickets[owner]
-  if(old?.status==='active'&&old.expiresAt>=now){if(old.stageId===stage.id&&JSON.stringify(old.party)===JSON.stringify(c.party)){a.lastParty={ids:[...old.party],owner,at:old.startedAt};return '진행 중인 전투를 이어갈 수 있어요.';}throw Error('진행 중인 전투를 이어 하거나 먼저 포기해 주세요.')}
+  const profiles=firstProfiles(save,a,c.party,c.proficiency===1),cap=costLimit(a.shop,c.party,profiles,!!a.commandRelic),errors=partyErrors(c.party,profiles,cap);if(errors.length)throw Error(errors[0]);const old=p.tickets[owner]
+  if(old?.status==='active'&&old.expiresAt>=now){if(!old.tower&&old.stageId===stage.id&&JSON.stringify(old.party)===JSON.stringify(c.party)){a.lastParty={ids:[...old.party],owner,at:old.startedAt};return '진행 중인 전투를 이어갈 수 있어요.';}throw Error('진행 중인 전투를 이어 하거나 먼저 포기해 주세요.')}
   // Validate capacity before debit; CAS commits energy and ticket together or commits neither.
   for(const[key,t]of Object.entries(p.tickets))if(t.expiresAt<now)delete p.tickets[key]
   if(old?.status!=='active')delete p.tickets[owner]
   if(Object.keys(p.tickets).length>=ARENA_LIMITS.tickets){const removable=Object.entries(p.tickets).filter(([,t])=>t.status!=='active').sort((a,b)=>a[1].startedAt-b[1].startedAt)[0];if(removable)delete p.tickets[removable[0]]}
+  if(Object.keys(p.tickets).length>=ARENA_LIMITS.tickets){const removable=Object.entries(p.tickets).filter(([,t])=>t.status!=='active').sort((a,b)=>a[1].startedAt-b[1].startedAt)[0];if(removable)delete p.tickets[removable[0]]}
   if(Object.keys(p.tickets).length>=ARENA_LIMITS.tickets)throw Error('진행 중인 전투가 많아요. 잠시 후 다시 시도해 주세요.')
-  const energy=energySpend(a.energy,stage.energy,now),ticket:ArenaTicket={id:crypto.randomUUID(),owner,stageId:stage.id,party:[...c.party],profiles,seed:seed()>>>0,rules:ARENA_RULES,startedAt:now,expiresAt:now+ARENA_LIMITS.ticketMs,moves:[],status:'active',energyCost:stage.energy,costLimit:cap}
+  if(old?.tower&&old.status==='active'&&old.expiresAt<now&&a.tower)a.tower.streak=0
+  const energy=energySpend(a.energy,stage.energy,now),ticket:ArenaTicket={id:crypto.randomUUID(),owner,stageId:stage.id,party:[...c.party],profiles,seed:seed()>>>0,rules:c.proficiency===1?ARENA_RULES:9,startedAt:now,expiresAt:now+ARENA_LIMITS.ticketMs,moves:[],status:'active',energyCost:stage.energy,costLimit:cap}
   a.energy=energy;a.lastParty={ids:[...c.party],owner,at:now};p.tickets[owner]=ticket;return `${stage.name} 출발! 별빛 에너지 ${stage.energy} 사용.`
  }
  const t=ownTicket(p,owner,c.runId,now,c.type==='arena-abandon')
  if(t.status==='claimed')return '이 전투의 결과와 보상은 이미 반영했어요.'
- if(c.type==='arena-abandon'){t.status='abandoned';return '전투를 포기했어요. 입장 에너지는 반환되지 않으며 기존 친구와 재화는 그대로예요.'}
+ if(c.type==='arena-abandon'){t.status='abandoned';if(t.tower){if(a.tower)a.tower.streak=0;return '수련 종료 · 연승 보너스만 초기화했어요. 에너지·누적 숙련도는 그대로예요.'}return '전투를 포기했어요. 입장 에너지는 반환되지 않으며 기존 친구와 재화는 그대로예요.'}
  if(!extendsCheckpoint(t,c.moves))throw Error('다른 기기의 더 최신 전투 기록을 먼저 불러와 주세요.')
  const result=replay(t,c.moves)
  if(c.type==='arena-checkpoint'){t.moves=structuredClone(c.moves);return '전투 행동 기록을 안전하게 보관했어요.'}
  if(result.phase!=='victory')throw Error('서버에서 승리를 확인하지 못했어요.')
  if(now<t.startedAt+Math.min(3000,c.moves.length*160))throw Error('전투 완료를 너무 빠르게 요청했어요.')
- const stage=t.rules===1?{...legacyStage(t.stageId)!,event:undefined}:t.rules<=4?stage4(t.stageId)!:t.rules===5?stage5(t.stageId)!:t.rules===6?stage6(t.stageId)!:t.rules===7?stage7(t.stageId)!:t.rules===8?stage8(t.stageId)!:stageById(t.stageId)!,oldClears=t.rules<=4&&p.season===2&&p.season1Archive?((p.legacyCleared??={})[owner]??=structuredClone(p.season1Archive.accounts[owner]?.cleared??p.season1Archive.cleared)):undefined,cleared=stage.event?(a.eventClears??={}):oldClears??(t.rules===1?p.cleared:a.cleared),old=cleared[stage.id],first=!old?.firstRewarded,firstLoot=!(old?.firstBonusGranted??old?.firstRewarded),terms=first?stage.first:stage.repeat,eligible=t.rules===1?p.daily.clears<ARENA_LIMITS.rewardedClears&&p.daily.coins<ARENA_LIMITS.coinsPerDay:p.daily.coins+(t.rules>=4&&first?terms.coins:0)<=(t.rules>=4&&first?BEAST_LIMITS.worldCoinsPerDay:BEAST_LIMITS.worldCoinsPerDay-1)
+ if(t.tower){const reward=awardTower(a.tower??=(freshTower()),t,t.towerWork??trainingWork(ticketBattle(t)));t.status='claimed';t.moves=structuredClone(c.moves);t.reward={coins:0,xp:0,stones:0,first:reward.first,capped:false,tower:reward};return `${t.tower.floor}층 승리 · 참가자별 숙련 XP ${reward.xp}` }
+ const stage=t.rules===1?{...legacyStage(t.stageId)!,event:undefined}:t.rules<=4?stage4(t.stageId)!:t.rules===5?stage5(t.stageId)!:t.rules===6?stage6(t.stageId)!:t.rules===7?stage7(t.stageId)!:t.rules===8?stage8(t.stageId)!:t.rules===9?stage9(t.stageId)!:stageById(t.stageId)!,oldClears=t.rules<=4&&p.season===2&&p.season1Archive?((p.legacyCleared??={})[owner]??=structuredClone(p.season1Archive.accounts[owner]?.cleared??p.season1Archive.cleared)):undefined,cleared=stage.event?(a.eventClears??={}):oldClears??(t.rules===1?p.cleared:a.cleared),old=cleared[stage.id],first=!old?.firstRewarded,firstLoot=!(old?.firstBonusGranted??old?.firstRewarded),terms=first?stage.first:stage.repeat,eligible=t.rules===1?p.daily.clears<ARENA_LIMITS.rewardedClears&&p.daily.coins<ARENA_LIMITS.coinsPerDay:p.daily.coins+(t.rules>=4&&first?terms.coins:0)<=(t.rules>=4&&first?BEAST_LIMITS.worldCoinsPerDay:BEAST_LIMITS.worldCoinsPerDay-1)
  const reward:ArenaReward={coins:0,xp:0,stones:0,first,capped:!eligible}
  if(t.rules!==1){const box=stage.event?'christmas':chestForStage(stage.index,stage.boss,random),count=stage.event?1:(t.rules>=4?firstLoot:first)&&stage.boss?2:1;if((a.chests[box]??0)+count>BEAST_LIMITS.chests)throw Error('보물상자를 먼저 개봉하고 같은 결과로 다시 확인해 주세요.');a.chests[box]=(a.chests[box]??0)+count;reward.chests={[box]:count}}
  if(eligible){

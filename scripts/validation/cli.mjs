@@ -8,7 +8,7 @@ const source=(ref,file)=>execFileSync('git',['show',`${ref}:${file}`],{encoding:
 const output=plan=>{
  if(arg('out'))writeFileSync(arg('out'),JSON.stringify(plan,null,2)+'\n')
  if(process.env.GITHUB_OUTPUT)for(const [k,v]of Object.entries({plan:JSON.stringify(plan),mode:plan.mode,browser:String(plan.required.browser),cloud:String(plan.required.cloud),all_unit:String(plan.checks.allUnit),automation:String(plan.checks.automation),deno:String(plan.checks.deno),unit_tests:JSON.stringify(plan.unitTests),browser_tests:JSON.stringify(plan.browserTests),cloud_tests:JSON.stringify(plan.cloudTests),validated_base:arg('validated-base')??plan.base}))appendFileSync(process.env.GITHUB_OUTPUT,`${k}=${v}\n`)
- const summary=`### Validation policy\n- Requested: ${plan.requested}\n- Automatic minimum: ${plan.minimum}\n- Applied: **${plan.mode}**\n- Head: \`${plan.head}\`\n- Base: \`${plan.base}\`\n- Policy: \`${plan.policyHash}\`\n${plan.reasons.map(r=>'- '+r).join('\n')}\n${Object.entries(plan.skipped).filter(([,v])=>v).map(([k,v])=>`- Intentionally omitted ${k}: ${v}`).join('\n')}\n`
+ const summary=`### Validation policy\n- Requested: ${plan.requested}\n- Automatic minimum: ${plan.minimum}\n- Applied: **${plan.mode}**\n- Scope: ${plan.scope??'all'}\n- Head: \`${plan.head}\`\n- Base: \`${plan.base}\`\n- Policy: \`${plan.policyHash}\`\n${plan.reasons.map(r=>'- '+r).join('\n')}\n${Object.entries(plan.skipped).filter(([,v])=>v).map(([k,v])=>`- Intentionally omitted ${k}: ${v}`).join('\n')}\n`
  if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,summary)
  console.log(summary)
 }
