@@ -1,4 +1,9 @@
-import {specialGrowth} from './special-growth.ts'
+import {resolvedStrikes} from './vfx/presentation'
+import {BattleVFX} from './vfx/BattleVFX'
+import type {Point} from './vfx/BattleVFX'
+import {SkillTimeline,AnimationCancelled} from './vfx/SkillTimeline'
+import {elements as elementsForVFX,vfxPreset} from './vfx/presets'
+import type {Quality} from './vfx/presets'
 import {sceneLayout,backgroundFrame,alphaFootprint} from './battle-layout.ts'
 import type {SceneLayout,Footprint,Slot} from './battle-layout.ts'
 import {hdMonster,monsterArtRow,monsterArtCell} from './monster-art.ts'
@@ -9,11 +14,9 @@ import {Application,Container,Sprite,Texture,Rectangle,Graphics,Text,ImageSource
 import {ASSETS} from './assets'
 import type {State,Unit,Action} from './model'
 type Actor={shadow:Graphics;bodyHeight:number;slot:Slot;root:Container;sprite:Sprite;bar:Graphics;barBg:Graphics;breakBar:Graphics;label:Text;halo:Graphics;barrier:Graphics;aura:Graphics;unit:Unit;pose:number;walking:boolean;time:number;home:{x:number;y:number}}
-type Tween={start:number;duration:number;draw:(p:number)=>void;done:()=>void}
-export type Cinematic={type:'boss'|'cutin';name:string;art:string;skill?:string}|null
-const COLORS={meteor:0xbac4ff,supernova:0xe9b7ff,judgment:0xffe8a1,arrow:0xb7d98c,'arrow-rain':0xd0e6ac,potion:0xcbb2f2,alchemy:0xffb9b0,slash:0xb9efff,orb:0xe1d0ff,claw:0xffb58b,kick:0xffcbe2,slam:0xe8bc72,command:0xffe3a1,heal:0x97f2c5,dash:0xff9a66,carrot:0xffb66b,jump:0xffc4e6,shield:0xa3cfff,fire:0xff9554,'enemy-spit':0x84e9ef,vine:0xc591e1,shadow:0xb7a4f9,frost:0xb2eaff,water:0x8bdeef,root:0xa9d990,rally:0xf6df9c,purify:0xd8f4b5,counter:0xd2bc92,nebula:0xc6a6ff,phoenix:0xffa35d,dragon:0xa2d5ff,eclipse:0xb29bea,aegis:0xffe9c9}
+export type Cinematic={type:'boss'|'cutin';name:string;art:string;skill?:string;tier?:number;element?:string}|null
 export class BattleView{
- app=new Application();camera=new Container();effects=new Container();actors=new Map<string,Actor>();frames=new Map<string,Texture[]>();clock=0;speed=1;quality=true;reduced=false;shortCutin=false;dead=false;selected='';current='';tweens:Tween[]=[];ephemeral=0;private sources=new Set<ImageSource>();private foreground?:Sprite;private inAction=false;private enemyCount=0;private layout?:SceneLayout;private layoutKey='';private displayState?:State;private background?:Sprite;private resizeObserver?:ResizeObserver;private pendingHeight=0;private metrics=new Map<Texture,Footprint>();private height=465;private yScale=1;private preview:string[]=[];private slowFrames=0;private actionPoses=new Map<string,number>()
+ app=new Application();camera=new Container();effects=new Container();actors=new Map<string,Actor>();frames=new Map<string,Texture[]>();clock=0;speed=1;quality=true;reduced=false;shortCutin=false;dead=false;selected='';current='';timeline=new SkillTimeline();private vfx?:BattleVFX;private qualityChoice:Quality='medium';private metricStamp=0;ephemeral=0;private sources=new Set<ImageSource>();private foreground?:Sprite;private inAction=false;private enemyCount=0;private layout?:SceneLayout;private layoutKey='';private displayState?:State;private background?:Sprite;private resizeObserver?:ResizeObserver;private pendingHeight=0;private metrics=new Map<Texture,Footprint>();private height=465;private yScale=1;private preview:string[]=[];private slowFrames=0;private actionPoses=new Map<string,number>()
  constructor(private host:HTMLElement,private select:(id:string)=>void,private cinematic:(c:Cinematic)=>void){}
  async init(state:State){
   this.quality=(navigator.hardwareConcurrency??8)>4&&((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)>4
@@ -32,7 +35,7 @@ export class BattleView{
   if(this.dead)return
   const bg=new Sprite(await load(stage&&stage.region!=='forest'?'bg-'+stage.region:'forest'));this.background=bg
   this.camera.pivot.set(195,this.height*.57);this.camera.position.set(195,this.height*.57);this.camera.addChild(bg)
-  this.app.stage.addChild(this.camera);this.camera.addChild(this.effects)
+  this.app.stage.addChild(this.camera);this.camera.addChild(this.effects);this.vfx=new BattleVFX(this.camera)
   if(!stage||stage.region==='forest'){const fg=new Sprite(await load('foliage'));fg.width=390;fg.height=this.height;fg.alpha=.18;this.foreground=fg;this.app.stage.addChild(fg)}
   this.app.ticker.add(t=>this.tick(t.deltaMS));document.addEventListener('visibilitychange',this.visibility)
   this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;this.sync(state)
@@ -47,7 +50,9 @@ export class BattleView{
   this.camera.pivot.set(195,this.height*.57);this.camera.position.set(195,this.height*.57)
   this.host.dataset.scene=JSON.stringify(this.layout)
  }
- private resize(height:number){if(this.dead||!this.displayState||height===this.height)return;this.height=height;this.yScale=height/465;this.app.renderer.resize(390,height);for(const a of this.actors.values()){this.camera.removeChild(a.root);a.root.destroy({children:true})}this.actors.clear();if(this.foreground)this.foreground.height=height;this.sync(this.displayState)}
+ private resize(height:number){if(this.dead||!this.displayState||height===this.height)return;this.vfx?.clear();this.height=height;this.yScale=height/465;this.app.renderer.resize(390,height);for(const a of this.actors.values()){this.camera.removeChild(a.root);a.root.destroy({children:true})}this.actors.clear();if(this.foreground)this.foreground.height=height;this.sync(this.displayState)}
+ setQuality(value:Quality){this.qualityChoice=value;this.quality=value!=='low';if(this.vfx)this.vfx.quality=value}
+ private point(a:Actor):Point{return{x:a.root.x,y:a.root.y,width:a.slot.width,height:a.bodyHeight,depth:a.slot.depth}}
  private visibility=()=>{if(this.dead)return;if(document.hidden)this.app.ticker.stop();else this.app.ticker.start()}
  private texture(unit:Unit,frame:number){if(unit.side==='enemy'){const monster=unit.monsterId?monsterById(unit.monsterId):undefined,row=monster?monsterArtRow(monster.region,monster.row,monster.id,unit.boss):(unit.art==='slime'?0:unit.art==='thorn'?1:2),key=monster?'enemies-'+monster.region:'enemies';const cell=monster?monsterArtCell(frame,hdMonster(monster.region)):(frame===15?(unit.boss?3:2):frame===16?3:[10,13,17,18].includes(frame)?1:[11,12,14,19].includes(frame)?(unit.boss?2:1):frame<4?frame:0);return this.frames.get(key)![row*4+cell]}if(unit.art.startsWith('adv-')&&![15,16].includes(frame)&&frame>=10)frame=this.actionPoses.get(unit.id)??frame;return this.frames.get(unit.art)![frame]}
  private actor(u:Unit,index:number):Actor{
@@ -71,14 +76,15 @@ export class BattleView{
   let a=0,e=0
   for(const u of state.units){let actor=this.actors.get(u.id);if(!actor){actor=this.actor(u,u.side==='ally'?a:e);this.actors.set(u.id,actor)}if(u.side==='ally')a++;else e++
    actor.unit=u;actor.bar.scale.x=Math.max(0,u.hp/u.maxHp);actor.breakBar.scale.x=u.maxToughness?Math.max(0,u.toughness/u.maxToughness):0;actor.breakBar.visible=u.maxToughness>0;actor.label.text=u.broken?'BREAK':`${actor.slot.index+1} · ${u.name.length>4?u.name.slice(0,4)+'…':u.name}`;actor.root.alpha=u.hp>0?1:.32;actor.barrier.visible=u.hp>0&&(u.shield>0||!!u.moonGrace||u.statuses.some(e=>e.type==='counter'))
-   if(u.hp<=0){if(actor.pose!==16){void this.tween(this.reduced?120:520,p=>{actor!.sprite.alpha=1-p*.85})}actor.pose=16;actor.root.eventMode='none'}
+   if(u.hp<=0){if(actor.pose!==16){void this.tween(this.reduced?120:520,p=>{actor!.sprite.alpha=1-p*.85}).catch(e=>{if(!(e instanceof AnimationCancelled))console.error(e)})}actor.pose=16;actor.root.eventMode='none'}
    else actor.root.eventMode='static'
   }
+  this.vfx?.sync(state.units,u=>{const a=this.actors.get(u.id);return a?this.point(a):undefined})
  }
  choose(id:string,preview:string[]=[]){this.selected=id;this.preview=preview}
  private tick(dt:number){
   if(this.dead)return;if(dt>45&&dt<250)this.slowFrames++;else this.slowFrames=Math.max(0,this.slowFrames-1);if(this.slowFrames>=45)this.quality=false;this.clock+=Math.min(dt,60)*this.speed
-  for(const t of [...this.tweens]){const p=Math.min(1,(this.clock-t.start)/t.duration);t.draw(p);if(p===1){this.tweens.splice(this.tweens.indexOf(t),1);t.done()}}
+  const elapsed=Math.min(dt,60)*this.speed;this.timeline.tick(elapsed);if(this.vfx){this.vfx.quality=this.reduced||!this.quality?'low':this.qualityChoice;this.vfx.reduced=this.reduced;this.vfx.tick(elapsed,dt,390,this.height);if(this.clock-this.metricStamp>200){this.metricStamp=this.clock;this.host.dataset.vfx=JSON.stringify({...this.vfx.metrics,timelines:this.timeline.active});}}
   for(const a of this.actors.values()){
    let frame=a.pose
    if(a.unit.hp>0&&frame<0)frame=a.unit.side==='enemy'?(this.reduced?0:Math.floor(this.clock/850)%2):this.reduced?2:Math.floor((this.clock+a.home.y*3)/1100)%5===0?9:2
@@ -88,100 +94,54 @@ export class BattleView{
    a.aura.visible=a.unit.hp>0;a.aura.alpha=this.reduced?.8:.65+Math.sin(this.clock/(starsOf(a.unit)===5?420:700))*.2
    a.label.visible=a.unit.hp>0;(a.root.hitArea as Rectangle).width=Math.max(48,a.slot.width)
   }
-  if(this.quality&&!this.reduced&&Math.floor(this.clock/300)!==Math.floor((this.clock-dt*this.speed)/300))this.spark(18+Math.random()*354,(100+Math.random()*310)*this.yScale,0xf2edbd,1,'light')
+  if(this.quality&&!this.reduced&&Math.floor(this.clock/300)!==Math.floor((this.clock-dt*this.speed)/300))this.vfx?.particles.emit('star',18+Math.random()*354,(100+Math.random()*310)*this.yScale,0xf2edbd,1,3,3,1000,-1)
  }
- private tween(ms:number,draw:(p:number)=>void){return new Promise<void>(done=>{if(this.dead){done();return}this.tweens.push({start:this.clock,duration:Math.max(1,ms),draw,done})})}
+ private tween(ms:number,draw:(p:number)=>void,ease='none'){return this.timeline.tween(ms,draw,ease)}
  wait(ms:number){return this.tween(ms,()=>{})}
- private async zoom(scale:number,x=195,y=this.height*.57){scale=Math.min(scale,this.layout?.camera.maxZoom??1.025);x=195;y=this.height*.57;const before=this.camera.scale.x,bx=this.camera.pivot.x,by=this.camera.pivot.y;await this.tween(this.reduced?1:160,p=>{this.camera.scale.set(before+(scale-before)*p);this.camera.pivot.set(bx+(x-bx)*p,by+(y-by)*p)})}
+ private async zoom(scale:number,x=195,y=this.height*.57){scale=Math.min(scale,this.layout?.camera.maxZoom??1.025);x=Math.max(191,Math.min(199,x));y=Math.max(this.height*.55,Math.min(this.height*.59,y));const before=this.camera.scale.x,bx=this.camera.pivot.x,by=this.camera.pivot.y;await this.tween(this.reduced?1:160,p=>{this.camera.scale.set(before+(scale-before)*p);this.camera.pivot.set(bx+(x-bx)*p,by+(y-by)*p)})}
  private async shake(strength:number){if(this.reduced||!this.quality)return;await this.tween(135,p=>{this.camera.position.set(195+Math.sin(p*32)*strength*(1-p),this.height*.57+Math.cos(p*38)*strength*.4*(1-p));if(this.foreground)this.foreground.x=-Math.sin(p*32)*strength*.3});this.camera.position.set(195,this.height*.57);if(this.foreground)this.foreground.x=0}
- private async move(a:Actor,x:number,y:number,ms=260,jump=0,trail=0){const v=this.layout!.viewport;x=Math.max(v.x+a.slot.width/2,Math.min(v.x+v.width-a.slot.width/2,x));y=Math.max(v.y+a.bodyHeight+18,Math.min(this.height-18,y));const sx=a.root.x,sy=a.root.y,dx=x-sx;a.walking=true;a.time=this.clock;a.sprite.scale.x=Math.abs(a.sprite.scale.x)*(dx<0?-1:1)*(a.unit.side==='enemy'?-1:1);await this.tween(this.reduced?80:ms,p=>{const e=p*p*(3-2*p);a.root.position.set(sx+(x-sx)*e,sy+(y-sy)*e-Math.sin(p*Math.PI)*jump);a.shadow.y=a.halo.y=Math.sin(p*Math.PI)*jump;a.root.zIndex=sy+(y-sy)*e;if(trail&&this.quality&&Math.floor(p*16)!==Math.floor(Math.max(0,p-.035)*16))this.spark(a.root.x,a.root.y-10,trail,2,trail===0xff9a66?'fire':'spark')});a.shadow.y=a.halo.y=0;a.walking=false}
- private number(a:Actor,text:string,color:number){const n=new Text({text,style:{fontFamily:'sans-serif',fontSize:text.length>5?12:18,fontWeight:'800',fill:color,stroke:{color:0x142132,width:4}}});n.anchor.set(.5);n.position.set(Math.max(n.width/2+8,Math.min(382-n.width/2,a.root.x)),Math.max(50,a.root.y-a.bodyHeight-23));this.effects.addChild(n);const y=n.y;void this.tween(650,p=>{n.y=y-p*30;n.alpha=1-p}).then(()=>n.destroy())}
- private spark(x:number,y:number,color:number,count:number,kind='spark'){
-  const cap=this.quality?48:16;count=Math.min(count,this.reduced?3:cap-this.ephemeral)
-  for(let i=0;i<count;i++){
-   this.ephemeral++;const g=new Graphics();if(kind==='rock')g.poly([-3,-4,3,-2,4,2,-2,4]).fill(color);else if(kind==='fire')g.poly([0,-5,3,0,1,3,-2,2,-3,-1]).fill(color);else g.circle(0,0,kind==='light'?1:1.4+Math.random()*1.6).fill(color)
-   g.position.set(x,y);this.effects.addChild(g);const vx=(Math.random()-.5)*(kind==='light'?12:65),vy=kind==='light'?-15:-20-Math.random()*45,life=kind==='light'?1300:450
-   void this.tween(life,p=>{g.x=x+vx*p;g.y=y+vy*p+(kind==='light'?0:55*p*p);g.alpha=(1-p)*(kind==='light'?.45:1)}).then(()=>{g.destroy();this.ephemeral--})
-  }
- }
- private ring(x:number,y:number,color:number,size=1){const g=new Graphics().ellipse(0,0,34*size,12*size).stroke({color,width:3,alpha:.9});g.position.set(x,y);this.effects.addChild(g);void this.tween(this.reduced?120:420,p=>{g.scale.set(1+p*2.3);g.alpha=1-p}).then(()=>g.destroy())}
- private async projectile(a:Actor,b:Actor,carrot:boolean,color:number,style='orb'){
-  const g=new Graphics();if(style==='arrow'||style==='arrow-rain'){g.moveTo(-15,0).lineTo(15,0).stroke({color:0xf6e0ac,width:2}).poly([15,0,8,-4,8,4]).fill(0xe2fff3).moveTo(-14,0).lineTo(-19,-5).moveTo(-14,0).lineTo(-19,5).stroke({color:0x9bc783,width:2})}else if(style==='potion'||style==='alchemy'){g.roundRect(-6,-5,12,14,4).fill(0xbe9ded).rect(-3,-10,6,6).fill(0xe8d4b4).circle(-2,1,2).fill(0xffefcb)}else if(style==='meteor'||style==='supernova'){g.star(0,0,5,8,3).fill(0xffefbd).moveTo(-4,2).lineTo(-25,-14).stroke({color:0xd0b9ff,width:4})}else if(carrot){g.poly([-5,-10,5,-10,1,12,-1,15]).fill(0xffa13e).stroke({color:0xc46d28,width:1});g.poly([-1,-10,-8,-18,-1,-15,3,-21,5,-14,10,-17,5,-9]).fill(0x85c36e);g.moveTo(-3,-4).lineTo(2,-3).moveTo(-2,2).lineTo(2,3).stroke({color:0xe37931,width:1})}else if(style==='nebula')g.circle(0,0,8).fill({color:0xa48be3,alpha:.6}).ellipse(0,0,13,4).stroke({color:0xd4e8ff,width:2});else if(style==='dragon')g.poly([-10,0,-4,-5,5,-4,13,0,5,4,-4,5]).fill(0xa4dcff).stroke({color:0xffe4ae,width:1});else if(style==='phoenix')g.poly([-12,2,-5,-6,0,-2,5,-6,12,2,0,6]).fill(0xffba65);else if(style==='aegis')g.ellipse(0,0,4,12).fill(0xffecca).moveTo(0,-10).lineTo(0,10).stroke({color:0xe0c2ff,width:1});else if(style==='frost')g.poly([0,-10,5,0,0,9,-5,0]).fill(0xbcefff).stroke({color:0xf1ffff,width:1});else if(style==='water')g.moveTo(0,-9).bezierCurveTo(11,1,7,8,0,8).bezierCurveTo(-7,8,-11,1,0,-9).fill(color).stroke({color:0xd8ffff,width:1});else if(style==='root')g.ellipse(0,0,4,9).fill(0xa8d58a).moveTo(0,-7).lineTo(0,7).stroke({color:0x416e42,width:1});else g.circle(0,0,5).fill(color).circle(0,0,9).fill({color,alpha:.18})
-  const x=a.root.x,y=a.root.y-44,tx=b.root.x,ty=b.root.y-38;g.position.set(x,y);this.effects.addChild(g)
-  await this.tween(this.reduced?150:370,p=>{g.position.set(x+(tx-x)*p,y+(ty-y)*p-Math.sin(p*Math.PI)*(carrot||style==='potion'?62:style==='meteor'||style==='supernova'?100:9));g.rotation=carrot?-Math.PI/2+p*.8:0;if(this.quality&&Math.floor(p*12)%2===0)this.spark(g.x,g.y,color,1)})
-  g.destroy();this.spark(tx,ty,color,carrot?12:8);if(carrot)this.spark(tx,ty,0xa7d27b,5)
- }
- private async recoil(a:Actor){const x=a.root.x;a.pose=15;await this.tween(this.reduced?80:160,p=>{a.root.x=x+Math.sin(p*Math.PI)*(a.unit.side==='enemy'?7:-5);a.sprite.tint=p<.45?0xffd7d4:0xffffff});a.root.x=x;a.sprite.tint=0xffffff;a.pose=a.unit.hp>0?-1:16}
- private afterimages(a:Actor){if(!this.quality||this.reduced)return;for(let n=1;n<=2;n++){const sprite=new Sprite(a.sprite.texture);sprite.anchor.set(.5,1);sprite.scale.copyFrom(a.sprite.scale);sprite.tint=0x9b83e5;sprite.alpha=.28/n;sprite.position.set(a.root.x+a.sprite.x-n*10,a.root.y+a.sprite.y);this.effects.addChild(sprite);const x=sprite.x;void this.tween(300,p=>{sprite.x=x-p*20;sprite.alpha=(1-p)*.28/n}).then(()=>sprite.destroy())}}
- private impact(a:Actor,style:string,color:number,source?:string){
-  const g=new Graphics(),x=a.root.x,y=a.root.y;g.position.set(x,y);this.effects.addChild(g)
-  if(style==='supernova'){for(let n=0;n<6;n++){const a=n*Math.PI/3;g.star(Math.cos(a)*27,Math.sin(a)*20-32,4,7,3).fill(0xf5d3ff)}g.circle(0,-32,25).stroke({color:0xfdeecb,width:4}).circle(0,-32,36).stroke({color:0xd5acfb,width:2})}else if(style==='arrow-rain'){for(let n=-2;n<=2;n++)g.moveTo(n*10-18,-80).lineTo(n*10+5,-15).stroke({color:0xd1e8b0,width:2})}else if(style==='judgment'){g.moveTo(-38,-65).bezierCurveTo(30,-60,-10,-12,40,-10).stroke({color:0xffe8b1,width:7}).moveTo(-30,-10).lineTo(32,-65).stroke({color:0xd6ecff,width:3})}else if(style==='alchemy'){for(let n=0;n<6;n++)g.circle(Math.cos(n)*24,-30+Math.sin(n)*20,6+n%3).fill({color:[0xe8a5cf,0xbbe6a0,0xc5b8ff][n%3],alpha:.8})}else if(source==='special-boy'&&style==='slash'){g.star(0,-37,4,25,7).fill({color:0xe7f8ff,alpha:.7});g.moveTo(-30,-15).lineTo(25,-58).stroke({color:0xa7ddff,width:3})}
-  else if(style==='nebula'){for(let n=0;n<3;n++)g.ellipse(0,-30,16+n*7,6+n*3).stroke({color:0xcdb6fa,width:2,alpha:.8})}
-  else if(style==='dragon'){for(let n=0;n<5;n++){const x=Math.cos(n*Math.PI*.4)*27,y=Math.sin(n*Math.PI*.4)*12-30;g.moveTo(0,-30).lineTo(x,y).stroke({color:0xa7dcff,width:2});g.star(x,y,4,4,2).fill(0xffe6ae)}}
-  else if(style==='phoenix'){for(const side of [-1,1])g.moveTo(0,-15).bezierCurveTo(side*32,-24,side*35,-50,side*15,-52).bezierCurveTo(side*22,-35,side*10,-25,0,-15).fill({color:0xffad62,alpha:.7})}
-  else if(style==='aegis'){g.poly([0,-68,27,-53,25,-25,0,-5,-25,-25,-27,-53]).stroke({color:0xffecc9,width:3}).circle(0,-37,10).stroke({color:0xe6c6fa,width:2})}
-  else if(style==='frost'){for(let n=-2;n<=2;n++)g.poly([n*9-4,0,n*9,-22-Math.abs(n)*4,n*9+4,0]).fill({color:0xb1e5ff,alpha:.65}).stroke({color:0xe2ffff,width:1})}
-  else if(style==='water'){for(let n=0;n<3;n++)g.ellipse(0,-n*7,18+n*8,6+n*2).stroke({color:0x9eeaff,alpha:.8,width:2})}
-  else if(style==='root'||style==='heal'&&source==='lulu'){for(const n of [-1,1])g.moveTo(0,0).bezierCurveTo(n*20,-7,n*9,-30,n*23,-43).stroke({color:0xa6d38c,width:2}).ellipse(n*19,-29,6,3).fill(0xb2df8c)}
-  else if(style==='slam'){for(let n=0;n<5;n++){const angle=n*Math.PI*.4;g.moveTo(0,0).lineTo(Math.cos(angle)*13,Math.sin(angle)*5).lineTo(Math.cos(angle+.1)*27,Math.sin(angle+.1)*11).lineTo(Math.cos(angle)*42,Math.sin(angle)*16).stroke({color:0xe7bd80,width:2})}}
-  else if(['slash','claw','fire','shadow','dash','eclipse'].includes(style)){for(let n=0;n<(style==='claw'||style==='shadow'||style==='eclipse'?3:1);n++)g.moveTo(-19+n*8,-57).bezierCurveTo(7+n*4,-40,-4+n*4,-25,21+n*3,-20).stroke({color,alpha:.9,width:style==='shadow'?3:2})}
-  else if(style==='purify'){for(let n=-1;n<=1;n++)g.moveTo(n*12,-60).bezierCurveTo(n*12+12,-40,n*12-8,-20,n*12,0).stroke({color:0xe5ffe0,width:2,alpha:.8})}
-  else if(style==='rally'||style==='command'){g.poly([0,-22,5,-10,19,-8,9,1,12,14,0,7,-12,14,-9,1,-19,-8,-5,-10]).stroke({color:0xffe6a7,width:2})}
-  else if(style==='counter'||style==='shield')g.arc(0,-34,29,-Math.PI*.9,-Math.PI*.1).stroke({color:0xc9e2ff,width:3})
-  else{g.circle(0,-35,15).stroke({color,width:2,alpha:.8})}
-  void this.tween(this.reduced?120:380,p=>{g.alpha=1-p;g.scale.set(1+p*.2)}).then(()=>g.destroy())
- }
- private regionalSpell(a:Actor){
-  if(a.unit.side!=='enemy'||!hdMonster(a.unit.art)||this.ephemeral>=(this.quality?46:14))return
-  const region=a.unit.art,g=new Graphics(),large=a.unit.boss?1.5:1,n=this.reduced?3:this.quality?8:4
-  if(region==='eclipse'){g.arc(0,-45,29,Math.PI*.2,Math.PI*1.7).stroke({color:0xb595eb,width:5});g.ellipse(0,-3,38,12).stroke({color:0x8d73be,width:2})}
-  else if(region==='heaven'){for(let i=0;i<3;i++)g.rect(-24+i*22,-88,4,82).fill({color:0xffe4a1,alpha:.5});g.ellipse(0,-4,34,11).stroke({color:0xffe4a1,width:2})}
-  else if(region==='garden'){for(let i=0;i<n;i++){const angle=i*Math.PI*2/n;g.ellipse(Math.cos(angle)*27,-34+Math.sin(angle)*22,5,10).fill({color:0xdcb2e7,alpha:.8})}g.moveTo(-30,0).bezierCurveTo(-45,-30,40,-50,30,-75).stroke({color:0x9bce9a,width:3})}
-  else if(region==='dream'){for(let i=0;i<n;i++)g.poly([i*9-30,-55,i*9-20,-45,i*9-28,-26]).fill({color:0xc4c3f8,alpha:.65})}
-  else if(region==='skycastle'){for(let i=0;i<3;i++)g.arc(0,-20-i*15,20+i*8,.2,Math.PI*1.6).stroke({color:0xbde5ff,width:2});g.moveTo(12,-80).lineTo(0,-50).lineTo(15,-50).lineTo(-3,-20).stroke({color:0xf7eeaf,width:2})}
-  else{g.circle(0,-40,28).stroke({color:0xe7c47c,width:2});for(let i=0;i<n;i++){const angle=i*Math.PI*2/n;g.star(Math.cos(angle)*28,-40+Math.sin(angle)*28,4,4,2).fill(0xffe5a4)}g.moveTo(0,-40).lineTo(0,-63).moveTo(0,-40).lineTo(16,-30).stroke({color:0xffe5a4,width:2})}
-  g.scale.set(large);g.position.set(a.root.x,a.root.y);this.effects.addChild(g);this.ephemeral++
-  void this.tween(this.reduced?140:650,p=>{g.alpha=1-p;g.rotation=this.reduced?0:p*.15;g.y=a.root.y-p*10}).then(()=>{g.destroy();this.ephemeral--})
- }
+ private async move(a:Actor,x:number,y:number,ms=260,jump=0,trail=0){const v=this.layout!.viewport;x=Math.max(v.x+a.slot.width/2,Math.min(v.x+v.width-a.slot.width/2,x));y=Math.max(v.y+a.bodyHeight+18,Math.min(this.height-18,y));const sx=a.root.x,sy=a.root.y,dx=x-sx;a.walking=true;a.time=this.clock;a.sprite.scale.x=Math.abs(a.sprite.scale.x)*(dx<0?-1:1)*(a.unit.side==='enemy'?-1:1);await this.tween(this.reduced?80:ms,p=>{const e=p*p*(3-2*p);a.root.position.set(sx+(x-sx)*e,sy+(y-sy)*e-Math.sin(p*Math.PI)*jump);a.shadow.y=a.halo.y=Math.sin(p*Math.PI)*jump;a.root.zIndex=sy+(y-sy)*e;if(trail&&this.quality&&Math.floor(p*16)!==Math.floor(Math.max(0,p-.035)*16))this.vfx?.particles.emit('blade',a.root.x,a.root.y-a.bodyHeight*.5,trail,2,12,5,200)});a.shadow.y=a.halo.y=0;a.walking=false}
  async intro(boss=false){
-  this.inAction=true;try{if(boss){const a=[...this.actors.values()].find(a=>a.unit.boss);if(!a)return;a.sprite.tint=0x101e29;this.cinematic({type:'boss',name:a.unit.name,art:a.unit.art});await this.zoom(1.12,235,280*this.yScale);await this.wait(450);a.sprite.tint=0xffffff;this.ring(a.root.x,a.root.y,0x99e3cd);this.regionalSpell(a);void this.shake(3);await this.wait(500);this.cinematic(null);await this.zoom(1)}else{await this.wait(250)}}finally{this.inAction=false;if(this.pendingHeight){const h=this.pendingHeight;this.pendingHeight=0;this.resize(h)}}
+  this.inAction=true;try{if(boss){const a=[...this.actors.values()].find(a=>a.unit.boss);if(!a)return;const p=vfxPreset(a.unit,{id:'intro',name:'',style:'rally',target:'enemy',cost:0,power:0,hits:0,unlock:1,description:''},true);this.cinematic({type:'boss',name:a.unit.name,art:a.unit.art,tier:3,element:a.unit.element});this.vfx?.prepare(p,this.point(a));await this.wait(this.reduced?200:650);this.vfx?.ultimate(p,this.point(a),[this.point(a)]);this.cinematic(null)}else await this.wait(150)}finally{this.inAction=false;this.applyResize()}
  }
- async previewCutin(unit:Unit,skillName:string){const highest=!!unit.stars&&starsOf(unit)===5;if(highest){const a=this.actors.get(unit.id);if(a){this.ring(a.root.x,a.root.y,0xffe3a1,1.8);this.spark(a.root.x,a.root.y-40,0xffe3a1,this.quality?16:4,'light')}}this.cinematic({type:'cutin',name:unit.name,art:unit.art,skill:(highest?'★★★★★ · ':'')+skillName});await this.wait(this.shortCutin||this.reduced?260:850);this.cinematic(null)}
+ private applyResize(){if(this.pendingHeight&&!this.dead){const h=this.pendingHeight;this.pendingHeight=0;this.resize(h)}}
+ async previewCutin(unit:Unit,skillName:string,inspect=false){const a=this.actors.get(unit.id),p=vfxPreset(unit,{id:'ultimate',name:skillName,style:'orb',target:'enemy',cost:0,power:0,hits:0,unlock:1,description:''},true);if(a)this.vfx?.prepare(p,this.point(a));this.cinematic({type:'cutin',name:unit.name,art:unit.art,skill:(unit.stars&&starsOf(unit)===5?'★★★★★ · ':'')+skillName,tier:p.tier,element:unit.element});try{await this.wait(inspect?800*this.speed:this.shortCutin||this.reduced?180:p.cutin||320)}finally{if(!this.dead)this.cinematic(null)}}
  async play(action:Action,onImpact:()=>void){
-  if(this.dead||this.inAction)return;this.inAction=true
-  const a=this.actors.get(action.actor)!,targets=action.targets.map(id=>this.actors.get(id)!).filter(Boolean),k=action.skill,color=k.style==='dash'?(a.unit.element==='dark'?0xb7a4f9:a.unit.element==='light'?0xffe3a1:0xff9a66):COLORS[k.style],ranged=['orb','carrot','enemy-spit','heal','shield','command','water','frost','root','rally','purify','counter','nebula','dragon','phoenix','aegis','meteor','supernova','arrow','arrow-rain','potion','alchemy'].includes(k.style)
+  if(this.dead)throw new AnimationCancelled('Battle closed');if(this.inAction)throw Error('Animation already running');this.inAction=true
+  const a=this.actors.get(action.actor);if(!a){this.inAction=false;throw Error('Missing display actor')}
+  const targets=action.targets.map(id=>this.actors.get(id)).filter((t):t is Actor=>!!t),k=action.skill,p=vfxPreset(a.unit,k,action.ultimate),friendly=k.target==='ally'||k.target==='all-allies',ranged=friendly||['orb','carrot','enemy-spit','water','frost','root','vine','nebula','dragon','phoenix','aegis','meteor','supernova','arrow','arrow-rain','potion','alchemy'].includes(k.style)
+  const previous=this.displayState,events=resolvedStrikes(action),hits=new Map(action.hits.map(h=>[h.id,h])),strikes=Math.max(1,...events.map(h=>h.index+1));let settled=false
+  const settle=()=>{if(!settled&&!this.dead){settled=true;onImpact()}}
   if(a.unit.art.startsWith('adv-'))this.actionPoses.set(a.unit.id,k.id==='basic'?10:k.id==='active1'?11:14)
   try{
    if(action.ultimate)await this.previewCutin(a.unit,k.name)
-   if(k.id!=='basic')this.regionalSpell(a)
-   if(k.id==='cataclysm'){this.cinematic({type:'boss',name:a.unit.name,art:a.unit.art,skill:k.name});await this.wait(this.reduced?140:450);this.cinematic(null)}
-   await this.zoom(action.ultimate?1.1:k.style==='dragon'?1.075:k.style==='eclipse'?1.065:k.style==='phoenix'?1.05:k.style==='aegis'?1.025:1.035,k.style==='eclipse'?230:195,(k.style==='dragon'?260:285)*this.yScale)
-   a.pose=k.style==='counter'?17:['carrot','slam','dash','shadow'].includes(k.style)?18:ranged?13:10
-   await this.wait(k.style==='slam'?230:140)
-   if(k.style==='shadow'||k.style==='eclipse'||a.unit.heroId==='dudu')this.afterimages(a)
-   if(k.style==='dash'){this.spark(a.root.x,a.root.y-8,color,10);this.ring(a.root.x,a.root.y,color)}
-   if(!ranged&&targets.length){const target=targets[0];await this.move(a,target.root.x+(a.unit.side==='ally'?-48:48),target.root.y+5,k.style==='dash'||k.style==='shadow'?180:280,k.style==='jump'?65:k.style==='kick'?24:0,k.style==='dash'?color:0);a.pose=k.style==='slam'||k.style==='dash'?19:11;await this.wait(k.style==='slam'?110:75)}
-   else{a.pose=k.style==='carrot'?19:14;if(['orb','carrot','enemy-spit','water','frost','root','nebula','dragon','phoenix','aegis','meteor','supernova','arrow','arrow-rain','potion','alchemy'].includes(k.style))await Promise.all(targets.map(t=>this.projectile(a,t,k.style==='carrot',color,k.style)));else{await Promise.all(targets.map(t=>this.projectile(a,t,false,color)));for(const t of targets){this.ring(t.root.x,t.root.y,color);this.spark(t.root.x,t.root.y-35,color,9)}await this.wait(180)}}
-   if(k.style==='dash'&&targets.length){this.spark(a.root.x,a.root.y-12,color,15);await this.move(a,Math.min(357,targets[targets.length-1].root.x+35),targets[targets.length-1].root.y,125,0,color);a.pose=19}
-   for(const t of targets)this.impact(t,k.style,color,a.unit.heroId)
-   for(const t of targets){const tier=a.unit.stars?starsOf(a.unit):1,flare=Math.max(0,tier-2);this.ring(t.root.x,t.root.y,color,1+flare*.15);this.spark(t.root.x,t.root.y-20,color,(k.style==='slam'?15:8)+flare*2,k.style==='slam'?'rock':'spark')}
-   if(k.style==='slam'&&k.id!=='basic'){this.ring(a.root.x,a.root.y,color,1.8);this.spark(a.root.x,a.root.y,color,15,'rock')}
-   if(['slam','dash','fire','jump'].includes(k.style))void this.shake(k.style==='slam'?5:3)
-   // Painted contact pose is held briefly at impact, before recoil/return.
-   await this.wait(this.reduced?1:55);onImpact()
-   for(const hit of action.hits){const t=this.actors.get(hit.id);if(!t)continue;if(hit.blocked?.includes(0)){this.ring(t.root.x,t.root.y,0xbce7ff,1.3);this.spark(t.root.x,t.root.y-30,0xd6eeff,this.quality?12:3)}this.number(t,hit.blocked?.includes(0)?'완전 차단':hit.miss?'회피':hit.heal?`+${hit.heal}`:hit.shield?'보호막':hit.buff?'공격 강화':`${(hit.strikeCriticals?.[0]??hit.critical)?'CRIT ':''}${hit.strikes?.[0]??hit.damage}`,hit.heal?0xa2efc3:hit.shield||hit.buff?0xc7dbff:0xffe2ac);if(hit.damage||hit.miss)void this.recoil(t);if(hit.break)this.number(t,'BREAK',0xf5de95);if(hit.counter){this.number(a,`${hit.counter}`,0xffbc96);void this.recoil(a)}}
-   const strikeCount=Math.max(k.hits,...action.hits.map(h=>h.strikes?.length??0));if(strikeCount>1){for(let n=1;n<strikeCount;n++){const struck=targets.filter(t=>action.hits.some(h=>h.id===t.unit.id&&(h.strikes?h.strikes[n]!==undefined:n<k.hits)));if(!struck.length)continue;if(specialGrowth(a.unit.heroId??'',a.unit.training).echo>0&&action.next.rules===8){this.afterimages(a);for(const t of struck)this.spark(t.root.x,t.root.y-25,0x91dfff,this.quality?7:2)}a.pose=ranged?13:10;await this.wait(75);a.pose=ranged?14:11;if(ranged)await Promise.all(struck.map(t=>this.projectile(a,t,k.style==='carrot',color,k.style)));else await this.wait(55);for(const t of struck){this.impact(t,k.style,color,a.unit.heroId);const hit=action.hits.find(h=>h.id===t.unit.id)!;if(hit.strikes)this.number(t,hit.blocked?.includes(n)?'완전 차단':`${hit.strikeCriticals?.[n]?'CRIT ':''}${hit.strikes[n]}`,0xffe2ac);void this.recoil(t)}}}
-   const echoes=action.resonances??[]
-   for(const element of [...new Set(echoes.map(h=>h.element))]){
-    const style=({fire:'phoenix',water:'frost',nature:'root',earth:'slam',light:'dragon',dark:'nebula'} as const)[element],color=({fire:0xffa35d,water:0xb2eaff,nature:0xa9d990,earth:0xe8bc72,light:0xffe5a8,dark:0xc6a6ff})[element]
-    for(const hit of echoes.filter(h=>h.element===element)){const t=this.actors.get(hit.id);if(!t)continue;this.impact(t,style,color);this.ring(t.root.x,t.root.y,color,.65);this.spark(t.root.x,t.root.y-30,color,this.quality?5:2,element==='fire'?'fire':element==='earth'?'rock':'spark');this.number(t,`${elementNames[element]} +${hit.damage}`,color);if(hit.break)this.number(t,'BREAK',0xf5de95)}
-    await this.wait(this.reduced?35:95)
+   this.vfx?.prepare(p,this.point(a));a.pose=ranged?13:10
+   const windup=this.reduced?30:p.windup;const startRotation=a.sprite.rotation
+   await this.tween(windup,t=>{if(!this.reduced)a.sprite.rotation=startRotation-Math.sin(t*Math.PI)*.09*(a.unit.side==='ally'?1:-1)},'power2.in');a.sprite.rotation=startRotation
+   if(action.ultimate)this.vfx?.ultimate(p,this.point(a),targets.map(t=>this.point(t)))
+   if(!this.reduced&&k.id!=='basic')await this.zoom(action.ultimate?1.06:1.02,targets[0]?.root.x??195,targets[0]?.root.y??this.height*.57)
+   if(!ranged&&targets.length){const target=targets[0];if(this.quality&&!this.reduced)this.vfx?.ghost(a.sprite.texture,this.point(a),a.sprite.scale.x,a.sprite.scale.y,a.sprite.x,a.sprite.y);await this.move(a,target.root.x+(a.unit.side==='ally'?-45:45),target.root.y,p.travel,k.style==='jump'?34:0,p.color);a.pose=11}
+   for(let n=0;n<strikes;n++){
+    const actual=targets.filter(t=>events.some(h=>h.id===t.unit.id&&h.index===n))
+    if(ranged){for(const t of actual)this.vfx?.launch(p,this.point(a),this.point(t),this.reduced?45:p.travel);await this.wait(this.reduced?45:p.travel)}else if(n>0){a.pose=10;await this.wait(this.reduced?25:65);a.pose=11;if(a.unit.heroId==='special-boy')this.vfx?.ghost(a.sprite.texture,this.point(a),a.sprite.scale.x,a.sprite.scale.y,a.sprite.x,a.sprite.y)}
+    // One data commit, even for multi-hit effects; each displayed amount comes from the resolved Hit.
+    if(n===0)settle()
+    for(const h of events.filter(h=>h.index===n)){const t=this.actors.get(h.id);if(!t)continue;const blocked=h.blocked,crit=h.critical,amount=h.damage,point=this.point(t),supporting=amount===0&&(h.heal>0||h.shield>0||h.buff),hitPreset=supporting?{...p,family:h.shield?'guardian' as const:'moon' as const,color:h.heal?0xa9e6c4:0xcce9ff,core:0xfff2d8}:p;this.vfx?.impact(hitPreset,point,n,crit,!!h.break);if(blocked){const shield={...p,family:'moon' as const,color:0xd9eaff,core:0xfff2d6};this.vfx?.impact(shield,point,n);this.vfx?.number(point,'완전 차단','block',n)}else this.vfx?.number(point,h.miss?'회피':h.heal||k.style==='heal'?`+${h.heal}`:h.shield?'보호막':h.buff?'강화':`${crit?'CRIT ':''}${amount}`,h.heal||k.style==='heal'?'heal':h.shield||h.buff?'shield':crit?'critical':'damage',n)
+     if(n===0&&h.break)this.vfx?.number(point,'BREAK','break',n+1);if(!friendly&&!h.miss&&!blocked)void this.recoil(t).catch(()=>{});if(n===0&&h.counter){this.vfx?.number(this.point(a),String(h.counter),'damage',1);void this.recoil(a).catch(()=>{})}
+    }
+    if(!friendly&&!this.reduced&&(action.ultimate||k.style==='slam'||actual.some(t=>hits.get(t.unit.id)?.critical))){await this.wait(action.ultimate?38:22);void this.shake(action.ultimate?3:1.5).catch(()=>{})}
+    if(n+1<strikes)await this.wait(this.reduced?25:85)
    }
-   await this.wait(200)
-   if(!ranged){await this.move(a,a.home.x,a.home.y,260);a.pose=0;await this.wait(70)}
-   a.sprite.scale.x=Math.abs(a.sprite.scale.x);a.pose=a.unit.hp>0?-1:16;await this.zoom(1)
-  }finally{this.inAction=false;this.actionPoses.delete(a.unit.id);if(this.pendingHeight){const h=this.pendingHeight;this.pendingHeight=0;this.resize(h)}}
+   settle()
+   for(const hit of action.resonances??[]){const t=this.actors.get(hit.id);if(!t)continue;const echo={...p,...elementsForVFX[hit.element],ultimate:false};this.vfx?.impact(echo,this.point(t));this.vfx?.number(this.point(t),`${elementNames[hit.element]} +${hit.damage}`,'dot',1,echo.color);if(hit.break)this.vfx?.number(this.point(t),'BREAK','break',2)}
+   // DOT/regen is already resolved in next state. Display the residual difference, never calculate or award it.
+   for(const next of action.next.units){const before=previous?.units.find(u=>u.id===next.id),actor=this.actors.get(next.id);if(before&&actor&&!hits.has(next.id)&&before.hp!==next.hp)this.vfx?.number(this.point(actor),next.hp>before.hp?`+${next.hp-before.hp}`:String(before.hp-next.hp),next.hp>before.hp?'heal':'dot')}
+   for(const t of targets)this.vfx?.residue(p,this.point(t));await this.wait(this.reduced?35:p.linger)
+   if(!ranged){await this.move(a,a.home.x,a.home.y,this.reduced?60:140);a.pose=0}
+   await this.zoom(1)
+  }finally{this.inAction=false;this.actionPoses.delete(a.unit.id);a.sprite.rotation=0;a.sprite.tint=0xffffff;a.sprite.scale.x=Math.abs(a.sprite.scale.x);a.pose=a.unit.hp>0?-1:16;if(!this.dead)this.cinematic(null);this.applyResize()}
  }
- victory(){for(const a of this.actors.values())if(a.unit.side==='ally'&&a.unit.hp>0)a.pose=4;this.spark(195,150*this.yScale,0xf9dfa0,30)}
- destroy(){this.dead=true;this.resizeObserver?.disconnect();document.removeEventListener('visibilitychange',this.visibility);for(const t of this.tweens)t.done();this.tweens=[];if(this.app.renderer){this.app.ticker.stop();setTimeout(()=>{this.app.destroy(true,{children:true,texture:false,textureSource:false});for(const source of this.sources)source.destroy();this.sources.clear();this.frames.clear();this.metrics.clear()},0)}}
+ private async recoil(a:Actor){const x=a.root.x;a.pose=15;try{await this.tween(this.reduced?45:120,p=>{a.root.x=x+Math.sin(p*Math.PI)*(a.unit.side==='enemy'?5:-4);a.sprite.tint=p<.35?0xffe8df:0xffffff},'power1.out')}finally{a.root.x=x;a.sprite.tint=0xffffff;a.pose=a.unit.hp>0?-1:16}}
+ victory(){for(const a of this.actors.values())if(a.unit.side==='ally'&&a.unit.hp>0)a.pose=4;this.vfx?.particles.emit('star',195,this.height*.4,0xffe8b8,24,9,45,700)}
+ destroy(){this.dead=true;this.resizeObserver?.disconnect();document.removeEventListener('visibilitychange',this.visibility);this.timeline.destroy();if(this.app.renderer){this.app.ticker.stop();setTimeout(()=>{this.vfx?.destroy();this.app.destroy(true,{children:true,texture:false,textureSource:false});for(const source of this.sources)source.destroy();this.sources.clear();this.frames.clear();this.metrics.clear()},0)}}
 }
