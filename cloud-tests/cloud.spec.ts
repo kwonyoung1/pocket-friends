@@ -337,8 +337,24 @@ test('one manual competition shuffle persists through reload and a verified matc
  await fresh(page,backend.secret);await menu(page,'사천성');await page.getByRole('button',{name:'경쟁모드',exact:true}).click();await page.getByRole('button',{name:'경쟁 시작',exact:true}).click();await page.getByRole('button',{name:'섞기 (1/1)'}).click()
  await expect(page.getByRole('button',{name:'섞기 (0/1)'})).toBeDisabled();await page.reload();await page.getByRole('button',{name:'이 클라우드 월드 사용하기'}).click();await menu(page,'사천성');await page.getByRole('button',{name:'경쟁모드',exact:true}).click();await expect(page.getByRole('button',{name:'섞기 (0/1)'})).toBeDisabled()
  const {pair,path}=await import('../src/sichuan/board'),r=Object.values(backend.row().data!.world!.sichuan!.competitions)[0],found=pair(r.board)!
- await page.locator(`.sichuan-board button[data-index="${found[0]}"]`).click();await page.locator(`.sichuan-board button[data-index="${found[1]}"]`).click()
- await expect(page.getByTestId('match-overlay')).toBeVisible();expect(JSON.parse((await page.getByTestId('match-overlay').getAttribute('data-grid-path'))!)).toEqual(path(r.board,...found))
+ const expectedPath=path(r.board,...found)
+ // Observe the real 450ms overlay in one browser callback. A second protocol read
+ // after toBeVisible can miss an already removed effect on a busy CI worker.
+ const observation=await page.evaluateHandle(()=>{
+  const state={snapshot:null as {route:unknown;visible:boolean}|null}
+  const observer=new MutationObserver(()=>{
+   const el=document.querySelector('[data-testid="match-overlay"]');if(!el)return
+   const rect=el.getBoundingClientRect(),style=getComputedStyle(el)
+   state.snapshot={route:JSON.parse(el.getAttribute('data-grid-path')!),visible:rect.width>0&&rect.height>0&&style.visibility==='visible'&&style.display!=='none'}
+   observer.disconnect()
+  })
+  observer.observe(document.body,{childList:true,subtree:true})
+  return{state,disconnect:()=>observer.disconnect()}
+ })
+ try{
+  await page.locator(`.sichuan-board button[data-index="${found[0]}"]`).click();await page.locator(`.sichuan-board button[data-index="${found[1]}"]`).click()
+  await expect.poll(()=>observation.evaluate(o=>o.state.snapshot)).toEqual({route:expectedPath,visible:true})
+ }finally{await observation.evaluate(o=>o.disconnect());await observation.dispose()}
  await expect.poll(()=>Object.values(backend.row().data!.world!.sichuan!.competitions)[0].board.tiles.filter(Boolean).length).toBe(62)
  await expect(page.getByTestId('match-overlay')).toHaveCount(0);expect(backend.row().data!.world!.coins).toBe(300);expect(backend.row().data!.world!.sichuan!.bests).toEqual([])
 })
