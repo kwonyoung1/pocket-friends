@@ -1,10 +1,11 @@
+import {validateTower} from './tower/state.ts'
 import type {Move,Profiles} from './types.ts'
-export const ARENA_RULES=9
+export const ARENA_RULES=10
 export const ARENA_LIMITS={moves:160,tickets:16,ticketMs:6*3600000,rewardedClears:5,coinsPerDay:120,xpPerFriendDay:100,seasonXpPerDay:16000,maxCoins:1e12} as const
-export type ArenaReward={coins:number;xp:number;stones:number;treasure?:string;first:boolean;capped:boolean;chests?:Partial<Record<import('./beast-state.ts').ChestId,number>>}
-export type ArenaTicket={id:string;owner:string;stageId:string;party:string[];profiles:Profiles;seed:number;rules:number;startedAt:number;expiresAt:number;moves:Move[];status:'active'|'claimed'|'abandoned';reward?:ArenaReward;energyCost?:number;costLimit?:number}
+export type ArenaReward={tower?:import('./tower/state.ts').TowerReward;coins:number;xp:number;stones:number;treasure?:string;first:boolean;capped:boolean;chests?:Partial<Record<import('./beast-state.ts').ChestId,number>>}
+export type ArenaTicket={towerWork?:number;tower?:import('./tower/state.ts').TowerRun;id:string;owner:string;stageId:string;party:string[];profiles:Profiles;seed:number;rules:number;startedAt:number;expiresAt:number;moves:Move[];status:'active'|'claimed'|'abandoned';reward?:ArenaReward;energyCost?:number;costLimit?:number}
 export type ArenaProgress={version:1;legacyCleared?:Record<string,Record<string,import('./beast-state.ts').ClearRecord>>;season?:2;season1Archive?:import('./season2.ts').SeasonArchive;seasonReport?:{at:number;counts:import('./season2.ts').SeasonArchive['counts']};sharedOwner?:string;links?:Record<string,string>;accounts?:Record<string,import('./beast-state.ts').ArenaAccount>;cleared:Record<string,{firstAt:number;clears:number;firstRewarded:boolean;firstBonusGranted?:boolean}>;tickets:Record<string,ArenaTicket>;daily:{day:string;coins:number;clears:number;xp:Record<string,number>}}
-export type ArenaCommand=import('./shop-state.ts').ShopCommand|{type:'arena-fuse';beastId:string;fromStars:number}|{type:'arena-share'}|{type:'arena-season-start'}|{type:'arena-adventurer-train';adventurerId:string}|{type:'arena-select';accountId:string;previousOwner:string}|{type:'arena-start';stageId:string;party:string[]}|{type:'arena-checkpoint'|'arena-complete';runId:string;moves:Move[]}|{type:'arena-abandon';runId:string}|{type:'arena-open';chest:import('./beast-state.ts').ChestId;nonce:number}|{type:'arena-link';accountId:string;secret:string}|{type:'arena-train';beastId:string;training:'xp'|'mastery'}
+export type ArenaCommand=import('./shop-state.ts').ShopCommand|{type:'arena-fuse';beastId:string;fromStars:number}|{type:'arena-share'}|{type:'arena-season-start'}|{type:'arena-adventurer-train';adventurerId:string}|{type:'arena-select';accountId:string;previousOwner:string}|{type:'arena-tower-start';floor:string;party:string[]}|{type:'arena-start';stageId:string;party:string[];proficiency?:1}|{type:'arena-checkpoint'|'arena-complete';runId:string;moves:Move[]}|{type:'arena-abandon';runId:string}|{type:'arena-open';chest:import('./beast-state.ts').ChestId;nonce:number}|{type:'arena-link';accountId:string;secret:string}|{type:'arena-train';beastId:string;training:'xp'|'mastery'}
 /** Browser backup preservation only. Cloud import explicitly removes this untrusted subtree. */
 export function restoreArena(value:unknown):ArenaProgress{
  const raw=JSON.stringify(value);if(raw.length>1000000)throw Error('아레나 기록이 너무 커요.')
@@ -15,6 +16,7 @@ export function restoreArena(value:unknown):ArenaProgress{
  if(Object.keys(p.cleared).length>200||Object.keys(p.tickets).length>16)throw Error('아레나 기록 범위를 확인해 주세요.')
  for(const c of Object.values(p.cleared))if(!Number.isFinite(c.firstAt)||!Number.isSafeInteger(c.clears)||c.clears<0||typeof c.firstRewarded!=='boolean')throw Error('아레나 클리어 기록을 확인해 주세요.')
  for(const t of Object.values(p.tickets))if(!t||typeof t.id!=='string'||typeof t.owner!=='string'||typeof t.stageId!=='string'||!Array.isArray(t.party)||t.party.length>5||!Array.isArray(t.moves)||t.moves.length>160||!['active','claimed','abandoned'].includes(t.status)||!t.profiles||!Number.isFinite(t.startedAt)||!Number.isFinite(t.expiresAt)||!Number.isInteger(t.seed))throw Error('아레나 전투 기록을 확인해 주세요.')
+ for(const t of Object.values(p.tickets))if(t.tower&&(!['normal','strong','iron','swift','vital','exposed'].includes(t.tower.trait)||!['normal','gold','crystal','shadow'].includes(t.tower.special)||!/^([1-9]\d*)$/.test(t.tower.floor)||t.rules!==10||t.energyCost!==0||t.tower.growth!==undefined&&(['hp','atk','def'] as const).some(k=>!Number.isSafeInteger(t.tower!.growth![k])||t.tower!.growth![k]<0)||t.towerWork!==undefined&&(!Number.isFinite(t.towerWork)||t.towerWork<.01||t.towerWork>8)))throw Error('수련 티켓 기록을 확인해 주세요.')
  if(p.accounts&&Object.keys(p.accounts).length>32)throw Error('아레나 계정 기록 범위를 확인해 주세요.');
  if(p.links&&Object.keys(p.links).length>256)throw Error('아레나 연결 기록 범위를 확인해 주세요.');
  const integer=(v:unknown,min:number,max:number):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=min&&v<=max;
@@ -34,5 +36,6 @@ export function restoreArena(value:unknown):ArenaProgress{
  }
  if(p.season!==undefined&&p.season!==2)throw Error('아레나 시즌을 확인해 주세요.')
  for(const a of Object.values(p.accounts??{})){if(Object.keys(a.growth??{}).length>64||Object.keys(a.adventurers??{}).length>8)throw Error('아레나 전용 성장 범위를 확인해 주세요.');for(const g of [...Object.values(a.growth??{}),...Object.values(a.adventurers??{})])if(!integer(g.level,1,50)||!integer(g.xp,0,100000))throw Error('아레나 전용 성장 기록을 확인해 주세요.');for(const h of Object.values(a.adventurers??{}))if(!integer(h.shards,0,999999)||!integer(h.duplicates,0,Number.MAX_SAFE_INTEGER)||!Number.isFinite(h.at)||(h.stars!==undefined&&!integer(h.stars,1,5)))throw Error('모험가 소유 기록을 확인해 주세요.')}
+ for(const a of Object.values(p.accounts??{}))if(a.tower)validateTower(a.tower)
  return p
 }

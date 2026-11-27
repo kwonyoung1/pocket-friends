@@ -26,7 +26,7 @@ export class BattleView{
   this.host.appendChild(this.app.canvas);this.app.canvas.setAttribute('aria-label','별빛 아레나 · 지면 진형 전투 필드');this.app.canvas.setAttribute('role','img')
   const load=async(key:string)=>{const img=new Image();img.src=ASSETS[key];await img.decode();if(this.dead)throw Error('Arena closed');const source=new ImageSource({resource:img,scaleMode:key.startsWith('sprite-')||key.startsWith('enemies-')?'nearest':'linear'});this.sources.add(source);return new Texture({source})}
   const stage=state.stageId?stageById(state.stageId):undefined,enemyKey=stage?'enemies-'+stage.region:'enemies'
-  for(const id of new Set([...state.units.filter(u=>u.side==='ally').map(u=>u.art),enemyKey])){
+  for(const id of new Set([...state.units.filter(u=>u.side==='ally').map(u=>u.art),enemyKey,...state.units.filter(u=>u.side==='enemy'&&u.monsterId).map(u=>'enemies-'+monsterById(u.monsterId!)!.region)])){
    const isEnemy=id==='enemies'||id.startsWith('enemies-'),atlas=await load(id==='enemies'?'sprite-enemies':isEnemy?id:'sprite-'+id),frames:Texture[]=[]
    const hd=hdMonster(id.replace('enemies-','')),tile=hd?128:64,count=hd||id==='enemies-christmas'?20:id.startsWith('enemies-')?16:id==='enemies'?12:20,cols=isEnemy?4:5
    const measure=document.createElement('canvas');measure.width=measure.height=tile;const ctx=measure.getContext('2d',{willReadFrequently:true})!
@@ -42,6 +42,7 @@ export class BattleView{
   this.resizeObserver=new ResizeObserver(()=>{const b=this.host.getBoundingClientRect(),next=Math.max(260,Math.min(560,Math.round(b.height*390/Math.max(1,b.width))));if(this.inAction){this.pendingHeight=Math.abs(next-this.height)>1?next:0;return}if(Math.abs(next-this.height)>1)this.resize(next)});this.resizeObserver.observe(this.host)
  }
  private alignFoot(a:Actor){const fp=this.metrics.get(a.sprite.texture);if(!fp)return;a.sprite.x=(fp.tile/2-fp.footX)*a.sprite.scale.x;a.sprite.y=(fp.tile-fp.footY)*a.sprite.scale.y}
+ private baseTint(u:Unit){return u.towerSpecial==='gold'?0xffd369:0xffffff}
  private footprint(u:Unit){const a=this.metrics.get(this.texture(u,u.side==='ally'?2:0))!,b=this.metrics.get(this.texture(u,u.side==='ally'?9:1))??a;return{...a,width:Math.max(a.width,b.width),height:Math.max(a.height,b.height)}}
  private arrange(state:State){
   const region=state.stageId?stageById(state.stageId)?.region:'forest',key=this.height+'|'+region+'|'+state.units.map(u=>u.id).join(',');if(key===this.layoutKey)return;this.layoutKey=key
@@ -59,7 +60,7 @@ export class BattleView{
   const slot=this.layout!.slots.find(s=>s.id===u.id)!,home={x:slot.x,y:slot.y},root=new Container(),shadow=new Graphics().ellipse(0,0,slot.shadow.width/2,slot.shadow.height).fill({color:0x07111e,alpha:slot.shadow.alpha*.55}).ellipse(0,0,slot.shadow.width*.37,slot.shadow.height*.6).fill({color:0x07111e,alpha:slot.shadow.alpha})
   root.position.set(home.x,home.y);root.zIndex=home.y
   const halo=new Graphics().ellipse(0,0,slot.width*.57,Math.max(5,slot.width*.16)).stroke({color:0xffd88b,width:2,alpha:.9});halo.visible=false
-  const sprite=new Sprite(this.texture(u,u.side==='ally'?2:0));sprite.anchor.set(.5,1);sprite.scale.set(slot.scale)
+  const sprite=new Sprite(this.texture(u,u.side==='ally'?2:0));sprite.tint=this.baseTint(u);sprite.anchor.set(.5,1);sprite.scale.set(slot.scale)
   const h=slot.height,hx=slot.label.x+slot.label.width/2-slot.x,hy=slot.label.y-slot.y,plate=new Graphics().roundRect(hx-slot.label.width/2-2,hy-2,slot.label.width+4,19,4).fill({color:0x10233b,alpha:.8}).stroke({color:0xa4bdc9,alpha:.25,width:.6}),barBg=new Graphics().roundRect(hx-20,hy+10,40,3,1.5).fill({color:0x101b2d,alpha:.95}),bar=new Graphics().roundRect(0,0,40,3,1.5).fill(u.side==='ally'?0xa3dfc0:0xf7aaad)
   bar.position.set(hx-20,hy+10)
   const breakBar=new Graphics().roundRect(hx-20,hy+15,40,2,1).fill(0xead28a);breakBar.visible=u.maxToughness>0
@@ -139,9 +140,9 @@ export class BattleView{
    for(const t of targets)this.vfx?.residue(p,this.point(t));await this.wait(this.reduced?35:p.linger)
    if(!ranged){await this.move(a,a.home.x,a.home.y,this.reduced?60:140);a.pose=0}
    await this.zoom(1)
-  }finally{this.inAction=false;this.actionPoses.delete(a.unit.id);a.sprite.rotation=0;a.sprite.tint=0xffffff;a.sprite.scale.x=Math.abs(a.sprite.scale.x);a.pose=a.unit.hp>0?-1:16;if(!this.dead)this.cinematic(null);this.applyResize()}
+  }finally{this.inAction=false;this.actionPoses.delete(a.unit.id);a.sprite.rotation=0;a.sprite.tint=this.baseTint(a.unit);a.sprite.scale.x=Math.abs(a.sprite.scale.x);a.pose=a.unit.hp>0?-1:16;if(!this.dead)this.cinematic(null);this.applyResize()}
  }
- private async recoil(a:Actor){const x=a.root.x;a.pose=15;try{await this.tween(this.reduced?45:120,p=>{a.root.x=x+Math.sin(p*Math.PI)*(a.unit.side==='enemy'?5:-4);a.sprite.tint=p<.35?0xffe8df:0xffffff},'power1.out')}finally{a.root.x=x;a.sprite.tint=0xffffff;a.pose=a.unit.hp>0?-1:16}}
+ private async recoil(a:Actor){const x=a.root.x;a.pose=15;try{await this.tween(this.reduced?45:120,p=>{a.root.x=x+Math.sin(p*Math.PI)*(a.unit.side==='enemy'?5:-4);a.sprite.tint=p<.35?0xffe8df:this.baseTint(a.unit)},'power1.out')}finally{a.root.x=x;a.sprite.tint=this.baseTint(a.unit);a.pose=a.unit.hp>0?-1:16}}
  victory(){for(const a of this.actors.values())if(a.unit.side==='ally'&&a.unit.hp>0)a.pose=4;this.vfx?.particles.emit('star',195,this.height*.4,0xffe8b8,24,9,45,700)}
  destroy(){this.dead=true;this.resizeObserver?.disconnect();document.removeEventListener('visibilitychange',this.visibility);this.timeline.destroy();if(this.app.renderer){this.app.ticker.stop();setTimeout(()=>{this.vfx?.destroy();this.app.destroy(true,{children:true,texture:false,textureSource:false});for(const source of this.sources)source.destroy();this.sources.clear();this.frames.clear();this.metrics.clear()},0)}}
 }

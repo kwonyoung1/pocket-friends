@@ -107,6 +107,7 @@ jobs:
           for(const key of ['allUnit','automation','deno'])if(typeof p.checks[key]!=='boolean')throw Error('Invalid check requirement')
           if(!p.checks.allUnit&&!p.unitTests.length&&!p.skipped.unitSubset)throw Error('Missing related unit test coverage/reason')
           if(p.mode!=='FULL'&&!/^[a-f0-9]{64}$/.test(p.policyHash))throw Error('Unbound selective policy')
+          if(p.mode==='FULL'&&(p.browserTests.length||p.cloudTests.length)&&(!['arena','match3','sichuan'].includes(p.scope)||!/^[a-f0-9]{64}$/.test(p.policyHash)))throw Error('Unbound FULL feature scope')
           for(const job of ['browser','cloud'])if(p.mode!=='FULL'&&p.required[job]&&!p[job+'Tests'].length)throw Error('Empty selective test list')
           for(const key of ['browser','cloud'])if(typeof p.required[key]!=='boolean'||p.mode==='FULL'&&!p.required[key]||!p.required[key]&&!p.skipped[key])throw Error('Invalid job requirement')
           if(p.mode==='STANDARD'&&!p.required.browser)throw Error('STANDARD requires a boot/browser check')
